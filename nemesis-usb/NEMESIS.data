@@ -1,0 +1,4 @@
+[nemesis]
+version=1.1
+type=install
+path=packages/gen5w.nemesis.themer.zip

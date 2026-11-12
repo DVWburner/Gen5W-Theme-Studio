@@ -1,0 +1,25 @@
+# Exclude raw car dumps, OEM assets, logs, and extracted workspace temp folders (Privacy / Zero-PII / Zero-OEM)
+oem-dump/
+extracted-stock-assets/
+studio/oem-assets/
+tools/patched-layouts/
+*.log
+
+# Exclude local build toolchains & intermediate build artifacts
+.build-tools/
+build/
+dist/
+app/src/main/assets/
+
+# Exclude active working copies & personal user themes (keep only the Factory Stock OEM baseline)
+studio/custom-assets/*
+!studio/custom-assets/.gitkeep
+studio/theme-config.json
+studio/themes/*
+!studio/themes/stock-oem/
+studio/themes/stock-oem/assets/*
+!studio/themes/stock-oem/assets/.gitkeep
+
+# Exclude generated archives (upload Gen5W-Theme-Studio-Redistributable.zip via GitHub Releases instead of git tree)
+*.zip
+*.gen5wtheme

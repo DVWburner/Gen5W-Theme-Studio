@@ -1,0 +1,24 @@
+[nemesis]
+version=1.1
+id=gen5w.nemesis.themer
+name=Gen5W Themer
+type=application,service
+package-version=1.4.0
+short-desc=OEM Launcher Custom Theme Manager for Gen5W
+detailed-desc=Voluntary RAM-overlay theme engine for Gen5W OEM Launcher with 45-second auto-rollback deadman switch and instant factory stock restore.
+os=any
+models=any
+
+[app.0]
+kind=apk
+path=app/Gen5WThemer.apk
+package=com.gen5w.themer
+component=com.gen5w.themer/com.gen5w.themer.MainActivity
+uid=root
+
+[service.0]
+name=themer-helper
+kind=sh
+path=svc/themer-helper.sh
+uid=root
+mode=restart

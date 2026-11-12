@@ -1,0 +1,2650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Gen5W Theme Studio // Ioniq 5 Headunit Theme Builder</title>
+<style>
+  :root {
+    --bg: #0b0d13;
+    --panel: #121620;
+    --card: #181d2a;
+    --border: #262f45;
+    --accent: #3b82f6;
+    --accent-hover: #60a5fa;
+    --secondary: #94a3b8;
+    --blue: #38bdf8;
+    --green: #10b981;
+    --purple: #a855f7;
+    --text: #f1f5f9;
+    --muted: #94a3b8;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 0;
+    background: var(--bg); color: var(--text);
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+  }
+  header {
+    background: #0e111a; border-bottom: 1px solid var(--border);
+    padding: 8px 14px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .brand-pill {
+    background: var(--accent); color: #fff; font-weight: 800;
+    padding: 5px 11px; border-radius: 6px; font-size: 12.5px; letter-spacing: 0.4px;
+  }
+  .theme-bar {
+    display: flex; align-items: center; gap: 6px; background: var(--card);
+    padding: 4px 8px; border-radius: 8px; border: 1px solid var(--border);
+  }
+  .theme-bar label {
+    font-size: 12px; font-weight: 700; color: var(--muted); margin-right: 2px;
+  }
+  .toolbar-group { display: flex; align-items: center; gap: 6px; }
+  .spacer { flex: 1; }
+  button, select {
+    background: #1c2233; color: var(--text); border: 1px solid var(--border);
+    padding: 6px 11px; border-radius: 6px; font-weight: 600; font-size: 12px; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  button:hover, select:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+  button.primary:hover { background: var(--accent-hover); }
+  button.success { background: var(--green); color: #051b11; border-color: var(--green); font-weight: 800; }
+  button.danger { background: #31151b; color: #fca5a5; border-color: #69232f; font-size: 11.5px; padding: 4px 9px; }
+  button.mini { font-size: 11px; padding: 3px 8px; }
+  button.active-mode { background: var(--accent); color: #fff; border-color: var(--accent); font-weight: 700; }
+
+  .workspace { display: flex; flex: 1; overflow: hidden; }
+  .sidebar {
+    width: 455px; background: var(--panel); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .tabs {
+    display: flex; border-bottom: 1px solid var(--border); background: #0d1017;
+  }
+  .tab {
+    flex: 1; text-align: center; padding: 10px 4px; font-size: 12px; font-weight: 700;
+    color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+  }
+  .tab.active { color: var(--text); border-bottom-color: var(--accent); background: var(--panel); }
+  .tab-content { flex: 1; overflow-y: auto; padding: 14px; display: none; }
+  .tab-content.active { display: block; }
+
+  .upload-card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 9px;
+    padding: 11px; margin-bottom: 11px;
+  }
+  .upload-card.sub-card-blue { border-left: 3px solid var(--blue); }
+  .upload-card.sub-card-purple { border-left: 3px solid var(--purple); }
+  .upload-card.sub-card-accent { border-left: 3px solid var(--accent); }
+  .upload-card h3 {
+    margin: 0 0 8px 0; font-size: 13px; color: var(--text); display: flex; justify-content: space-between; align-items: center;
+  }
+  .upload-btn-label {
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--accent); color: #fff; font-weight: 700; font-size: 12px;
+    padding: 7px 12px; border-radius: 6px; cursor: pointer; width: 100%; text-align: center;
+    margin-bottom: 7px; transition: background 0.15s;
+  }
+  .upload-btn-label.blue-btn { background: #0284c7; }
+  .upload-btn-label.blue-btn:hover { background: #0369a1; }
+  .upload-btn-label:hover { background: var(--accent-hover); }
+  .upload-btn-label input[type="file"] { display: none; }
+
+  .section-title {
+    font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.7px;
+    color: var(--blue); margin: 14px 0 8px 0; border-bottom: 1px solid var(--border); padding-bottom: 4px;
+    font-weight: 700;
+  }
+  .section-title:first-child { margin-top: 0; }
+  .ctrl {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 6px; gap: 7px; font-size: 12.2px;
+  }
+  .ctrl label { color: var(--muted); flex: 1; }
+  .ctrl input[type="range"] { width: 125px; accent-color: var(--accent); }
+  .ctrl input[type="number"] {
+    width: 56px; background: #0b0e16; color: var(--text); border: 1px solid var(--border);
+    border-radius: 5px; padding: 3px 5px; font-size: 12px; text-align: right;
+  }
+  .ctrl input[type="color"] {
+    width: 42px; height: 25px; border: 1px solid var(--border); background: none; cursor: pointer; padding: 0;
+  }
+  .ctrl input[type="text"] {
+    width: 205px; background: #0b0e16; color: var(--text); border: 1px solid var(--border);
+    border-radius: 5px; padding: 4px 7px; font-size: 12px;
+  }
+  .ctrl select { width: 205px; padding: 4px 7px; font-size: 12px; }
+
+  details {
+    background: #0e121b; border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; margin-top: 8px;
+  }
+  summary {
+    cursor: pointer; font-weight: 700; font-size: 12.2px; color: var(--text);
+    outline: none; user-select: none;
+  }
+  details[open] summary { margin-bottom: 9px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+
+  .icon-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 10px;
+  }
+  .icon-chip {
+    background: #0e121b; border: 1px solid var(--border); border-radius: 7px;
+    padding: 5px 4px; cursor: pointer; text-align: center; font-size: 11px; color: var(--text);
+    position: relative; transition: border-color 0.15s;
+  }
+  .icon-chip:hover { border-color: var(--blue); }
+  .icon-chip.selected { border: 2px solid var(--accent); background: #192338; font-weight: 700; }
+  .icon-chip .chip-lbl {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 125px; margin: 0 auto;
+  }
+  .icon-chip .badge-tag {
+    display: inline-block; font-size: 9px; padding: 1px 4px; border-radius: 4px;
+    margin-top: 3px; font-weight: 700; margin-right: 2px;
+  }
+  .tag-custom { background: var(--green); color: #041f14; }
+  .tag-oem { background: #334155; color: #e2e8f0; }
+  .tag-lcars { background: #1e3a8a; color: #93c5fd; }
+  .tag-tile { background: var(--purple); color: #fff; }
+
+  .main-stage {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 16px; position: relative; overflow: auto; background: #07090e;
+  }
+  .canvas-wrap {
+    position: relative; width: 100%; max-width: 1440px; aspect-ratio: 1920 / 720;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.85), 0 0 0 1px var(--border);
+    border-radius: 8px; overflow: hidden; background: #000;
+  }
+  .canvas-wrap.drag-over {
+    box-shadow: 0 0 0 4px var(--green), 0 12px 40px rgba(16,185,129,0.4);
+  }
+  canvas {
+    width: 100%; height: 100%; display: block; cursor: pointer;
+  }
+  .stage-bar {
+    margin-top: 10px; display: flex; align-items: center; gap: 16px; font-size: 12.5px;
+    background: var(--panel); padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  #statusToast {
+    font-family: monospace; font-size: 12px; color: var(--green); max-width: 650px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="brand-pill">GEN5W THEME STUDIO</span>
+
+  <!-- MULTI-THEME SWITCHER & SAVED THEMES MANAGER -->
+  <div class="theme-bar">
+    <label for="selThemeList">Theme:</label>
+    <select id="selThemeList" onchange="switchActiveTheme(this.value)" style="min-width:165px;font-weight:700;"></select>
+    <button onclick="saveConfigOnly()" title="Save changes to current theme">Save</button>
+    <button class="primary" onclick="promptCreateNewTheme(true)" title="Save current settings &amp; assets as a new named theme">+ Save As New...</button>
+    <button onclick="promptCreateNewTheme(false)" title="Create a fresh theme starting from Factory Stock OEM">+ New Blank</button>
+    <button onclick="exportCurrentThemeZip()" title="Export this theme + all custom images &amp; version metadata to share with other Theme Studio users">📤 Export</button>
+    <label style="margin:0;cursor:pointer;background:#1e2636;color:#eef2f8;border:1px solid #354159;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;" title="Import a shared theme file into Theme Studio">
+      📥 Import
+      <input type="file" accept=".gen5wtheme,.zip,application/zip" style="display:none;" onchange="importThemeZipFile(this)">
+    </label>
+    <button class="danger" id="btnDeleteTheme" onclick="deleteCurrentTheme()" title="Delete this saved theme">Delete</button>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="toolbar-group">
+    <button id="btnViewApps1" class="active-mode" onclick="setScreenMode('apps1')">All-Apps (Page 1)</button>
+    <button id="btnViewApps2" onclick="setScreenMode('apps2')">All-Apps (Page 2)</button>
+    <button id="btnViewHome" onclick="setScreenMode('home')">Home Split-Screen</button>
+    <select id="selDayNight" onchange="render()">
+      <option value="night">Night Mode</option>
+      <option value="day">Day Mode</option>
+    </select>
+  </div>
+
+  <div class="toolbar-group">
+    <span id="diskSaveBadge" title="All themes and uploaded images are saved directly to studio/themes/ inside the program folder on your PC (never in browser cache)" style="font-size:11px;color:#10b981;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.35);padding:5px 9px;border-radius:6px;white-space:nowrap;">💾 Disk: studio/themes/</span>
+    <button onclick="openHelpModal()" title="How to design, export, and install themes on your car">? Help / Instructions</button>
+    <button class="success" id="btnBuildDeploy" onclick="openBuildModal()">Build &amp; Download USB ZIP...</button>
+  </div>
+</header>
+
+<!-- MULTI-THEME BUILD PICKER MODAL -->
+<div id="buildModal" style="display:none;position:fixed;inset:0;background:rgba(5,8,17,0.84);z-index:9999;align-items:center;justify-content:center;padding:24px;">
+  <div style="background:#151a24;border:1px solid #283246;border-radius:12px;max-width:560px;width:100%;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,0.8);color:#eef2f8;">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #283246;padding-bottom:12px;margin-bottom:14px;">
+      <h2 style="margin:0;font-size:17px;color:#10b981;">📦 Select Themes to Bundle in Car APK</h2>
+      <button onclick="closeBuildModal()" style="font-size:13px;padding:4px 10px;">✕</button>
+    </div>
+    <p style="margin:0 0 12px 0;font-size:13px;color:#cbd5e1;line-height:1.5;">
+      Check one or more themes below to bundle into the <b>Gen5W Themer</b> in-car app. On your car's display, you can switch between any bundled themes at any time!
+    </p>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <button class="mini" onclick="toggleAllBuildThemes(true)">Select All Custom</button>
+      <button class="mini" onclick="toggleAllBuildThemes(false)">Only Current Theme</button>
+    </div>
+    <div id="buildThemesChecklist" style="max-height:240px;overflow-y:auto;background:#0e121a;border:1px solid #252b3b;border-radius:8px;padding:10px;margin-bottom:16px;display:flex;flex-direction:column;gap:8px;"></div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;">
+      <button onclick="closeBuildModal()">Cancel</button>
+      <button class="success" id="btnConfirmBuild" onclick="buildAndDeploySelected()">🚀 Build &amp; Download USB ZIP</button>
+    </div>
+  </div>
+</div>
+
+<!-- HELP / INSTRUCTIONS MODAL -->
+<div id="helpModal" style="display:none;position:fixed;inset:0;background:rgba(5,8,17,0.82);z-index:9999;align-items:center;justify-content:center;padding:24px;">
+  <div style="background:#151a24;border:1px solid #283246;border-radius:12px;max-width:740px;width:100%;max-height:86vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.75);color:#eef2f8;line-height:1.55;">
+    <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #283246;padding-bottom:12px;margin-bottom:16px;">
+      <h2 style="margin:0;font-size:18px;color:#38bdf8;">Gen5W Theme Studio — User Guide &amp; Car Installation Instructions</h2>
+      <button onclick="closeHelpModal()" style="font-size:13px;padding:5px 12px;">Close ✕</button>
+    </div>
+
+    <h3 style="color:#60a5fa;font-size:14px;margin:14px 0 6px 0;">1. Creating &amp; Switching Themes</h3>
+    <ul style="margin:0 0 12px 18px;padding:0;font-size:13px;color:#cbd5e1;">
+      <li><b>Factory Stock OEM</b> is the built-in baseline showing your car's unmodified dark theme.</li>
+      <li>Click <b>+ New Blank (Stock)</b> to start a brand-new theme from Factory Stock, or <b>+ Save As New...</b> to clone your current theme under a new name.</li>
+      <li>Use the <b>Theme</b> dropdown at the top-left to switch between your saved themes at any time. Each theme keeps its own separate uploaded images and settings inside <code>studio/themes/&lt;theme-name&gt;/</code>.</li>
+    </ul>
+
+    <h3 style="color:#60a5fa;font-size:14px;margin:14px 0 6px 0;">2. Customizing Wallpapers, Tiles, Icons &amp; Text</h3>
+    <ul style="margin:0 0 12px 18px;padding:0;font-size:13px;color:#cbd5e1;">
+      <li><b>1. Wallpapers Tab:</b> Upload custom <code>1920×720</code> wallpapers for the All-Apps screen and the Home Split-Screen. On the Home Split-Screen, a transparent window is automatically cut out on the right side so your live Navigation Map shows through.</li>
+      <li><b>2. Icons, Text &amp; Tiles Tab:</b> Click any icon on the right-hand preview canvas (or in the left-hand grid) to select it:
+        <ul>
+          <li><b>Custom Text Label:</b> Rename any icon (use <code>|</code> for a 2-line wrap), change its font size/color/position, or check <b>Hide Text Label on This Tile</b> for an icon-only look.</li>
+          <li><b>Independent Tile Background:</b> Give any single icon its own uploaded tile background image, custom card fill/border, or transparent tile, or let it use the Global Tile Card style.</li>
+          <li><b>Custom Icon Graphic:</b> Upload a replacement PNG/JPG/WebP icon or drag-and-drop an image file directly onto the <code>1920×720</code> canvas.</li>
+        </ul>
+      </li>
+      <li><b>3. Home EV Widget Tab:</b> Keep the Factory Stock EV battery graphic, upload your own custom battery graphic, or use a vector gauge.</li>
+    </ul>
+
+    <h3 style="color:#10b981;font-size:14px;margin:14px 0 6px 0;">3. Building &amp; Putting the Theme on a USB Drive</h3>
+    <ol style="margin:0 0 12px 18px;padding:0;font-size:13px;color:#cbd5e1;">
+      <li>Click the green <b>Build &amp; Download USB ZIP</b> button at the top-right.</li>
+      <li>Wait ~10–15 seconds while the Studio renders all 330 WebP assets and builds your signed package. Your browser will download <b><code>Gen5W-Theme-&lt;name&gt;-USB.zip</code></b> (also saved in the <code>dist/</code> folder).</li>
+      <li>Format a USB flash drive as <b>FAT32</b> or <b>exFAT</b> and <b>extract the contents of that ZIP file directly to the root of the USB drive</b> so the USB drive contains:
+        <pre style="background:#0b0e16;border:1px solid #283246;padding:8px 12px;border-radius:6px;margin:6px 0;color:#38bdf8;font-size:12px;">USB_DRIVE:\
+ ├── NEMESIS.data
+ └── packages\
+      └── gen5w.nemesis.themer.zip</pre>
+      </li>
+    </ol>
+
+    <h3 style="color:#f59e0b;font-size:14px;margin:14px 0 6px 0;">4. Installing &amp; Using on the Car (100% Safe RAM Overlay)</h3>
+    <ol style="margin:0 0 8px 18px;padding:0;font-size:13px;color:#cbd5e1;">
+      <li>Requires <b>NEMESIS</b> installed on your Gen5W headunit. Plug the USB drive into the car's data USB port and install/update the package from the NEMESIS package installer.</li>
+      <li>Once installed, you can <b>unplug and remove the USB drive</b> — the theme is stored inside the app on the headunit and does not need the USB drive during everyday driving.</li>
+      <li>Open <b>Gen5W Themer</b> (palette &amp; paintbrush icon) from the NEMESIS Launcher:
+        <ul>
+          <li>Tap <b>[1. APPLY CUSTOM THEME (45s Safe Test Mode)]</b>. Your theme mounts in volatile RAM (<code>/mnt/asec</code>) and restarts the Home Launcher with a <b>45-second safety countdown</b>.</li>
+          <li>After 15 seconds of previewing your Home screen, Gen5W Themer pops back up automatically so you can tap <b>[2. CONFIRM &amp; KEEP THEME]</b> to cancel the rollback timer.</li>
+          <li><b>Fail-Safe Guarantee:</b> If anything ever goes wrong or you don't confirm within 45 seconds, it automatically reverts to 100% Factory Stock. Furthermore, <b>rebooting the headunit (or pressing the dashboard pinhole reset) ALWAYS boots 100% unmodified Factory Stock</b>.</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+</div>
+
+<div class="workspace">
+  <div class="sidebar">
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab(0)">1. Wallpapers</div>
+      <div class="tab" onclick="switchTab(1)">2. Icons, Text &amp; Tiles</div>
+      <div class="tab" onclick="switchTab(2)">3. Home EV Widget</div>
+      <div class="tab" onclick="switchTab(3)">4. Colors</div>
+    </div>
+
+    <!-- TAB 0: BACKGROUNDS (ALL-APPS & HOME) -->
+    <div class="tab-content active" id="tab0">
+      <div class="upload-card sub-card-accent">
+        <h3>
+          <span>All-Apps Wallpaper (1920&times;720)</span>
+          <button class="danger" onclick="clearCustomBg('allApps')">Reset to Stock</button>
+        </h3>
+        <label class="upload-btn-label">
+          Upload Custom All-Apps Background Image...
+          <input type="file" accept="image/*" onchange="uploadAssetFile(this, 'bg_allapps', 'allApps')">
+        </label>
+        <div class="ctrl">
+          <label>Background Mode</label>
+          <select data-path="allApps.bgMode">
+            <option value="oem">Stock Hyundai OEM</option>
+            <option value="custom">Custom Uploaded Image</option>
+            <option value="lcars">Solid / Gradient Color</option>
+          </select>
+        </div>
+        <div class="ctrl">
+          <label>Image Fit Mode</label>
+          <select data-path="allApps.bgFit">
+            <option value="cover">Cover (Fill 1920x720)</option>
+            <option value="contain">Contain (Fit Inside)</option>
+            <option value="stretch">Stretch (Exact 1920x720)</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>Zoom / Scale (%)</label><input type="range" min="40" max="250" data-path="allApps.bgScale"><input type="number" data-path="allApps.bgScale"></div>
+        <div class="ctrl"><label>Pan X Offset (px)</label><input type="range" min="-600" max="600" data-path="allApps.bgOffsetX"><input type="number" data-path="allApps.bgOffsetX"></div>
+        <div class="ctrl"><label>Pan Y Offset (px)</label><input type="range" min="-400" max="400" data-path="allApps.bgOffsetY"><input type="number" data-path="allApps.bgOffsetY"></div>
+        <div class="ctrl"><label>Darken / Dim (%)</label><input type="range" min="0" max="85" data-path="allApps.bgDim"><input type="number" data-path="allApps.bgDim"></div>
+      </div>
+
+      <div class="upload-card sub-card-blue">
+        <h3>
+          <span>Home Split-Screen Background</span>
+          <button class="danger" onclick="clearCustomBg('homeScreen')">Reset to Stock</button>
+        </h3>
+        <label class="upload-btn-label blue-btn">
+          Upload Custom Home Screen Background...
+          <input type="file" accept="image/*" onchange="uploadAssetFile(this, 'bg_home', 'homeScreen')">
+        </label>
+        <div class="ctrl">
+          <label>Home Screen Mode</label>
+          <select data-path="homeScreen.bgMode">
+            <option value="oem">Stock Hyundai OEM Overlay</option>
+            <option value="custom">Separate Uploaded Image</option>
+            <option value="sameAsAllApps">Same Image as All-Apps</option>
+            <option value="lcars">Solid / Gradient Console</option>
+          </select>
+        </div>
+        <div class="ctrl">
+          <label>Image Fit Mode</label>
+          <select data-path="homeScreen.bgFit">
+            <option value="cover">Cover (Fill 1920x720)</option>
+            <option value="contain">Contain (Fit Inside)</option>
+            <option value="stretch">Stretch (Exact 1920x720)</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>Zoom / Scale (%)</label><input type="range" min="40" max="250" data-path="homeScreen.bgScale"><input type="number" data-path="homeScreen.bgScale"></div>
+        <div class="ctrl"><label>Pan X Offset (px)</label><input type="range" min="-600" max="600" data-path="homeScreen.bgOffsetX"><input type="number" data-path="homeScreen.bgOffsetX"></div>
+        <div class="ctrl"><label>Pan Y Offset (px)</label><input type="range" min="-400" max="400" data-path="homeScreen.bgOffsetY"><input type="number" data-path="homeScreen.bgOffsetY"></div>
+        <div class="ctrl"><label>Darken / Dim (%)</label><input type="range" min="0" max="85" data-path="homeScreen.bgDim"><input type="number" data-path="homeScreen.bgDim"></div>
+      </div>
+
+      <details open>
+        <summary>Home Screen Map Viewport &amp; Alpha Fade</summary>
+        <div class="ctrl" style="margin-top:8px;">
+          <label>Map Cutout / Fade Mode</label>
+          <select data-path="homeScreen.mapFadeMode">
+            <option value="feather">Soft Alpha Fade (All 4 Edges)</option>
+            <option value="feather-left">Left-Edge Alpha Gradient (Stock Style)</option>
+            <option value="oem-alpha">Use Stock OEM Alpha Layer</option>
+            <option value="hard">Sharp Rectangular Cutout</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>Alpha Fade Width (px)</label><input type="range" min="0" max="260" data-path="homeScreen.mapFadeWidth"><input type="number" data-path="homeScreen.mapFadeWidth"></div>
+        <div class="ctrl"><label>Map Center Tint (%)</label><input type="range" min="0" max="80" data-path="homeScreen.mapCenterOpacity"><input type="number" data-path="homeScreen.mapCenterOpacity"></div>
+        <div class="ctrl"><label>Map Split Left X</label><input type="range" min="900" max="1500" data-path="homeScreen.dividerX"><input type="number" data-path="homeScreen.dividerX"></div>
+        <div class="ctrl"><label>Divider Gap Width</label><input type="range" min="0" max="48" data-path="homeScreen.dividerWidth"><input type="number" data-path="homeScreen.dividerWidth"></div>
+        <div class="ctrl"><label>Map Top Y</label><input type="range" min="0" max="300" data-path="homeScreen.mapBorderTopY"><input type="number" data-path="homeScreen.mapBorderTopY"></div>
+        <div class="ctrl"><label>Map Bottom Y</label><input type="range" min="450" max="720" data-path="homeScreen.mapBorderBotY"><input type="number" data-path="homeScreen.mapBorderBotY"></div>
+        <div class="ctrl"><label>Map Right Edge X</label><input type="range" min="1600" max="1920" data-path="homeScreen.mapBorderRightX"><input type="number" data-path="homeScreen.mapBorderRightX"></div>
+        <div class="ctrl"><label>Map Cutout Corner R</label><input type="range" min="0" max="40" data-path="homeScreen.mapCutoutRadius"><input type="number" data-path="homeScreen.mapCutoutRadius"></div>
+        <div class="ctrl"><label>Map Border Width</label><input type="range" min="0" max="10" step="0.5" data-path="homeScreen.mapCutoutBorderW"><input type="number" step="0.5" data-path="homeScreen.mapCutoutBorderW"></div>
+        <div class="ctrl"><label>Map Border Color</label><input type="color" data-path="homeScreen.mapCutoutBorderColor"></div>
+      </details>
+
+      <details>
+        <summary>Optional Decorative Overlays (Grid / Frame / Headers)</summary>
+        <div class="ctrl">
+          <label>Draw All-Apps Frame Overlay</label>
+          <input type="checkbox" id="chkAllAppsLcars" onchange="cfg.allApps.showLcarsFrame = this.checked; render();">
+        </div>
+        <div class="ctrl">
+          <label>Draw Home Split Frame Overlay</label>
+          <input type="checkbox" id="chkHomeLcars" onchange="cfg.homeScreen.showLcarsFrame = this.checked; render();">
+        </div>
+        <div class="ctrl"><label>Grid Overlay Alpha</label><input type="range" min="0" max="80" data-path="allApps.gridOpacity"><input type="number" data-path="allApps.gridOpacity"></div>
+        <div class="ctrl"><label>Center Emblem Alpha</label><input type="range" min="0" max="90" data-path="allApps.deltaWatermarkOpacity"><input type="number" data-path="allApps.deltaWatermarkOpacity"></div>
+        <div class="ctrl"><label>Top Bar Y</label><input type="range" min="50" max="110" data-path="allApps.topBarY"><input type="number" data-path="allApps.topBarY"></div>
+        <div class="ctrl"><label>Bottom Bar Y</label><input type="range" min="660" max="708" data-path="allApps.botBarY"><input type="number" data-path="allApps.botBarY"></div>
+        <div class="ctrl"><label>Header Text (Left)</label><input type="text" data-path="allApps.titleNight"></div>
+        <div class="ctrl"><label>Header Text (Right)</label><input type="text" data-path="allApps.subtitleRight"></div>
+      </details>
+    </div>
+
+    <!-- TAB 1: ICONS, TEXT LABELS & PER-TILE BACKGROUNDS -->
+    <div class="tab-content" id="tab1">
+      <div class="section-title">1. Select Tile to Edit (Click Grid or Click Canvas)</div>
+      <div class="icon-grid" id="iconQuickGrid"></div>
+      <div class="ctrl">
+        <label>Selected Slot:</label>
+        <select id="selIconKey" onchange="loadSelectedIconUI()"></select>
+      </div>
+
+      <!-- CARD A: PER-ICON TEXT LABEL EDITOR -->
+      <div class="upload-card sub-card-purple" style="margin-top:8px;">
+        <h3>
+          <span id="lblSelectedTextTitle">A. Tile Text Label — EV</span>
+          <button class="danger" onclick="resetSelectedIconText()">Default Text</button>
+        </h3>
+        <div class="ctrl">
+          <label>Label Text (`|` = 2 lines)</label>
+          <input type="text" id="inpIconLabel" placeholder="e.g. EV or Phone|Projection" oninput="updateSelectedIcon()">
+        </div>
+        <div class="ctrl">
+          <label>Show Text Label on Tile</label>
+          <input type="checkbox" id="chkIconShowText" onchange="updateSelectedIcon()">
+        </div>
+        <div class="ctrl">
+          <label>Custom Text Color</label>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input type="color" id="inpIconTextCol" oninput="ovSetTextCol(this.value)">
+            <button class="mini" onclick="clearSelectedIconTextCol()">Use Global</button>
+          </div>
+        </div>
+        <div class="ctrl"><label>Font Size (0=Global)</label><input type="range" min="0" max="46" id="rngIconTextSize" oninput="syncSingleIconSliders('textSize', this.value)"><input type="number" id="numIconTextSize" oninput="syncSingleIconSliders('textSize', this.value)"></div>
+        <div class="ctrl"><label>Text X Offset (px)</label><input type="range" min="-120" max="120" id="rngIconTextOffX" oninput="syncSingleIconSliders('textOffsetX', this.value)"><input type="number" id="numIconTextOffX" oninput="syncSingleIconSliders('textOffsetX', this.value)"></div>
+        <div class="ctrl"><label>Text Y Offset (px)</label><input type="range" min="-150" max="60" id="rngIconTextOffY" oninput="syncSingleIconSliders('textOffsetY', this.value)"><input type="number" id="numIconTextOffY" oninput="syncSingleIconSliders('textOffsetY', this.value)"></div>
+      </div>
+
+      <!-- CARD B: INDEPENDENT PER-ICON TILE BACKGROUND -->
+      <div class="upload-card sub-card-blue">
+        <h3>
+          <span>B. Independent Tile Background (This Tile)</span>
+          <button class="danger" onclick="resetSelectedTileBg()">Use Global</button>
+        </h3>
+        <label class="upload-btn-label blue-btn">
+          Upload Background Image for This Tile Only...
+          <input type="file" id="inpCustomTileBgFile" accept="image/*" onchange="uploadSelectedTileBgFile(this)">
+        </label>
+        <div class="ctrl">
+          <label>This Tile's BG Mode</label>
+          <select id="selSingleTileMode" onchange="updateSelectedIcon()">
+            <option value="global">Use Global Tile Card</option>
+            <option value="custom">Custom Uploaded Image (This Tile)</option>
+            <option value="oem">Stock Hyundai OEM Tile</option>
+            <option value="glass">Independent Rounded / Glass Card</option>
+            <option value="lcars">Independent Framed Accent Card</option>
+            <option value="none">None (Transparent / Floating)</option>
+          </select>
+        </div>
+        <div class="ctrl">
+          <label>Tile Image Fit</label>
+          <select id="selSingleTileFit" onchange="updateSelectedIcon()">
+            <option value="cover">Cover (Fill Rounded Card)</option>
+            <option value="contain">Contain (Fit Inside)</option>
+            <option value="stretch">Stretch</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>Tile Image Zoom (%)</label><input type="range" min="40" max="250" id="rngTileScale" oninput="syncSingleIconSliders('tileScale', this.value)"><input type="number" id="numTileScale" oninput="syncSingleIconSliders('tileScale', this.value)"></div>
+        <div class="ctrl"><label>Tile Image X Offset</label><input type="range" min="-150" max="150" id="rngTileOffX" oninput="syncSingleIconSliders('tileOffsetX', this.value)"><input type="number" id="numTileOffX" oninput="syncSingleIconSliders('tileOffsetX', this.value)"></div>
+        <div class="ctrl"><label>Tile Image Y Offset</label><input type="range" min="-120" max="120" id="rngTileOffY" oninput="syncSingleIconSliders('tileOffsetY', this.value)"><input type="number" id="numTileOffY" oninput="syncSingleIconSliders('tileOffsetY', this.value)"></div>
+        <div class="ctrl">
+          <label>Tile Fill &amp; Border Color</label>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <input type="color" id="inpSingleTileFill" title="Tile Fill Color" oninput="updateSelectedIcon()">
+            <input type="color" id="inpSingleTileBorder" title="Tile Border Color" oninput="updateSelectedIcon()">
+          </div>
+        </div>
+        <div class="ctrl"><label>Tile Fill Opacity</label><input type="range" min="0" max="255" id="rngSingleTileOp" oninput="syncSingleIconSliders('tileFillOpacity', this.value)"><input type="number" id="numSingleTileOp" oninput="syncSingleIconSliders('tileFillOpacity', this.value)"></div>
+      </div>
+
+      <!-- CARD C: PER-ICON GRAPHIC -->
+      <div class="upload-card sub-card-accent">
+        <h3>
+          <span id="lblSelectedIconTitle">C. Icon Graphic — EV</span>
+          <button class="danger" onclick="resetSelectedIcon()">Revert Icon</button>
+        </h3>
+        <label class="upload-btn-label">
+          Upload Custom Graphic for This Icon...
+          <input type="file" id="inpCustomIconFile" accept="image/*" onchange="uploadSelectedIconFile(this)">
+        </label>
+        <div class="ctrl">
+          <label>This Icon's Graphic</label>
+          <select id="selSingleIconMode" onchange="updateSelectedIcon()">
+            <option value="default">Use Global Default</option>
+            <option value="custom">Custom Uploaded Graphic</option>
+            <option value="oem">Stock Hyundai OEM Icon</option>
+            <option value="lcars">Vector Emblem / Badge</option>
+            <option value="none">None (Hide Icon — Show Tile BG/Text Only)</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>Icon Size / Zoom (%)</label><input type="range" min="25" max="250" id="rngIconScale" oninput="syncSingleIconSliders('scale', this.value)"><input type="number" id="numIconScale" oninput="syncSingleIconSliders('scale', this.value)"></div>
+        <div class="ctrl"><label>Nudge X Offset (px)</label><input type="range" min="-110" max="110" id="rngIconOffX" oninput="syncSingleIconSliders('offsetX', this.value)"><input type="number" id="numIconOffX" oninput="syncSingleIconSliders('offsetX', this.value)"></div>
+        <div class="ctrl"><label>Nudge Y Offset (px)</label><input type="range" min="-90" max="90" id="rngIconOffY" oninput="syncSingleIconSliders('offsetY', this.value)"><input type="number" id="numIconOffY" oninput="syncSingleIconSliders('offsetY', this.value)"></div>
+        <div class="ctrl"><label>Round / Circle Mask</label><input type="range" min="0" max="50" id="rngIconClip" oninput="syncSingleIconSliders('clipRadius', this.value)"><input type="number" id="numIconClip" oninput="syncSingleIconSliders('clipRadius', this.value)"></div>
+
+        <details style="margin-top:6px;">
+          <summary>Vector Emblem Options (when graphic = Vector Emblem)</summary>
+          <div class="ctrl"><label>Badge Tag</label><input type="text" id="inpIconBadge" oninput="updateSelectedIcon()"></div>
+          <div class="ctrl"><label>Primary Color</label><input type="color" id="inpIconDivCol" oninput="updateSelectedIcon()"></div>
+          <div class="ctrl"><label>Outer Ring Color</label><input type="color" id="inpIconRingCol" oninput="updateSelectedIcon()"></div>
+          <div class="ctrl">
+            <label>Center Glyph</label>
+            <select id="selIconGlyph" onchange="updateSelectedIcon()">
+              <option value="WARP">Core</option>
+              <option value="ORBIT">Orbit</option>
+              <option value="HELM">Crosshair</option>
+              <option value="WAVE">Wave</option>
+              <option value="HOLO">Grid</option>
+              <option value="LIFE">Plus</option>
+              <option value="GEAR">Gear</option>
+              <option value="SHIELD">Shield</option>
+              <option value="STAR">Star</option>
+              <option value="DATA">Node</option>
+            </select>
+          </div>
+        </details>
+      </div>
+
+      <!-- GLOBAL DEFAULTS FOR ALL TILES, ICONS & LABELS -->
+      <details open>
+        <summary>Global Defaults (Shared Tile Card, Icon Mode &amp; Text Style)</summary>
+        <div class="ctrl">
+          <label>Default Icon Graphic</label>
+          <select data-path="icons.defaultMode" onchange="refreshIconGrid(); render();">
+            <option value="oem">Stock Hyundai OEM Icons</option>
+            <option value="lcars">Vector Emblem Badges</option>
+            <option value="none">None (Tile BG &amp; Text Only)</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>Global Text Color</label><input type="color" data-path="icons.globalTextColor"></div>
+        <div class="ctrl"><label>Global Font Size (px)</label><input type="range" min="14" max="42" data-path="icons.globalTextSize"><input type="number" data-path="icons.globalTextSize"></div>
+        <div class="ctrl"><label>Global Text Y Offset</label><input type="range" min="-150" max="50" data-path="icons.globalTextOffsetY"><input type="number" data-path="icons.globalTextOffsetY"></div>
+        <hr style="border:0;border-top:1px solid var(--border);margin:8px 0;">
+        <div class="ctrl">
+          <label>Global Tile Card Style</label>
+          <select data-path="tile.style">
+            <option value="oem">Stock Hyundai OEM Tile</option>
+            <option value="glass">Rounded / Glass Card</option>
+            <option value="custom">Custom Uploaded Global Tile Image</option>
+            <option value="none">None (Transparent / Floating Icons)</option>
+            <option value="lcars">Framed Accent Tile Card</option>
+          </select>
+        </div>
+        <label class="upload-btn-label" style="margin-top:4px;">
+          Upload Global Tile Card Image (All "Global" Tiles)...
+          <input type="file" accept="image/*" onchange="uploadAssetFile(this, 'tile_nor', 'tile')">
+        </label>
+        <div class="ctrl"><label>Global Card Opacity</label><input type="range" min="0" max="255" data-path="tile.fillOpacity"><input type="number" data-path="tile.fillOpacity"></div>
+        <div class="ctrl"><label>Global Border Color</label><input type="color" data-path="tile.borderColor"></div>
+        <div class="ctrl"><label>Global Border Width</label><input type="range" min="0" max="8" step="0.5" data-path="tile.borderWidth"><input type="number" step="0.5" data-path="tile.borderWidth"></div>
+        <div class="ctrl"><label>Card Corner Radius</label><input type="range" min="0" max="50" data-path="tile.cornerRadius"><input type="number" data-path="tile.cornerRadius"></div>
+        <div class="ctrl"><label>Card Width (px)</label><input type="range" min="220" max="304" data-path="tile.cardW"><input type="number" data-path="tile.cardW"></div>
+        <div class="ctrl"><label>Card Height (px)</label><input type="range" min="180" max="247" data-path="tile.cardH"><input type="number" data-path="tile.cardH"></div>
+      </details>
+    </div>
+
+    <!-- TAB 2: HOME EV BATTERY WIDGET -->
+    <div class="tab-content" id="tab2">
+      <div class="upload-card sub-card-accent">
+        <h3>
+          <span>Home EV Battery Graphic (798&times;318)</span>
+          <button class="danger" onclick="clearCustomBg('batteryWidget')">Reset to Stock</button>
+        </h3>
+        <div class="ctrl">
+          <label>EV Graphic Style</label>
+          <select data-path="batteryWidget.style" onchange="setScreenMode('home')">
+            <option value="oem">Stock Hyundai OEM Battery</option>
+            <option value="custom">Custom Uploaded Graphic</option>
+            <option value="lcars">Vector Schematic</option>
+          </select>
+        </div>
+        <label class="upload-btn-label">
+          Upload Custom EV Graphic (Car / Battery / Logo)...
+          <input type="file" accept="image/*" onchange="uploadAssetFile(this, 'battery_custom', 'batteryWidget')">
+        </label>
+        <div class="ctrl"><label>Preview Charge %</label><input type="range" min="0" max="100" step="5" id="simBatteryPct" value="46" oninput="render()"><span id="simBatteryLbl">46%</span></div>
+        <div class="ctrl"><label>EV Car Scale (%)</label><input type="range" min="30" max="200" data-path="batteryWidget.customScale"><input type="number" data-path="batteryWidget.customScale"></div>
+        <div class="ctrl"><label>EV Car Offset X (px)</label><input type="range" min="-250" max="250" data-path="batteryWidget.customOffsetX"><input type="number" data-path="batteryWidget.customOffsetX"></div>
+        <div class="ctrl"><label>EV Car Offset Y (px)</label><input type="range" min="-150" max="150" data-path="batteryWidget.customOffsetY"><input type="number" data-path="batteryWidget.customOffsetY"></div>
+        <hr style="border:0;border-top:1px solid var(--border);margin:8px 0;">
+        <div class="ctrl"><label>"Range / mi" Offset X</label><input type="range" min="-580" max="180" data-path="batteryWidget.rangeOffsetX"><input type="number" data-path="batteryWidget.rangeOffsetX"></div>
+        <div class="ctrl"><label>"Range / mi" Offset Y</label><input type="range" min="-200" max="100" data-path="batteryWidget.rangeOffsetY"><input type="number" data-path="batteryWidget.rangeOffsetY"></div>
+        <div class="ctrl">
+          <label>Hide OEM "Range" Box Backing</label>
+          <input type="checkbox" id="chkHideRangeBox" onchange="cfg.batteryWidget.hideRangeBox = this.checked; scheduleAutoSave(); render();">
+        </div>
+        <hr style="border:0;border-top:1px solid var(--border);margin:8px 0;">
+        <div class="ctrl"><label>"Battery %" Offset X</label><input type="range" min="-160" max="450" data-path="batteryWidget.battTextOffsetX"><input type="number" data-path="batteryWidget.battTextOffsetX"></div>
+        <div class="ctrl"><label>"Battery %" Offset Y</label><input type="range" min="-35" max="200" data-path="batteryWidget.battTextOffsetY"><input type="number" data-path="batteryWidget.battTextOffsetY"></div>
+        <div class="ctrl">
+          <label>Draw Dynamic Charge Bar Overlay</label>
+          <input type="checkbox" id="chkBatBar" onchange="cfg.batteryWidget.showDynamicBar = this.checked; scheduleAutoSave(); render();">
+        </div>
+        <div class="ctrl">
+          <label>Draw "Battery %" Readout Box</label>
+          <input type="checkbox" id="chkBatBox" onchange="cfg.batteryWidget.showCalloutBox = this.checked; scheduleAutoSave(); render();">
+        </div>
+      </div>
+
+      <details open>
+        <summary>Fine-Tune EV Readout Box &amp; Bar Positions</summary>
+        <div class="ctrl"><label>"Battery %" Box X</label><input type="range" min="0" max="550" data-path="batteryWidget.calloutX"><input type="number" data-path="batteryWidget.calloutX"></div>
+        <div class="ctrl"><label>"Battery %" Box Y</label><input type="range" min="0" max="240" data-path="batteryWidget.calloutY"><input type="number" data-path="batteryWidget.calloutY"></div>
+        <div class="ctrl"><label>"Battery %" Box W</label><input type="range" min="100" max="320" data-path="batteryWidget.calloutW"><input type="number" data-path="batteryWidget.calloutW"></div>
+        <div class="ctrl"><label>"Battery %" Box H</label><input type="range" min="50" max="180" data-path="batteryWidget.calloutH"><input type="number" data-path="batteryWidget.calloutH"></div>
+        <div class="ctrl"><label>Charge Bar X</label><input type="range" min="0" max="450" data-path="batteryWidget.hullX"><input type="number" data-path="batteryWidget.hullX"></div>
+        <div class="ctrl"><label>Charge Bar Y</label><input type="range" min="0" max="280" data-path="batteryWidget.hullY"><input type="number" data-path="batteryWidget.hullY"></div>
+        <div class="ctrl"><label>Charge Bar Width</label><input type="range" min="100" max="520" data-path="batteryWidget.hullW"><input type="number" data-path="batteryWidget.hullW"></div>
+      </details>
+    </div>
+
+    <!-- TAB 3: COLORS -->
+    <div class="tab-content" id="tab3">
+      <div class="section-title">Theme &amp; Card Palette</div>
+      <div class="ctrl"><label>Tile Card Fill (Normal)</label><input type="color" data-path="colors.tileBgNor"></div>
+      <div class="ctrl"><label>Tile Card Fill (Pressed)</label><input type="color" data-path="colors.tileBgPush"></div>
+      <div class="ctrl"><label>Primary Accent</label><input type="color" data-path="colors.primary"></div>
+      <div class="ctrl"><label>Secondary Accent</label><input type="color" data-path="colors.secondary"></div>
+      <div class="ctrl"><label>Tertiary Accent</label><input type="color" data-path="colors.tertiary"></div>
+      <div class="ctrl"><label>Highlight Blue</label><input type="color" data-path="colors.accentBlue"></div>
+      <div class="ctrl"><label>Alert / Low Battery Red</label><input type="color" data-path="colors.alertRed"></div>
+      <div class="ctrl"><label>Charge Bar Cyan</label><input type="color" data-path="colors.sensorCyan"></div>
+      <div class="ctrl"><label>Night BG Gradient Top</label><input type="color" data-path="colors.bgNightTop"></div>
+      <div class="ctrl"><label>Night BG Gradient Bot</label><input type="color" data-path="colors.bgNightBot"></div>
+      <div class="ctrl"><label>Day BG Gradient Top</label><input type="color" data-path="colors.bgDayTop"></div>
+      <div class="ctrl"><label>Day BG Gradient Bot</label><input type="color" data-path="colors.bgDayBot"></div>
+    </div>
+  </div>
+
+  <!-- 1920x720 LIVE CANVAS STAGE -->
+  <div class="main-stage">
+    <div class="canvas-wrap" id="canvasDropZone">
+      <canvas id="stageCanvas" width="1920" height="720"></canvas>
+    </div>
+
+    <div class="stage-bar">
+      <div>
+        <input type="checkbox" id="chkShowOemHud" checked onchange="render()">
+        <label for="chkShowOemHud">Simulate Car Status Bar &amp; Home Widgets</label>
+      </div>
+      <div id="statusToast">Drop image on tile = Icon Graphic | Hold SHIFT + Drop on tile = That Tile's Background!</div>
+    </div>
+  </div>
+</div>
+
+<script>
+let cfg = null;
+let activeThemeId = 'stock-oem';
+let themesList = [];
+let assetCacheBust = Date.now();
+let screenMode = 'apps1';
+let loadedImages = {};
+let selectedIconKey = 'hom_ev_66';
+
+const PAGE1_ITEMS = [
+  { key: 'hom_ev_66',               defaultLabel: 'EV' },
+  { key: 'hom_map_66',              defaultLabel: 'Map' },
+  { key: 'hom_navi_66',             defaultLabel: 'Navigation Menu' },
+  { key: 'hom_phone_66',            defaultLabel: 'Phone' },
+  { key: 'hom_phone_projection_66', defaultLabel: 'Phone|Projection' },
+  { key: 'hom_vm_66',               defaultLabel: 'Voice Memo' },
+  { key: 'hom_climate_66',          defaultLabel: 'Climate' },
+  { key: 'hom_climate_seat_66',     defaultLabel: 'Warmer/|Ventilation' },
+  { key: 'hom_valet_mode_66',       defaultLabel: 'Valet Mode' },
+  { key: 'hom_carpay_66',           defaultLabel: 'Hyundai Pay' },
+  { key: 'hom_quiet_mode_66',       defaultLabel: 'Quiet Mode' },
+  { key: 'hom_settings_66',         defaultLabel: 'Setup' }
+];
+
+const PAGE2_ITEMS = [
+  { key: 'hom_radio_66',            defaultLabel: 'Radio' },
+  { key: 'hom_media_66',            defaultLabel: 'Media' },
+  { key: 'hom_hddata_66',           defaultLabel: 'HD Radio Data' },
+  { key: 'hom_bluelink_66',         defaultLabel: 'Bluelink' },
+  { key: 'hom_notification_66',     defaultLabel: 'Notifications' },
+  { key: 'hom_webmenual_66',        defaultLabel: "User's Manual" }
+];
+
+const ALL_VISIBLE_ITEMS = [...PAGE1_ITEMS, ...PAGE2_ITEMS];
+
+function customAssetUrl(fileName) {
+  if (!fileName) return '';
+  return `/custom-assets/${encodeURIComponent(fileName)}?theme=${encodeURIComponent(activeThemeId)}&v=${assetCacheBust}`;
+}
+
+function getCachedImage(url) {
+  if (!url) return null;
+  if (loadedImages[url]) {
+    return loadedImages[url].complete && loadedImages[url].naturalWidth > 0 ? loadedImages[url] : null;
+  }
+  const img = new Image();
+  loadedImages[url] = img;
+  img.onload = () => render();
+  img.src = url;
+  return null;
+}
+
+function setCachedDataUrl(fileName, dataUrl) {
+  assetCacheBust = Date.now();
+  const key = customAssetUrl(fileName);
+  const img = new Image();
+  img.onload = () => {
+    loadedImages[key] = img;
+    render();
+  };
+  img.src = dataUrl;
+}
+
+function populateThemesDropdown() {
+  const sel = document.getElementById('selThemeList');
+  sel.innerHTML = '';
+  themesList.forEach(t => {
+    const opt = document.createElement('option');
+    opt.value = t.id;
+    opt.textContent = t.name + (t.isStock ? ' (Default)' : '');
+    sel.appendChild(opt);
+  });
+  sel.value = activeThemeId;
+  document.getElementById('btnDeleteTheme').disabled = (activeThemeId === 'stock-oem');
+  document.getElementById('btnDeleteTheme').style.opacity = (activeThemeId === 'stock-oem') ? '0.4' : '1';
+}
+
+async function switchActiveTheme(targetId) {
+  if (!targetId) return;
+  try {
+    setToast('Switching to theme: ' + targetId + '...');
+    const res = await fetch('/api/themes/select?id=' + encodeURIComponent(targetId), { method: 'POST' });
+    const j = await res.json();
+    if (!j.ok) throw new Error(j.error || 'Failed to switch theme');
+    activeThemeId = j.activeTheme;
+    themesList = j.themes || themesList;
+    cfg = j.config;
+    assetCacheBust = Date.now();
+    populateThemesDropdown();
+    bindControls();
+    render();
+    setToast('Loaded theme: ' + (cfg.themeName || activeThemeId));
+  } catch (e) {
+    setToast('Error switching theme: ' + e.message);
+  }
+}
+
+async function promptCreateNewTheme(cloneCurrent) {
+  const suggestion = cloneCurrent ? ((cfg.themeName || 'Custom Theme') + ' Copy') : 'My Custom Theme';
+  const name = window.prompt(
+    cloneCurrent
+      ? 'Enter a name to save your current design & uploaded images as a new theme:'
+      : 'Enter a name for your new blank theme (starts from Factory Stock OEM):',
+    suggestion
+  );
+  if (!name || !name.trim()) return;
+  try {
+    setToast('Creating new theme "' + name.trim() + '"...');
+    const payload = {
+      name: name.trim(),
+      baseId: cloneCurrent ? activeThemeId : 'stock-oem',
+      config: cloneCurrent ? cfg : null
+    };
+    const res = await fetch('/api/themes/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const j = await res.json();
+    if (!j.ok) throw new Error(j.error || 'Failed to create theme');
+    activeThemeId = j.activeTheme;
+    themesList = j.themes || themesList;
+    cfg = j.config;
+    assetCacheBust = Date.now();
+    populateThemesDropdown();
+    bindControls();
+    render();
+    setToast('Created & switched to theme: ' + j.name);
+  } catch (e) {
+    setToast('Error creating theme: ' + e.message);
+  }
+}
+
+async function deleteCurrentTheme() {
+  if (activeThemeId === 'stock-oem') {
+    setToast('Factory Stock OEM is the built-in base theme and cannot be deleted.');
+    return;
+  }
+  if (!window.confirm(`Delete saved theme "${cfg.themeName || activeThemeId}"?`)) return;
+  try {
+    const res = await fetch('/api/themes/delete?id=' + encodeURIComponent(activeThemeId), { method: 'POST' });
+    const j = await res.json();
+    if (!j.ok) throw new Error(j.error || 'Delete failed');
+    activeThemeId = j.activeTheme;
+    themesList = j.themes || themesList;
+    cfg = j.config;
+    assetCacheBust = Date.now();
+    populateThemesDropdown();
+    bindControls();
+    render();
+    setToast('Deleted theme and reverted to Factory Stock OEM.');
+  } catch (e) {
+    setToast('Error deleting theme: ' + e.message);
+  }
+}
+
+function switchTab(idx) {
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
+  document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === idx));
+}
+
+function setScreenMode(m) {
+  screenMode = m;
+  document.getElementById('btnViewApps1').classList.toggle('active-mode', m === 'apps1');
+  document.getElementById('btnViewApps2').classList.toggle('active-mode', m === 'apps2');
+  document.getElementById('btnViewHome').classList.toggle('active-mode', m === 'home');
+  render();
+}
+
+function getByPath(obj, path) {
+  return path.split('.').reduce((o, k) => (o ? o[k] : undefined), obj);
+}
+
+function setByPath(obj, path, val) {
+  const parts = path.split('.');
+  let cur = obj;
+  for (let i = 0; i < parts.length - 1; i++) cur = cur[parts[i]];
+  cur[parts[parts.length - 1]] = val;
+}
+
+let controlsBoundOnce = false;
+function bindControls() {
+  if (!cfg.homeScreen.bgFit) cfg.homeScreen.bgFit = 'cover';
+  if (!cfg.homeScreen.mapFadeMode) cfg.homeScreen.mapFadeMode = 'feather';
+  if (cfg.homeScreen.mapFadeWidth === undefined) cfg.homeScreen.mapFadeWidth = 75;
+  if (cfg.homeScreen.mapCenterOpacity === undefined) cfg.homeScreen.mapCenterOpacity = 0;
+  if (cfg.batteryWidget.rangeOffsetX === undefined) cfg.batteryWidget.rangeOffsetX = 0;
+  if (cfg.batteryWidget.rangeOffsetY === undefined) cfg.batteryWidget.rangeOffsetY = 0;
+  if (cfg.batteryWidget.battTextOffsetX === undefined) cfg.batteryWidget.battTextOffsetX = 0;
+  if (cfg.batteryWidget.battTextOffsetY === undefined) cfg.batteryWidget.battTextOffsetY = 0;
+
+  document.querySelectorAll('[data-path]').forEach(el => {
+    const p = el.getAttribute('data-path');
+    const v = getByPath(cfg, p);
+    if (v !== undefined) el.value = v;
+    if (!controlsBoundOnce) {
+      el.addEventListener('input', () => {
+        let nv = (el.type === 'range' || el.type === 'number') ? parseFloat(el.value) : el.value;
+        setByPath(cfg, p, nv);
+        document.querySelectorAll(`[data-path="${p}"]`).forEach(peer => {
+          if (peer !== el) peer.value = nv;
+        });
+        // If user adjusts "Battery %" Box sliders, automatically turn on showCalloutBox so it is immediately visible!
+        if (p.startsWith('batteryWidget.callout')) {
+          cfg.batteryWidget.showCalloutBox = true;
+          document.getElementById('chkBatBox').checked = true;
+        }
+        // If user adjusts Charge Bar sliders, automatically turn on showDynamicBar so it is immediately visible!
+        if (p.startsWith('batteryWidget.hull')) {
+          cfg.batteryWidget.showDynamicBar = true;
+          document.getElementById('chkBatBar').checked = true;
+        }
+        scheduleAutoSave();
+        render();
+      });
+    }
+  });
+  controlsBoundOnce = true;
+
+  document.getElementById('chkAllAppsLcars').checked = cfg.allApps.showLcarsFrame === true;
+  document.getElementById('chkHomeLcars').checked = cfg.homeScreen.showLcarsFrame === true;
+  document.getElementById('chkBatBar').checked = cfg.batteryWidget.showDynamicBar === true;
+  document.getElementById('chkBatBox').checked = cfg.batteryWidget.showCalloutBox === true;
+  const chkRange = document.getElementById('chkHideRangeBox');
+  if (chkRange) chkRange.checked = cfg.batteryWidget.hideRangeBox === true;
+
+  const sel = document.getElementById('selIconKey');
+  sel.innerHTML = '';
+  Object.keys(cfg.icons.overrides).forEach(k => {
+    const found = ALL_VISIBLE_ITEMS.find(it => it.key === k);
+    const ov = cfg.icons.overrides[k];
+    const dispLbl = (ov && ov.label !== undefined ? ov.label : (found ? found.defaultLabel : k)).replace(/\|/g, ' ');
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = dispLbl + ' — ' + k;
+    sel.appendChild(opt);
+  });
+  sel.value = selectedIconKey;
+  refreshIconGrid();
+  loadSelectedIconUI();
+}
+
+function getEffectiveIconMode(key) {
+  const ov = cfg.icons.overrides[key];
+  if (ov && ov.mode && ov.mode !== 'default') return ov.mode;
+  return cfg.icons.defaultMode || 'oem';
+}
+
+function refreshIconGrid() {
+  const grid = document.getElementById('iconQuickGrid');
+  grid.innerHTML = '';
+  ALL_VISIBLE_ITEMS.forEach(item => {
+    const ov = cfg.icons.overrides[item.key] || {};
+    const dispLabel = (ov.label !== undefined ? ov.label : item.defaultLabel).replace(/\|/g, ' ') || '(No Text)';
+    const chip = document.createElement('div');
+    chip.className = 'icon-chip' + (item.key === selectedIconKey ? ' selected' : '');
+    const eff = getEffectiveIconMode(item.key);
+    const tagClass = eff === 'custom' ? 'tag-custom' : (eff === 'oem' ? 'tag-oem' : 'tag-lcars');
+    const tagText = eff === 'custom' ? 'IMG' : (eff === 'oem' ? 'OEM' : (eff === 'none' ? 'NONE' : 'VEC'));
+    const tileBadge = (ov.tileMode && ov.tileMode !== 'global') ? `<span class="badge-tag tag-tile">BG:${ov.tileMode.toUpperCase()}</span>` : '';
+    chip.innerHTML = `<div class="chip-lbl">${dispLabel}</div><span class="badge-tag ${tagClass}">${tagText}</span>${tileBadge}`;
+    chip.onclick = () => {
+      selectedIconKey = item.key;
+      document.getElementById('selIconKey').value = item.key;
+      if (PAGE2_ITEMS.some(p => p.key === item.key) && screenMode === 'apps1') {
+        setScreenMode('apps2');
+      } else if (PAGE1_ITEMS.some(p => p.key === item.key) && screenMode === 'apps2') {
+        setScreenMode('apps1');
+      }
+      refreshIconGrid();
+      loadSelectedIconUI();
+    };
+    grid.appendChild(chip);
+  });
+}
+
+function loadSelectedIconUI() {
+  selectedIconKey = document.getElementById('selIconKey').value;
+  const ov = cfg.icons.overrides[selectedIconKey];
+  if (!ov) return;
+  const found = ALL_VISIBLE_ITEMS.find(i => i.key === selectedIconKey);
+  const defaultLbl = found ? found.defaultLabel : '';
+  const dispName = (ov.label !== undefined ? ov.label : defaultLbl).replace(/\|/g, ' ') || selectedIconKey;
+
+  document.getElementById('lblSelectedTextTitle').textContent = 'A. Tile Text Label — ' + dispName;
+  document.getElementById('lblSelectedIconTitle').textContent = 'C. Icon Graphic — ' + dispName;
+
+  document.getElementById('inpIconLabel').value = ov.label !== undefined ? ov.label : defaultLbl;
+  document.getElementById('chkIconShowText').checked = ov.showText !== false;
+  document.getElementById('inpIconTextCol').value = ov.textColor || cfg.icons.globalTextColor || '#FFFFFF';
+  document.getElementById('rngIconTextSize').value = ov.textSize || 0;
+  document.getElementById('numIconTextSize').value = ov.textSize || 0;
+  document.getElementById('rngIconTextOffX').value = ov.textOffsetX || 0;
+  document.getElementById('numIconTextOffX').value = ov.textOffsetX || 0;
+  document.getElementById('rngIconTextOffY').value = ov.textOffsetY || 0;
+  document.getElementById('numIconTextOffY').value = ov.textOffsetY || 0;
+
+  document.getElementById('selSingleTileMode').value = ov.tileMode || 'global';
+  document.getElementById('selSingleTileFit').value = ov.tileFit || 'cover';
+  document.getElementById('rngTileScale').value = ov.tileScale !== undefined ? ov.tileScale : 100;
+  document.getElementById('numTileScale').value = ov.tileScale !== undefined ? ov.tileScale : 100;
+  document.getElementById('rngTileOffX').value = ov.tileOffsetX || 0;
+  document.getElementById('numTileOffX').value = ov.tileOffsetX || 0;
+  document.getElementById('rngTileOffY').value = ov.tileOffsetY || 0;
+  document.getElementById('numTileOffY').value = ov.tileOffsetY || 0;
+  document.getElementById('inpSingleTileFill').value = ov.tileFillColor || cfg.colors.tileBgNor || '#1A1D26';
+  document.getElementById('inpSingleTileBorder').value = ov.tileBorderColor || cfg.tile.borderColor || '#3B82F6';
+  document.getElementById('rngSingleTileOp').value = ov.tileFillOpacity !== undefined ? ov.tileFillOpacity : 215;
+  document.getElementById('numSingleTileOp').value = ov.tileFillOpacity !== undefined ? ov.tileFillOpacity : 215;
+
+  document.getElementById('selSingleIconMode').value = ov.mode || 'default';
+  document.getElementById('rngIconScale').value = ov.scale !== undefined ? ov.scale : 100;
+  document.getElementById('numIconScale').value = ov.scale !== undefined ? ov.scale : 100;
+  document.getElementById('rngIconOffX').value = ov.offsetX || 0;
+  document.getElementById('numIconOffX').value = ov.offsetX || 0;
+  document.getElementById('rngIconOffY').value = ov.offsetY || 0;
+  document.getElementById('numIconOffY').value = ov.offsetY || 0;
+  document.getElementById('rngIconClip').value = ov.clipRadius || 0;
+  document.getElementById('numIconClip').value = ov.clipRadius || 0;
+  document.getElementById('inpIconBadge').value = ov.badge || 'APP';
+  document.getElementById('inpIconDivCol').value = ov.divColor || '#3B82F6';
+  document.getElementById('inpIconRingCol').value = ov.ringColor || '#38BDF8';
+  document.getElementById('selIconGlyph').value = ov.glyph || 'STAR';
+  refreshIconGrid();
+}
+
+function ovSetTextCol(hex) {
+  const ov = cfg.icons.overrides[selectedIconKey];
+  if (!ov) return;
+  ov.textColor = hex;
+  render();
+}
+
+function clearSelectedIconTextCol() {
+  const ov = cfg.icons.overrides[selectedIconKey];
+  if (!ov) return;
+  ov.textColor = '';
+  document.getElementById('inpIconTextCol').value = cfg.icons.globalTextColor || '#FFFFFF';
+  render();
+}
+
+function syncSingleIconSliders(prop, val) {
+  const num = parseFloat(val) || 0;
+  const ov = cfg.icons.overrides[selectedIconKey];
+  if (!ov) return;
+  ov[prop] = num;
+  const map = {
+    scale: ['rngIconScale', 'numIconScale'],
+    offsetX: ['rngIconOffX', 'numIconOffX'],
+    offsetY: ['rngIconOffY', 'numIconOffY'],
+    clipRadius: ['rngIconClip', 'numIconClip'],
+    textSize: ['rngIconTextSize', 'numIconTextSize'],
+    textOffsetX: ['rngIconTextOffX', 'numIconTextOffX'],
+    textOffsetY: ['rngIconTextOffY', 'numIconTextOffY'],
+    tileScale: ['rngTileScale', 'numTileScale'],
+    tileOffsetX: ['rngTileOffX', 'numTileOffX'],
+    tileOffsetY: ['rngTileOffY', 'numTileOffY'],
+    tileFillOpacity: ['rngSingleTileOp', 'numSingleTileOp']
+  };
+  if (map[prop]) {
+    document.getElementById(map[prop][0]).value = num;
+    document.getElementById(map[prop][1]).value = num;
+  }
+  render();
+}
+
+function updateSelectedIcon() {
+  const ov = cfg.icons.overrides[selectedIconKey];
+  if (!ov) return;
+  ov.label = document.getElementById('inpIconLabel').value;
+  ov.showText = document.getElementById('chkIconShowText').checked;
+  ov.tileMode = document.getElementById('selSingleTileMode').value;
+  ov.tileFit = document.getElementById('selSingleTileFit').value;
+  ov.tileFillColor = document.getElementById('inpSingleTileFill').value;
+  ov.tileBorderColor = document.getElementById('inpSingleTileBorder').value;
+  ov.mode = document.getElementById('selSingleIconMode').value;
+  ov.badge = document.getElementById('inpIconBadge').value;
+  ov.divColor = document.getElementById('inpIconDivCol').value;
+  ov.ringColor = document.getElementById('inpIconRingCol').value;
+  ov.glyph = document.getElementById('selIconGlyph').value;
+  refreshIconGrid();
+  render();
+}
+
+function resetSelectedIconText() {
+  const ov = cfg.icons.overrides[selectedIconKey];
+  if (!ov) return;
+  const found = ALL_VISIBLE_ITEMS.find(i => i.key === selectedIconKey);
+  ov.label = found ? found.defaultLabel : '';
+  ov.showText = true;
+  ov.textColor = '';
+  ov.textSize = 0;
+  ov.textOffsetX = 0;
+  ov.textOffsetY = 0;
+  loadSelectedIconUI();
+  render();
+  setToast('Reset label text for ' + selectedIconKey + ' to stock default.');
+}
+
+function resetSelectedTileBg() {
+  const ov = cfg.icons.overrides[selectedIconKey];
+  if (!ov) return;
+  ov.tileMode = 'global';
+  ov.tileScale = 100;
+  ov.tileOffsetX = 0;
+  ov.tileOffsetY = 0;
+  loadSelectedIconUI();
+  render();
+  setToast('Set ' + selectedIconKey + ' tile background to Global Tile Card.');
+}
+
+function resetSelectedIcon() {
+  const ov = cfg.icons.overrides[selectedIconKey];
+  if (!ov) return;
+  ov.mode = 'default';
+  ov.scale = 100;
+  ov.offsetX = 0;
+  ov.offsetY = 0;
+  ov.clipRadius = 0;
+  loadSelectedIconUI();
+  render();
+  setToast('Reverted ' + selectedIconKey + ' icon graphic to global default.');
+}
+
+async function uploadDataUrlToSlot(slotName, dataUrl) {
+  const res = await fetch('/api/upload-asset?slot=' + encodeURIComponent(slotName), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dataUrl })
+  });
+  const j = await res.json();
+  if (!j.ok) throw new Error(j.error || 'Upload failed');
+  setCachedDataUrl(j.file, dataUrl);
+  return j.file;
+}
+
+async function uploadAssetFile(input, slotName, section) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const savedFile = await uploadDataUrlToSlot(slotName, e.target.result);
+      if (section === 'allApps') {
+        cfg.allApps.customBgFile = savedFile;
+        cfg.allApps.bgMode = 'custom';
+        document.querySelector('[data-path="allApps.bgMode"]').value = 'custom';
+        if (screenMode === 'home') setScreenMode('apps1');
+      } else if (section === 'homeScreen') {
+        cfg.homeScreen.customBgFile = savedFile;
+        cfg.homeScreen.bgMode = 'custom';
+        document.querySelector('[data-path="homeScreen.bgMode"]').value = 'custom';
+        setScreenMode('home');
+      } else if (section === 'tile') {
+        cfg.tile.customNorFile = savedFile;
+        cfg.tile.style = 'custom';
+        document.querySelector('[data-path="tile.style"]').value = 'custom';
+      } else if (section === 'batteryWidget') {
+        cfg.batteryWidget.customFile = savedFile;
+        cfg.batteryWidget.style = 'custom';
+        document.querySelector('[data-path="batteryWidget.style"]').value = 'custom';
+        setScreenMode('home');
+      }
+      render();
+      setToast('Uploaded ' + savedFile + ' into theme "' + (cfg.themeName || activeThemeId) + '"!');
+    } catch (err) {
+      setToast('Upload error: ' + err.message);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearCustomBg(section) {
+  if (section === 'allApps') {
+    cfg.allApps.bgMode = 'oem';
+    cfg.allApps.bgScale = 100; cfg.allApps.bgOffsetX = 0; cfg.allApps.bgOffsetY = 0; cfg.allApps.bgDim = 0;
+  } else if (section === 'homeScreen') {
+    cfg.homeScreen.bgMode = 'oem';
+    cfg.homeScreen.bgScale = 100; cfg.homeScreen.bgOffsetX = 0; cfg.homeScreen.bgOffsetY = 0; cfg.homeScreen.bgDim = 0;
+  } else if (section === 'batteryWidget') {
+    cfg.batteryWidget.style = 'oem';
+    cfg.batteryWidget.customScale = 100; cfg.batteryWidget.customOffsetX = 0; cfg.batteryWidget.customOffsetY = 0;
+  }
+  bindControls();
+  render();
+}
+
+async function uploadSelectedIconFile(input) {
+  if (!input.files || !input.files[0]) return;
+  await handleIconFileUpload(selectedIconKey, input.files[0]);
+}
+
+async function handleIconFileUpload(iconKey, file) {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const savedFile = await uploadDataUrlToSlot(iconKey, e.target.result);
+      const ov = cfg.icons.overrides[iconKey];
+      if (ov) {
+        ov.customFile = savedFile;
+        ov.mode = 'custom';
+      }
+      selectedIconKey = iconKey;
+      document.getElementById('selIconKey').value = iconKey;
+      loadSelectedIconUI();
+      render();
+      setToast('Uploaded custom icon graphic for ' + iconKey + '!');
+    } catch (err) {
+      setToast('Icon upload error: ' + err.message);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function uploadSelectedTileBgFile(input) {
+  if (!input.files || !input.files[0]) return;
+  await handleTileBgFileUpload(selectedIconKey, input.files[0]);
+}
+
+async function handleTileBgFileUpload(iconKey, file) {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const slot = 'tilebg_' + iconKey;
+      const savedFile = await uploadDataUrlToSlot(slot, e.target.result);
+      const ov = cfg.icons.overrides[iconKey];
+      if (ov) {
+        ov.tileBgFile = savedFile;
+        ov.tileMode = 'custom';
+      }
+      selectedIconKey = iconKey;
+      document.getElementById('selIconKey').value = iconKey;
+      loadSelectedIconUI();
+      render();
+      setToast('Uploaded independent tile background for ' + iconKey + '!');
+    } catch (err) {
+      setToast('Tile BG upload error: ' + err.message);
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+const dropZone = document.getElementById('canvasDropZone');
+dropZone.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  dropZone.classList.add('drag-over');
+});
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', (ev) => {
+  ev.preventDefault();
+  dropZone.classList.remove('drag-over');
+  if (!ev.dataTransfer.files || !ev.dataTransfer.files[0]) return;
+  const file = ev.dataTransfer.files[0];
+
+  const rect = document.getElementById('stageCanvas').getBoundingClientRect();
+  const x = (ev.clientX - rect.left) * (1920 / rect.width);
+  const y = (ev.clientY - rect.top) * (720 / rect.height);
+
+  if (screenMode === 'apps1' || screenMode === 'apps2') {
+    const items = screenMode === 'apps1' ? PAGE1_ITEMS : PAGE2_ITEMS;
+    let hitItem = null;
+    items.forEach((item, idx) => {
+      const col = idx % 6;
+      const row = Math.floor(idx / 6);
+      const tx = 82 + col * 296;
+      const ty = 142 + row * 268;
+      if (x >= tx && x <= tx + 306 && y >= ty && y <= ty + 249) hitItem = item;
+    });
+    if (hitItem) {
+      switchTab(1);
+      if (ev.shiftKey) {
+        handleTileBgFileUpload(hitItem.key, file);
+      } else {
+        handleIconFileUpload(hitItem.key, file);
+      }
+      return;
+    }
+    switchTab(0);
+    uploadAssetFile({ files: [file] }, 'bg_allapps', 'allApps');
+  } else {
+    if (x >= 548 && x <= 1090 && y >= 350 && y <= 572) {
+      switchTab(2);
+      uploadAssetFile({ files: [file] }, 'battery_custom', 'batteryWidget');
+    } else {
+      switchTab(0);
+      uploadAssetFile({ files: [file] }, 'bg_home', 'homeScreen');
+    }
+  }
+});
+
+document.getElementById('stageCanvas').addEventListener('click', (ev) => {
+  const rect = ev.target.getBoundingClientRect();
+  const x = (ev.clientX - rect.left) * (1920 / rect.width);
+  const y = (ev.clientY - rect.top) * (720 / rect.height);
+  if (screenMode === 'home') {
+    if (x >= 548 && x <= 1090 && y >= 350 && y <= 572) switchTab(2);
+    else switchTab(0);
+    return;
+  }
+  const items = screenMode === 'apps1' ? PAGE1_ITEMS : PAGE2_ITEMS;
+  items.forEach((item, idx) => {
+    const col = idx % 6;
+    const row = Math.floor(idx / 6);
+    const tx = 82 + col * 296;
+    const ty = 142 + row * 268;
+    if (x >= tx && x <= tx + 306 && y >= ty && y <= ty + 249) {
+      switchTab(1);
+      selectedIconKey = item.key;
+      document.getElementById('selIconKey').value = item.key;
+      loadSelectedIconUI();
+      setToast('Selected ' + item.key + ' — edit its Label Text, Independent Tile BG, or Icon Graphic!');
+    }
+  });
+});
+
+function roundRect(ctx, x, y, w, h, r) {
+  if (r <= 0.5) {
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.closePath();
+    return;
+  }
+  const rr = Math.min(r, w / 2, h / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+function drawDelta(ctx, cx, cy, scale) {
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - 42 * scale);
+  ctx.lineTo(cx + 28 * scale, cy + 36 * scale);
+  ctx.lineTo(cx + 4 * scale, cy + 14 * scale);
+  ctx.lineTo(cx - 26 * scale, cy + 38 * scale);
+  ctx.closePath();
+}
+
+function hexWithAlpha(hex, alpha255) {
+  if (!hex) hex = '#3B82F6';
+  const h = hex.replace('#', '');
+  const r = parseInt(h.substring(h.length - 6, h.length - 4), 16);
+  const g = parseInt(h.substring(h.length - 4, h.length - 2), 16);
+  const b = parseInt(h.substring(h.length - 2), 16);
+  return `rgba(${r},${g},${b},${(alpha255 / 255).toFixed(3)})`;
+}
+
+function drawFittedImgInBox(ctx, img, boxX, boxY, targetW, targetH, fit, scalePct, offX, offY) {
+  if (!img) return false;
+  const sw = img.naturalWidth || img.width;
+  const sh = img.naturalHeight || img.height;
+  if (!sw || !sh) return false;
+  const scale = (scalePct || 100) / 100.0;
+  let dw = targetW, dh = targetH;
+  if (fit === 'cover') {
+    const ratio = Math.max(targetW / sw, targetH / sh) * scale;
+    dw = sw * ratio; dh = sh * ratio;
+  } else if (fit === 'contain') {
+    const ratio = Math.min(targetW / sw, targetH / sh) * scale;
+    dw = sw * ratio; dh = sh * ratio;
+  } else {
+    dw = targetW * scale; dh = targetH * scale;
+  }
+  const dx = boxX + (targetW - dw) / 2 + (offX || 0);
+  const dy = boxY + (targetH - dh) / 2 + (offY || 0);
+  ctx.drawImage(img, dx, dy, dw, dh);
+  return true;
+}
+
+function drawFittedImgOnCanvas(ctx, img, targetW, targetH, fit, scalePct, offX, offY) {
+  return drawFittedImgInBox(ctx, img, 0, 0, targetW, targetH, fit, scalePct, offX, offY);
+}
+
+function drawSingleTileBg(ctx, style, customFile, fit, scale, offX, offY, fillHex, fillOp, borderHex) {
+  const t = cfg.tile;
+  if (!style || style === 'none') return;
+
+  if (style === 'oem') {
+    roundRect(ctx, 10, 10, 286, 234, 24);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+    return;
+  }
+
+  if (style === 'custom') {
+    if (customFile) {
+      const cTile = getCachedImage(customAssetUrl(customFile));
+      if (cTile) {
+        ctx.save();
+        roundRect(ctx, t.cardX, t.cardY, t.cardW, t.cardH, t.cornerRadius);
+        ctx.clip();
+        drawFittedImgInBox(ctx, cTile, t.cardX, t.cardY, t.cardW, t.cardH, fit || 'cover', scale || 100, offX || 0, offY || 0);
+        ctx.restore();
+        if (t.borderWidth > 0) {
+          roundRect(ctx, t.cardX, t.cardY, t.cardW, t.cardH, t.cornerRadius);
+          ctx.strokeStyle = borderHex || t.borderColor || cfg.colors.primary;
+          ctx.lineWidth = t.borderWidth;
+          ctx.stroke();
+        }
+      }
+    }
+    return;
+  }
+
+  roundRect(ctx, t.cardX, t.cardY, t.cardW, t.cardH, t.cornerRadius);
+  ctx.fillStyle = hexWithAlpha(fillHex || cfg.colors.tileBgNor, fillOp !== undefined ? fillOp : 215);
+  ctx.fill();
+
+  const mainCol = borderHex || t.borderColor || cfg.colors.primary;
+
+  if (style === 'lcars') {
+    ctx.save();
+    ctx.clip();
+    ctx.fillStyle = mainCol;
+    ctx.fillRect(t.cardX, t.cardY, t.leftSpineW, t.cardH * 0.62);
+    ctx.fillRect(t.cardX, t.cardY, t.cardW * 0.48, t.topBarH);
+    ctx.fillStyle = cfg.colors.secondary;
+    ctx.fillRect(t.cardX + t.cardW * 0.50, t.cardY, t.cardW * 0.20, t.topBarH);
+    ctx.fillStyle = cfg.colors.accentBlue;
+    ctx.fillRect(t.cardX + t.cardW * 0.72, t.cardY, t.cardW * 0.30, t.topBarH);
+
+    ctx.fillRect(t.cardX, t.cardY + t.cardH * 0.65, t.leftSpineW, t.cardH * 0.36);
+    ctx.fillRect(t.cardX, t.cardY + t.cardH - t.botBarH, t.cardW * 0.62, t.botBarH);
+    ctx.fillStyle = mainCol;
+    ctx.fillRect(t.cardX + t.cardW * 0.64, t.cardY + t.cardH - t.botBarH, t.cardW * 0.38, t.botBarH);
+    ctx.restore();
+  }
+
+  if (t.borderWidth > 0) {
+    roundRect(ctx, t.cardX, t.cardY, t.cardW, t.cardH, t.cornerRadius);
+    ctx.strokeStyle = mainCol;
+    ctx.lineWidth = t.borderWidth;
+    ctx.stroke();
+  }
+}
+
+function drawTileAndIcon(ctx, tx, ty, item) {
+  const t = cfg.tile;
+  const ov = cfg.icons.overrides[item.key] || {};
+  ctx.save();
+  ctx.translate(tx, ty);
+
+  if (item.key === selectedIconKey) {
+    ctx.strokeStyle = 'rgba(59, 130, 246, 0.85)';
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(2, 2, 302, 245);
+  }
+
+  // 1) Draw Independent or Global Tile Card Background (306x249)
+  const tileMode = ov.tileMode || 'global';
+  if (tileMode === 'global') {
+    drawSingleTileBg(
+      ctx,
+      t.style,
+      t.customNorFile,
+      t.customFit || 'cover',
+      t.customScale || 100,
+      t.customOffsetX || 0,
+      t.customOffsetY || 0,
+      cfg.colors.tileBgNor,
+      t.fillOpacity !== undefined ? t.fillOpacity : 215,
+      t.borderColor || cfg.colors.primary
+    );
+  } else if (tileMode !== 'none') {
+    drawSingleTileBg(
+      ctx,
+      tileMode,
+      ov.tileBgFile,
+      ov.tileFit || 'cover',
+      ov.tileScale !== undefined ? ov.tileScale : 100,
+      ov.tileOffsetX || 0,
+      ov.tileOffsetY || 0,
+      ov.tileFillColor || cfg.colors.tileBgNor,
+      ov.tileFillOpacity !== undefined ? ov.tileFillOpacity : (t.fillOpacity !== undefined ? t.fillOpacity : 215),
+      ov.tileBorderColor || t.borderColor || cfg.colors.primary
+    );
+  }
+
+  // 2) Draw Icon Graphic
+  const effMode = getEffectiveIconMode(item.key);
+  const scalePct = ov.scale !== undefined ? ov.scale : (cfg.icons.globalScale || 100);
+  const offX = ov.offsetX !== undefined ? ov.offsetX : (cfg.icons.globalOffsetX || 0);
+  const offY = ov.offsetY !== undefined ? ov.offsetY : (cfg.icons.globalOffsetY || 0);
+  const clipR = ov.clipRadius !== undefined ? ov.clipRadius : (cfg.icons.globalClipRadius || 0);
+
+  if (effMode !== 'none') {
+    const boxW = 99 * (scalePct / 100.0);
+    const boxH = 99 * (scalePct / 100.0);
+    const boxX = 153 - boxW / 2 + offX;
+    const boxY = 103.5 - boxH / 2 + offY;
+
+    ctx.save();
+    if (clipR > 0) {
+      roundRect(ctx, boxX, boxY, boxW, boxH, clipR * (scalePct / 100.0));
+      ctx.clip();
+    }
+
+    let drewImg = false;
+    if (effMode === 'custom') {
+      const file = ov.customFile || (item.key + '.png');
+      const cImg = getCachedImage(customAssetUrl(file));
+      if (cImg) {
+        drewImg = drawFittedImgInBox(ctx, cImg, boxX, boxY, boxW, boxH, 'contain', 100, 0, 0);
+      }
+    } else if (effMode === 'oem') {
+      drawSimulatedOemAppIcon(ctx, item.key, boxX, boxY, boxW, boxH);
+      drewImg = true;
+    }
+
+    if (!drewImg) {
+      ctx.save();
+      ctx.translate(153 + offX, 103.5 + offY);
+      ctx.scale(scalePct / 100.0, scalePct / 100.0);
+      ctx.translate(-49.5, -49.5);
+
+      const ringCol = ov.ringColor || '#38BDF8';
+      const divCol = ov.divColor || '#3B82F6';
+      ctx.strokeStyle = ringCol;
+      ctx.lineWidth = cfg.icons.ringWidth;
+      ctx.beginPath();
+      ctx.arc(49.5, 49.5, 41.5, (130 * Math.PI) / 180, (320 * Math.PI) / 180);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(49.5, 49.5, 41.5, (340 * Math.PI) / 180, (460 * Math.PI) / 180);
+      ctx.stroke();
+
+      ctx.fillStyle = hexWithAlpha(ringCol, 64);
+      ctx.strokeStyle = ringCol;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(49.5, 50, 31.5, 20, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      drawDelta(ctx, 49.5, 48, cfg.icons.deltaScale);
+      ctx.fillStyle = divCol;
+      ctx.fill();
+      ctx.strokeStyle = '#FFF5D2';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      roundRect(ctx, 22, cfg.icons.pillY, 55, cfg.icons.pillH, 7);
+      ctx.fillStyle = divCol;
+      ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 9.5px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(ov.badge || 'APP', 49.5, cfg.icons.pillY + cfg.icons.pillH / 2);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  // 3) Draw Customizable Per-Icon Text Label
+  const showText = ov.showText !== undefined ? ov.showText : (cfg.icons.globalShowText !== false);
+  const rawLabel = ov.label !== undefined ? ov.label : item.defaultLabel;
+  if (showText && rawLabel && rawLabel.trim() !== '') {
+    const txtCol = (ov.textColor && ov.textColor !== '') ? ov.textColor : (cfg.icons.globalTextColor || '#FFFFFF');
+    const txtSize = (ov.textSize && ov.textSize > 0) ? ov.textSize : (cfg.icons.globalTextSize || 25);
+    const txtOffX = ov.textOffsetX || 0;
+    const txtOffY = (ov.textOffsetY !== undefined && ov.textOffsetY !== 0) ? ov.textOffsetY : (cfg.icons.globalTextOffsetY || 0);
+
+    const lines = rawLabel.replace(/\\n/g, '|').split('|');
+    const lineHeight = txtSize * 1.15;
+    const baseY = (lines.length > 1 ? 172 : 184) + txtOffY;
+
+    ctx.font = `bold ${txtSize}px "Segoe UI", Arial`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+
+    lines.forEach((lineStr, idx) => {
+      const ly = baseY + idx * lineHeight;
+      ctx.fillStyle = 'rgba(0,0,0,0.65)';
+      ctx.fillText(lineStr, 153 + txtOffX + 1, ly + 1.5);
+      ctx.fillStyle = txtCol;
+      ctx.fillText(lineStr, 153 + txtOffX, ly);
+    });
+  }
+
+  ctx.restore();
+}
+
+function drawSimulatedOemAppIcon(ctx, key, boxX, boxY, boxW, boxH) {
+  ctx.save();
+  ctx.translate(boxX + boxW / 2, boxY + boxH / 2);
+  const s = boxW / 99.0;
+  ctx.scale(s, s);
+
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.fillStyle = '#e5e7eb';
+  ctx.lineWidth = 3.0;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  if (key.includes('ev')) {
+    // Leaf + charging plug outline
+    ctx.beginPath();
+    ctx.moveTo(-20, 18);
+    ctx.bezierCurveTo(-24, -12, 4, -28, 24, -22);
+    ctx.bezierCurveTo(22, 6, 4, 24, -20, 18);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-20, 18);
+    ctx.quadraticCurveTo(-2, 4, 12, -10);
+    ctx.stroke();
+  } else if (key.includes('map')) {
+    // Folded tri-panel map with pin
+    ctx.beginPath();
+    ctx.moveTo(-26, -16); ctx.lineTo(-9, -24); ctx.lineTo(9, -16); ctx.lineTo(26, -24);
+    ctx.lineTo(26, 18); ctx.lineTo(9, 26); ctx.lineTo(-9, 18); ctx.lineTo(-26, 26); ctx.closePath();
+    ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-9, -24); ctx.lineTo(-9, 18); ctx.moveTo(9, -16); ctx.lineTo(9, 26); ctx.stroke();
+  } else if (key.includes('navi')) {
+    // Navigation compass arrow inside ring
+    ctx.beginPath(); ctx.arc(0, 0, 28, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, -16); ctx.lineTo(12, 13); ctx.lineTo(0, 6); ctx.lineTo(-12, 13); ctx.closePath();
+    ctx.stroke();
+  } else if (key.includes('phone_projection')) {
+    // Smartphone + display screen projection
+    roundRect(ctx, -26, -18, 38, 26, 4); ctx.stroke();
+    roundRect(ctx, 4, -6, 22, 30, 4);
+    ctx.fillStyle = '#12151c'; ctx.fill(); ctx.stroke();
+  } else if (key.includes('phone')) {
+    // Classic phone handset
+    ctx.beginPath();
+    ctx.moveTo(-18, -22);
+    ctx.quadraticCurveTo(-26, -12, -14, 6);
+    ctx.quadraticCurveTo(4, 24, 22, 18);
+    ctx.lineTo(25, 8); ctx.lineTo(12, 3); ctx.lineTo(7, 9);
+    ctx.quadraticCurveTo(-4, 4, -9, -7);
+    ctx.lineTo(-3, -12); ctx.lineTo(-8, -25); ctx.closePath();
+    ctx.stroke();
+  } else if (key.includes('vm')) {
+    // Voice memo microphone
+    roundRect(ctx, -9, -24, 18, 28, 9); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, -8, 17, 0, Math.PI); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, 9); ctx.lineTo(0, 24); ctx.moveTo(-11, 24); ctx.lineTo(11, 24); ctx.stroke();
+  } else if (key.includes('seat')) {
+    // Car seat + heat waves
+    ctx.beginPath();
+    ctx.moveTo(-6, -24); ctx.lineTo(-14, 8); ctx.lineTo(16, 8); ctx.lineTo(16, 18); ctx.lineTo(-20, 18);
+    ctx.stroke();
+    [-14, -4, 6].forEach(wx => {
+      ctx.beginPath(); ctx.moveTo(wx, 26); ctx.quadraticCurveTo(wx + 3, 21, wx, 16); ctx.stroke();
+    });
+  } else if (key.includes('climate')) {
+    // Climate fan blades
+    ctx.beginPath(); ctx.arc(0, 0, 6, 0, Math.PI * 2); ctx.stroke();
+    for (let a = 0; a < 4; a++) {
+      ctx.save(); ctx.rotate((a * Math.PI) / 2);
+      ctx.beginPath(); ctx.ellipse(0, -16, 7, 11, 0.25, 0, Math.PI * 2); ctx.stroke();
+      ctx.restore();
+    }
+  } else if (key.includes('valet')) {
+    // Key / shield icon
+    ctx.beginPath(); ctx.arc(-8, 0, 11, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(3, 0); ctx.lineTo(24, 0); ctx.lineTo(24, 9); ctx.moveTo(16, 0); ctx.lineTo(16, 7); ctx.stroke();
+  } else if (key.includes('carpay')) {
+    // Credit card
+    roundRect(ctx, -26, -17, 52, 34, 5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-26, -6); ctx.lineTo(26, -6); ctx.stroke();
+  } else if (key.includes('quiet')) {
+    // Shhh / Moon + speaker
+    ctx.beginPath();
+    ctx.arc(2, 0, 20, 0.4, Math.PI * 1.6);
+    ctx.quadraticCurveTo(-8, 0, 2, -18);
+    ctx.stroke();
+  } else if (key.includes('settings')) {
+    // Gear
+    ctx.beginPath(); ctx.arc(0, 0, 11, 0, Math.PI * 2); ctx.stroke();
+    ctx.save(); ctx.lineWidth = 5; ctx.setLineDash([6, 7]);
+    ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  } else if (key.includes('radio')) {
+    // Radio dial + antenna
+    roundRect(ctx, -24, -10, 48, 30, 5); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-16, -10); ctx.lineTo(14, -24); ctx.stroke();
+    ctx.beginPath(); ctx.arc(10, 5, 7, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-16, 0); ctx.lineTo(-4, 0); ctx.moveTo(-16, 9); ctx.lineTo(-4, 9); ctx.stroke();
+  } else if (key.includes('media')) {
+    // Music note + play circle
+    ctx.beginPath(); ctx.arc(0, 0, 26, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-8, -13); ctx.lineTo(14, 0); ctx.lineTo(-8, 13); ctx.closePath(); ctx.stroke();
+  } else if (key.includes('hddata')) {
+    // HD broadcast tower
+    ctx.beginPath(); ctx.moveTo(-12, 22); ctx.lineTo(0, -10); ctx.lineTo(12, 22); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, -12, 10, -Math.PI * 0.8, -Math.PI * 0.2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, -12, 18, -Math.PI * 0.8, -Math.PI * 0.2); ctx.stroke();
+  } else if (key.includes('bluelink')) {
+    // Connected car signal waves
+    ctx.beginPath(); ctx.arc(0, 8, 6, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 8, 15, -Math.PI * 0.85, -Math.PI * 0.15); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 8, 24, -Math.PI * 0.85, -Math.PI * 0.15); ctx.stroke();
+  } else if (key.includes('notification')) {
+    // Bell
+    ctx.beginPath();
+    ctx.moveTo(-18, 12); ctx.lineTo(18, 12);
+    ctx.quadraticCurveTo(15, 0, 15, -6);
+    ctx.arc(0, -6, 15, 0, Math.PI, true);
+    ctx.quadraticCurveTo(-15, 0, -18, 12);
+    ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, 17, 5, 0, Math.PI); ctx.stroke();
+  } else {
+    // User's manual open book
+    ctx.beginPath();
+    ctx.moveTo(0, -16); ctx.quadraticCurveTo(-12, -20, -24, -14);
+    ctx.lineTo(-24, 18); ctx.quadraticCurveTo(-12, 12, 0, 18);
+    ctx.quadraticCurveTo(12, 12, 24, 18); ctx.lineTo(24, -14);
+    ctx.quadraticCurveTo(12, -20, 0, -16); ctx.moveTo(0, -16); ctx.lineTo(0, 18);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawSimulatedOemEvCar(ctx, pct, bScale, bOffX, bOffY) {
+  const s = bScale / 100.0;
+  const dw = 635.0 * s;
+  const dh = 318.0 * s;
+  const dx = (317.5 - dw / 2.0) + bOffX;
+  const dy = (159.0 - dh / 2.0) + bOffY;
+
+  ctx.save();
+  ctx.translate(dx, dy);
+  ctx.scale(s, s);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+
+  // 1. Soft ground shadow beneath the vehicle
+  ctx.save();
+  ctx.translate(335, 212);
+  ctx.rotate(-0.09);
+  const shGrad = ctx.createRadialGradient(0, 0, 20, 0, 0, 260);
+  shGrad.addColorStop(0, 'rgba(0, 0, 0, 0.65)');
+  shGrad.addColorStop(0.7, 'rgba(0, 0, 0, 0.32)');
+  shGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = shGrad;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 265, 58, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // 2. Far-side wheels (visible faintly through the translucent X-ray body)
+  [ [122, 162, 26, 36], [438, 126, 25, 34] ].forEach(([wx, wy, rx, ry]) => {
+    ctx.beginPath();
+    ctx.ellipse(wx, wy, rx, ry, 0.06, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(30, 41, 52, 0.55)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(wx, wy, rx * 0.68, ry * 0.68, 0.06, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(180, 195, 208, 0.30)';
+    ctx.fill();
+  });
+
+  // 3. Lower chassis tub / floor pan under battery pack
+  ctx.beginPath();
+  ctx.moveTo(66, 152);
+  ctx.bezierCurveTo(68, 195, 115, 226, 162, 232);
+  ctx.lineTo(250, 235);
+  ctx.lineTo(565, 184);
+  ctx.lineTo(596, 174);
+  ctx.lineTo(598, 136);
+  ctx.lineTo(175, 145);
+  ctx.closePath();
+  const tubGrad = ctx.createLinearGradient(80, 150, 560, 225);
+  tubGrad.addColorStop(0, 'rgba(72, 112, 130, 0.52)');
+  tubGrad.addColorStop(0.5, 'rgba(64, 96, 112, 0.48)');
+  tubGrad.addColorStop(1, 'rgba(60, 82, 96, 0.52)');
+  ctx.fillStyle = tubGrad;
+  ctx.fill();
+
+  // 4. 3D Skateboard Battery Pack Slab (fills rear-to-front with glowing mint-green)
+  const FL = [172, 158]; // Rear-left (far)
+  const FR = [395, 133]; // Front-left (far)
+  const NR = [480, 173]; // Front-right (near)
+  const NL = [250, 202]; // Rear-right (near)
+  const clampPct = Math.max(0.0, Math.min(1.0, pct));
+  const splitFar  = [FL[0] + (FR[0] - FL[0]) * clampPct, FL[1] + (FR[1] - FL[1]) * clampPct];
+  const splitNear = [NL[0] + (NR[0] - NL[0]) * clampPct, NL[1] + (NR[1] - NL[1]) * clampPct];
+  const slabH = 10;
+
+  // Uncharged portion (split -> front) in crisp silver-white
+  if (clampPct < 0.999) {
+    // Top face (uncharged)
+    ctx.beginPath();
+    ctx.moveTo(splitFar[0], splitFar[1]);
+    ctx.lineTo(FR[0], FR[1]);
+    ctx.lineTo(NR[0], NR[1]);
+    ctx.lineTo(splitNear[0], splitNear[1]);
+    ctx.closePath();
+    ctx.fillStyle = '#d8e3ea';
+    ctx.fill();
+
+    // Near side thickness (uncharged)
+    ctx.beginPath();
+    ctx.moveTo(splitNear[0], splitNear[1]);
+    ctx.lineTo(NR[0], NR[1]);
+    ctx.lineTo(NR[0], NR[1] + slabH);
+    ctx.lineTo(splitNear[0], splitNear[1] + slabH);
+    ctx.closePath();
+    ctx.fillStyle = '#9aa8b4';
+    ctx.fill();
+  }
+
+  // Charged portion (rear -> split) in glowing OEM mint-green (or red when <= 20%)
+  if (clampPct > 0.001) {
+    const topCol  = clampPct <= 0.20 ? '#ff5252' : '#43f3b0';
+    const sideCol = clampPct <= 0.20 ? '#c62828' : '#1ec788';
+    const rearCol = clampPct <= 0.20 ? '#b71c1c' : '#25b88a';
+
+    // Top face (charged)
+    ctx.beginPath();
+    ctx.moveTo(FL[0], FL[1]);
+    ctx.lineTo(splitFar[0], splitFar[1]);
+    ctx.lineTo(splitNear[0], splitNear[1]);
+    ctx.lineTo(NL[0], NL[1]);
+    ctx.closePath();
+    ctx.fillStyle = topCol;
+    ctx.fill();
+
+    // Rear-left bevel thickness (charged)
+    ctx.beginPath();
+    ctx.moveTo(FL[0], FL[1]);
+    ctx.lineTo(NL[0], NL[1]);
+    ctx.lineTo(NL[0], NL[1] + slabH);
+    ctx.lineTo(FL[0], FL[1] + slabH);
+    ctx.closePath();
+    ctx.fillStyle = rearCol;
+    ctx.fill();
+
+    // Near side thickness (charged)
+    ctx.beginPath();
+    ctx.moveTo(NL[0], NL[1]);
+    ctx.lineTo(splitNear[0], splitNear[1]);
+    ctx.lineTo(splitNear[0], splitNear[1] + slabH);
+    ctx.lineTo(NL[0], NL[1] + slabH);
+    ctx.closePath();
+    ctx.fillStyle = sideCol;
+    ctx.fill();
+  }
+
+  // Subtle cell divider lines across the battery slab
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= 5; i++) {
+    const u = i / 6.0;
+    const x1 = FL[0] + (FR[0] - FL[0]) * u;
+    const y1 = FL[1] + (FR[1] - FL[1]) * u;
+    const x2 = NL[0] + (NR[0] - NL[0]) * u;
+    const y2 = NL[1] + (NR[1] - NL[1]) * u;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+
+  // 5. Translucent 3D Hatchback/Crossover Outer Body Shell
+  ctx.beginPath();
+  ctx.moveTo(160, 232);
+  ctx.bezierCurveTo(108, 224, 66, 188, 66, 148);
+  ctx.bezierCurveTo(66, 128, 72, 112, 76, 98);
+  ctx.bezierCurveTo(84, 80, 98, 65, 112, 52);
+  ctx.bezierCurveTo(168, 26, 240, 16, 308, 16);
+  ctx.bezierCurveTo(335, 17, 362, 24, 385, 32);
+  ctx.bezierCurveTo(455, 36, 522, 52, 568, 82);
+  ctx.bezierCurveTo(584, 92, 594, 102, 596, 114);
+  ctx.bezierCurveTo(600, 136, 599, 158, 594, 176);
+  ctx.lineTo(564, 184);
+  ctx.lineTo(486, 194);
+  ctx.lineTo(250, 235);
+  ctx.closePath();
+
+  const shellGrad = ctx.createLinearGradient(120, 20, 540, 220);
+  shellGrad.addColorStop(0, 'rgba(120, 142, 158, 0.34)');
+  shellGrad.addColorStop(0.55, 'rgba(90, 114, 130, 0.30)');
+  shellGrad.addColorStop(1, 'rgba(110, 135, 150, 0.38)');
+  ctx.fillStyle = shellGrad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(206, 222, 234, 0.78)';
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+
+  // 6. Signature X-Ray Wireframe Body Seams, Windows, & Pillars
+  ctx.strokeStyle = 'rgba(200, 218, 230, 0.52)';
+  ctx.lineWidth = 1.3;
+
+  // Roof rail & windshield arch (right-side A-pillar to C-pillar)
+  ctx.beginPath();
+  ctx.moveTo(112, 52);
+  ctx.bezierCurveTo(148, 72, 175, 92, 188, 102);
+  ctx.bezierCurveTo(255, 68, 335, 54, 412, 62);
+  ctx.bezierCurveTo(445, 75, 468, 92, 476, 104);
+  ctx.stroke();
+
+  // Rear windshield & tailgate seam
+  ctx.beginPath();
+  ctx.moveTo(78, 96);
+  ctx.bezierCurveTo(108, 122, 148, 142, 182, 148);
+  ctx.lineTo(188, 102);
+  ctx.stroke();
+
+  // Side window greenhouse (DLO) with B-pillar and quarter-glass
+  ctx.beginPath();
+  ctx.moveTo(208, 144);
+  ctx.bezierCurveTo(226, 104, 245, 84, 265, 78);
+  ctx.bezierCurveTo(318, 64, 372, 62, 412, 72);
+  ctx.bezierCurveTo(442, 84, 460, 98, 468, 109);
+  ctx.lineTo(340, 128);
+  ctx.lineTo(208, 144);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(30, 44, 58, 0.32)';
+  ctx.fill();
+  ctx.stroke();
+
+  // B-pillar & C-pillar window dividers + door cutlines
+  ctx.beginPath();
+  ctx.moveTo(328, 66);
+  ctx.lineTo(340, 128);
+  ctx.bezierCurveTo(352, 155, 352, 182, 344, 210);
+  ctx.moveTo(256, 80);
+  ctx.lineTo(228, 141);
+  ctx.bezierCurveTo(240, 168, 250, 192, 252, 224);
+  ctx.moveTo(468, 109);
+  ctx.bezierCurveTo(476, 136, 476, 168, 466, 194);
+  ctx.stroke();
+
+  // Side mirror on front door
+  ctx.beginPath();
+  ctx.moveTo(438, 98);
+  ctx.bezierCurveTo(438, 86, 452, 88, 454, 104);
+  ctx.bezierCurveTo(454, 118, 438, 120, 438, 106);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(130, 152, 168, 0.45)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(215, 230, 240, 0.75)';
+  ctx.stroke();
+
+  // 7. Translucent Taillights & Front Headlight
+  ctx.fillStyle = 'rgba(226, 236, 244, 0.68)';
+  // Right-rear main taillight
+  ctx.beginPath();
+  ctx.moveTo(125, 142);
+  ctx.lineTo(170, 158);
+  ctx.lineTo(168, 178);
+  ctx.bezierCurveTo(145, 175, 128, 165, 124, 155);
+  ctx.closePath();
+  ctx.fill();
+  // Left-rear corner taillight
+  ctx.beginPath();
+  ctx.moveTo(74, 102);
+  ctx.lineTo(86, 115);
+  ctx.lineTo(85, 132);
+  ctx.lineTo(72, 116);
+  ctx.closePath();
+  ctx.fill();
+  // Front right headlight
+  ctx.beginPath();
+  ctx.moveTo(564, 111);
+  ctx.lineTo(595, 102);
+  ctx.lineTo(597, 116);
+  ctx.lineTo(568, 125);
+  ctx.closePath();
+  ctx.fill();
+
+  // 8. Near-side 3D Wheels & Aero Alloy Rims (Rear & Front)
+  [
+    { x: 204, y: 218, rx: 41, ry: 49, rot: 0.08 },
+    { x: 526, y: 171, rx: 37, ry: 45, rot: 0.08 }
+  ].forEach(w => {
+    ctx.save();
+    ctx.translate(w.x, w.y);
+    ctx.rotate(w.rot);
+
+    // Wheel arch dark backing
+    ctx.beginPath();
+    ctx.ellipse(0, -2, w.rx + 5, w.ry + 5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(12, 18, 26, 0.85)';
+    ctx.fill();
+
+    // Tire tread depth (3D cylinder offset to top-left)
+    ctx.beginPath();
+    ctx.ellipse(-5, -2, w.rx, w.ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#262d34';
+    ctx.fill();
+
+    // Outer tire sidewall
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w.rx, w.ry, 0, 0, Math.PI * 2);
+    const tireGrad = ctx.createRadialGradient(-8, -10, w.rx * 0.5, 0, 0, w.ry);
+    tireGrad.addColorStop(0, '#47525e');
+    tireGrad.addColorStop(0.75, '#2b323b');
+    tireGrad.addColorStop(1, '#1a2026');
+    ctx.fillStyle = tireGrad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.45)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Brushed silver aero dish rim
+    ctx.beginPath();
+    ctx.ellipse(2, 1, w.rx * 0.72, w.ry * 0.72, 0, 0, Math.PI * 2);
+    const rimGrad = ctx.createLinearGradient(-w.rx, -w.ry, w.rx, w.ry);
+    rimGrad.addColorStop(0, '#f1f5f9');
+    rimGrad.addColorStop(0.5, '#cbd5e1');
+    rimGrad.addColorStop(1, '#94a3b8');
+    ctx.fillStyle = rimGrad;
+    ctx.fill();
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Center recessed hubcap
+    ctx.beginPath();
+    ctx.ellipse(3, 1, w.rx * 0.25, w.ry * 0.25, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#94a3b8';
+    ctx.fill();
+    ctx.restore();
+  });
+
+  ctx.restore();
+}
+
+function render() {
+  if (!cfg) return;
+  const canvas = document.getElementById('stageCanvas');
+  const ctx = canvas.getContext('2d');
+  const isNight = document.getElementById('selDayNight').value === 'night';
+  const showHud = document.getElementById('chkShowOemHud').checked;
+
+  ctx.clearRect(0, 0, 1920, 720);
+
+  if (screenMode === 'apps1' || screenMode === 'apps2') {
+    const aa = cfg.allApps;
+    if (aa.bgMode === 'oem') {
+      ctx.fillStyle = '#121214';
+      ctx.fillRect(0, 0, 1920, 720);
+    } else {
+      const bgTop = isNight ? cfg.colors.bgNightTop : cfg.colors.bgDayTop;
+      const bgBot = isNight ? cfg.colors.bgNightBot : cfg.colors.bgDayBot;
+      const grad = ctx.createLinearGradient(0, 0, 1920, 720);
+      grad.addColorStop(0, bgTop);
+      grad.addColorStop(1, bgBot);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1920, 720);
+
+      if (aa.bgMode === 'custom' && aa.customBgFile) {
+        const bgImg = getCachedImage(customAssetUrl(aa.customBgFile));
+        if (bgImg) {
+          drawFittedImgOnCanvas(ctx, bgImg, 1920, 720, aa.bgFit || 'cover', aa.bgScale, aa.bgOffsetX, aa.bgOffsetY);
+          if (aa.bgDim > 0) {
+            ctx.fillStyle = `rgba(0,0,0,${(aa.bgDim / 100).toFixed(2)})`;
+            ctx.fillRect(0, 0, 1920, 720);
+          }
+        }
+      }
+    }
+
+    if (aa.gridOpacity > 0) {
+      ctx.strokeStyle = hexWithAlpha(cfg.colors.accentBlue, aa.gridOpacity);
+      ctx.lineWidth = 1;
+      for (let x = 90; x < 1890; x += 80) { ctx.beginPath(); ctx.moveTo(x, 96); ctx.lineTo(x, 675); ctx.stroke(); }
+      for (let y = 110; y < 675; y += 80) { ctx.beginPath(); ctx.moveTo(70, y); ctx.lineTo(1890, y); ctx.stroke(); }
+    }
+
+    if (aa.deltaWatermarkOpacity > 0) {
+      drawDelta(ctx, 960, 390, aa.deltaWatermarkScale);
+      ctx.fillStyle = hexWithAlpha(cfg.colors.primary, aa.deltaWatermarkOpacity);
+      ctx.fill();
+      ctx.strokeStyle = hexWithAlpha(cfg.colors.secondary, Math.min(255, aa.deltaWatermarkOpacity * 2));
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    if (aa.showLcarsFrame === true) {
+      const lx = aa.leftSpineX, lw = aa.leftSpineWidth, ty = aa.topBarY, th = aa.topBarHeight;
+      const ew = aa.elbowWidth, by = aa.botBarY, bh = aa.botBarHeight;
+
+      ctx.fillStyle = cfg.colors.primary;
+      ctx.fillRect(lx, ty, lw, 175);
+      ctx.fillRect(lx, ty, ew, th);
+
+      const segStart = lx + ew + 8;
+      ctx.fillStyle = cfg.colors.secondary;  ctx.fillRect(segStart, ty, 240, th);
+      ctx.fillStyle = cfg.colors.tertiary;   ctx.fillRect(segStart + 248, ty, 180, th);
+      ctx.fillStyle = cfg.colors.accentBlue; ctx.fillRect(segStart + 436, ty, 500, th);
+      ctx.fillStyle = cfg.colors.primary;    ctx.fillRect(segStart + 944, ty, 300, th);
+      ctx.fillStyle = cfg.colors.alertRed;   ctx.fillRect(segStart + 1252, ty, 210, th);
+      roundRect(ctx, 1852, ty, 54, th, th / 2);
+      ctx.fillStyle = cfg.colors.secondary;  ctx.fill();
+
+      ctx.fillStyle = cfg.colors.secondary;  ctx.fillRect(lx, ty + 182, lw, 110);
+      ctx.fillStyle = cfg.colors.tertiary;   ctx.fillRect(lx, ty + 300, lw, 98);
+      ctx.fillStyle = cfg.colors.accentBlue; ctx.fillRect(lx, ty + 406, lw, 90);
+
+      const botElbowH = (by + bh) - (ty + 502);
+      ctx.fillStyle = cfg.colors.accentBlue;
+      ctx.fillRect(lx, ty + 502, lw, botElbowH);
+      ctx.fillRect(lx, by, ew, bh);
+
+      const cutX = aa.pageDotCutoutX, cutW = aa.pageDotCutoutW;
+      const leftBotW = Math.max(40, cutX - segStart - 8);
+      ctx.fillStyle = cfg.colors.tertiary; ctx.fillRect(segStart, by, 180, bh);
+      if (leftBotW > 188) {
+        ctx.fillStyle = cfg.colors.primary; ctx.fillRect(segStart + 188, by, leftBotW - 188, bh);
+      }
+      const rightBotX = cutX + cutW + 8;
+      ctx.fillStyle = cfg.colors.secondary;  ctx.fillRect(rightBotX, by, 260, bh);
+      ctx.fillStyle = cfg.colors.accentBlue; ctx.fillRect(rightBotX + 268, by, 310, bh);
+      ctx.fillStyle = cfg.colors.alertRed;   ctx.fillRect(rightBotX + 586, by, 195, bh);
+      roundRect(ctx, 1852, by, 54, bh, bh / 2);
+      ctx.fillStyle = cfg.colors.primary;    ctx.fill();
+
+      ctx.font = 'bold 17px "Arial Narrow", Arial';
+      ctx.fillStyle = cfg.colors.secondary;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(isNight ? aa.titleNight : aa.titleDay, lx + lw + 18, ty + th + 19);
+      ctx.fillStyle = cfg.colors.accentBlue;
+      ctx.fillText(aa.subtitleRight, 1345, ty + th + 19);
+    }
+
+    const items = screenMode === 'apps1' ? PAGE1_ITEMS : PAGE2_ITEMS;
+    items.forEach((item, idx) => {
+      const col = idx % 6;
+      const row = Math.floor(idx / 6);
+      const tx = 82 + col * 296;
+      const tyTile = 142 + row * 268;
+      drawTileAndIcon(ctx, tx, tyTile, item);
+    });
+
+    if (showHud) {
+      ctx.fillStyle = 'rgba(0,0,0,0.65)';
+      ctx.fillRect(0, 0, 1920, 72);
+      ctx.fillStyle = '#FFF';
+      ctx.font = 'bold 34px "Segoe UI"';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText('12:00 PM    Thu, Nov. 12', 1100, 48);
+      ctx.fillStyle = '#556677';
+      roundRect(ctx, 902, 686, 36, 9, 4); ctx.fill();
+      roundRect(ctx, 944, 686, 36, 9, 4); ctx.fill();
+      ctx.fillStyle = '#38BDF8';
+      roundRect(ctx, 986, 686, 36, 9, 4); ctx.fill();
+    }
+  } else {
+    // HOME SPLIT-SCREEN SIMULATION (1:1 On-Car Proportions)
+    // On the car, MapTextureView starts at X=1125 (left of 1125 is dark #070a10)
+    ctx.fillStyle = '#070a10';
+    ctx.fillRect(0, 0, 1920, 720);
+    ctx.fillStyle = '#141c28';
+    ctx.fillRect(1125, 0, 795, 720);
+
+    // Simulated river + map roads inside MapTextureView (X=1125..1920)
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(1125, 0, 795, 720);
+    ctx.clip();
+    ctx.fillStyle = '#1b3b5c';
+    ctx.beginPath();
+    ctx.moveTo(1125, 390);
+    ctx.bezierCurveTo(1350, 370, 1600, 415, 1920, 405);
+    ctx.lineTo(1920, 455);
+    ctx.bezierCurveTo(1600, 465, 1350, 415, 1125, 430);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 3;
+    for (let i = 0; i < 11; i++) {
+      ctx.beginPath(); ctx.moveTo(1130 + i * 75, 0); ctx.lineTo(1210 + i * 62, 720); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(1125, 35 + i * 65); ctx.lineTo(1920, 85 + i * 55); ctx.stroke();
+    }
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(1125, 220); ctx.quadraticCurveTo(1480, 260, 1920, 315); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(1380, 0); ctx.quadraticCurveTo(1360, 360, 1495, 720); ctx.stroke();
+    ctx.restore();
+
+    const hs = cfg.homeScreen;
+    if (hs.bgMode === 'oem') {
+      const oemGrad = ctx.createLinearGradient(1125, 0, 1240, 0);
+      oemGrad.addColorStop(0, '#070a10');
+      oemGrad.addColorStop(1, 'rgba(7, 10, 16, 0)');
+      ctx.fillStyle = '#070a10';
+      ctx.fillRect(0, 0, 1125, 720);
+      ctx.fillStyle = oemGrad;
+      ctx.fillRect(1125, 0, 115, 720);
+    } else {
+      const divX = hs.dividerX, divW = hs.dividerWidth;
+      const mTopY = hs.mapBorderTopY, mTopH = hs.mapBorderTopH;
+      const mBotY = hs.mapBorderBotY, mBotH = hs.mapBorderBotH;
+      const mapRightX = hs.mapBorderRightX, mapRightW = hs.mapBorderRightW;
+
+      const mapViewX = divX + divW + 6;
+      const mapViewY = mTopY + mTopH;
+      const mapViewW = Math.max(50, mapRightX - mapViewX);
+      const mapViewH = Math.max(50, mBotY - mapViewY);
+      const fadeMode = hs.mapFadeMode || 'feather';
+      const fadeWidth = hs.mapFadeWidth !== undefined ? hs.mapFadeWidth : 75;
+      const centerOpacity = hs.mapCenterOpacity !== undefined ? hs.mapCenterOpacity : 0;
+      const homeFit = hs.bgFit || 'cover';
+
+      if (!window._homeOffscreen) {
+        window._homeOffscreen = document.createElement('canvas');
+        window._homeOffscreen.width = 1920;
+        window._homeOffscreen.height = 720;
+      }
+      const offC = window._homeOffscreen;
+      const offCtx = offC.getContext('2d');
+      offCtx.clearRect(0, 0, 1920, 720);
+
+      offCtx.save();
+      if (fadeMode === 'hard') {
+        offCtx.beginPath();
+        offCtx.rect(0, 0, 1920, 720);
+        roundRectSubpath(offCtx, mapViewX, mapViewY, mapViewW, mapViewH, hs.mapCutoutRadius || 0);
+        offCtx.clip('evenodd');
+      }
+
+      offCtx.fillStyle = isNight ? cfg.colors.bgNightTop : cfg.colors.bgDayTop;
+      offCtx.fillRect(0, 0, 1920, 720);
+
+      let homeCustomFile = '';
+      if (hs.bgMode === 'custom' && hs.customBgFile) homeCustomFile = hs.customBgFile;
+      else if (hs.bgMode === 'sameAsAllApps' && cfg.allApps.customBgFile) homeCustomFile = cfg.allApps.customBgFile;
+
+      if (homeCustomFile) {
+        const hImg = getCachedImage(customAssetUrl(homeCustomFile));
+        if (hImg) {
+          drawFittedImgOnCanvas(offCtx, hImg, 1920, 720, homeFit, hs.bgScale, hs.bgOffsetX, hs.bgOffsetY);
+          if (hs.bgDim > 0) {
+            offCtx.fillStyle = `rgba(0,0,0,${(hs.bgDim / 100).toFixed(2)})`;
+            offCtx.fillRect(0, 0, 1920, 720);
+          }
+        }
+      }
+      offCtx.restore();
+
+      if (fadeMode !== 'hard') {
+        applyMapAlphaFadeToCanvas(offCtx, mapViewX, mapViewY, mapViewW, mapViewH, fadeMode, fadeWidth, centerOpacity);
+      }
+
+      ctx.drawImage(offC, 0, 0);
+
+      if (hs.showLcarsFrame !== true) {
+        if ((hs.mapCutoutBorderW || 0) > 0) {
+          roundRect(ctx, mapViewX, mapViewY, mapViewW, mapViewH, hs.mapCutoutRadius || 0);
+          ctx.strokeStyle = hs.mapCutoutBorderColor || cfg.colors.primary;
+          ctx.lineWidth = hs.mapCutoutBorderW;
+          ctx.stroke();
+        }
+      } else {
+        const lbX = hs.leftBarX, lbW = hs.leftBarWidth;
+        ctx.fillStyle = cfg.colors.primary;    ctx.fillRect(lbX, mTopY + 8, lbW, 155);
+        ctx.fillStyle = cfg.colors.secondary;  ctx.fillRect(lbX, mTopY + 171, lbW, 128);
+        ctx.fillStyle = cfg.colors.tertiary;   ctx.fillRect(lbX, mTopY + 307, lbW, 128);
+        ctx.fillStyle = cfg.colors.accentBlue; ctx.fillRect(lbX, mTopY + 443, lbW, 162);
+
+        ctx.fillStyle = cfg.colors.primary;    ctx.fillRect(lbX + lbW + 6, mTopY, 330, mTopH);
+        ctx.fillStyle = cfg.colors.secondary;  ctx.fillRect(lbX + lbW + 344, mTopY, 220, mTopH);
+        ctx.fillStyle = cfg.colors.accentBlue; ctx.fillRect(lbX + lbW + 572, mTopY, divX - (lbX + lbW + 580), mTopH);
+
+        ctx.fillStyle = cfg.colors.primary;    ctx.fillRect(divX, mTopY, divW, 185);
+        ctx.fillStyle = cfg.colors.alertRed;   ctx.fillRect(divX, mTopY + 193, divW, 92);
+        ctx.fillStyle = cfg.colors.secondary;  ctx.fillRect(divX, mTopY + 293, divW, 140);
+        ctx.fillStyle = cfg.colors.accentBlue; ctx.fillRect(divX, mTopY + 441, divW, 183);
+
+        const mapLeftX = divX + divW + 6;
+        ctx.fillStyle = cfg.colors.secondary;  ctx.fillRect(mapLeftX, mTopY, 370, mTopH);
+        ctx.fillStyle = cfg.colors.tertiary;   ctx.fillRect(mapLeftX + 378, mTopY, 210, mTopH);
+        ctx.fillStyle = cfg.colors.primary;    ctx.fillRect(mapLeftX + 596, mTopY, mapRightX - (mapLeftX + 596), mTopH);
+        ctx.fillStyle = cfg.colors.primary;    ctx.fillRect(mapRightX, mTopY + mTopH, mapRightW, 280);
+        ctx.fillStyle = cfg.colors.accentBlue; ctx.fillRect(mapRightX, mTopY + mTopH + 288, mapRightW, 312);
+        ctx.fillStyle = cfg.colors.accentBlue; ctx.fillRect(mapLeftX, mBotY, 450, mBotH);
+        ctx.fillStyle = cfg.colors.secondary;  ctx.fillRect(mapLeftX + 458, mBotY, mapRightX + mapRightW - (mapLeftX + 458), mBotH);
+
+        ctx.fillStyle = cfg.colors.accentBlue; ctx.fillRect(lbX + lbW + 6, mBotY, 410, mBotH);
+        ctx.fillStyle = cfg.colors.tertiary;   ctx.fillRect(lbX + lbW + 424, mBotY, 230, mBotH);
+        ctx.fillStyle = cfg.colors.primary;    ctx.fillRect(lbX + lbW + 662, mBotY, 175, mBotH);
+      }
+    }
+
+    // Navigation cursor on Map (matches car photo at X=1525, Y=555)
+    if (showHud) {
+      ctx.save();
+      ctx.translate(1525, 555);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 56, 40, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(10, 22, 34, 0.85)';
+      ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#5eead4';
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, -24);
+      ctx.lineTo(24, 18);
+      ctx.lineTo(0, 10);
+      ctx.lineTo(-24, 18);
+      ctx.closePath();
+      ctx.fillStyle = '#e2f8ff';
+      ctx.fill();
+      ctx.restore();
+    }
+
+    const bw = cfg.batteryWidget;
+    const pct = parseInt(document.getElementById('simBatteryPct').value, 10) / 100.0;
+    document.getElementById('simBatteryLbl').textContent = Math.round(pct * 100) + '%';
+    const lvlNum = String(Math.round(pct * 20)).padStart(2, '0');
+    const bScale = (bw.customScale !== undefined && bw.customScale > 0) ? bw.customScale : 100;
+    const bOffX = bw.customOffsetX || 0;
+    const bOffY = bw.customOffsetY || 0;
+    const rangeOffX = bw.rangeOffsetX || 0;
+    const rangeOffY = bw.rangeOffsetY || 0;
+    const bTxtOffX = bw.battTextOffsetX || 0;
+    const bTxtOffY = bw.battTextOffsetY || 0;
+    const hideRangeBox = bw.hideRangeBox === true;
+
+    // EV Widget on-car origin: X=596, Y=335, full size=798x318
+    ctx.save();
+    ctx.translate(596, 335);
+
+    if (bw.style === 'oem') {
+      drawSimulatedOemEvCar(ctx, pct, bScale, bOffX, bOffY);
+    } else if (bw.style === 'custom' && bw.customFile) {
+      const cBat = getCachedImage(customAssetUrl(bw.customFile));
+      if (cBat) drawFittedImgInBoxOnCanvas(ctx, cBat, 0, 0, 620, 280, 'contain', bScale, bOffX, bOffY, 1.0);
+    } else {
+      ctx.fillStyle = 'rgba(40,80,140,0.32)';
+      ctx.strokeStyle = 'rgba(153,204,255,0.8)';
+      ctx.lineWidth = 2;
+      roundRect(ctx, bw.nacelleX, bw.nacelleTopY, bw.nacelleW, bw.nacelleH, 9); ctx.fill(); ctx.stroke();
+      roundRect(ctx, bw.nacelleX, bw.nacelleBotY, bw.nacelleW, bw.nacelleH, 9); ctx.fill(); ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(bw.saucerX + bw.saucerW / 2, bw.saucerY + bw.saucerH / 2, bw.saucerW / 2, bw.saucerH / 2, 0, 0, Math.PI * 2);
+      ctx.fill(); ctx.stroke();
+      const activeSegs = Math.round(pct * 16);
+      for (let s = 0; s < 16; s++) {
+        ctx.fillStyle = s < activeSegs ? (pct <= 0.2 ? '#FF4433' : cfg.colors.sensorCyan) : 'rgba(153,204,255,0.18)';
+        const segX = bw.nacelleX + 10 + s * ((bw.nacelleW - 34) / 16.0);
+        ctx.fillRect(segX, bw.nacelleTopY + 4, 6, bw.nacelleH - 8);
+        ctx.fillRect(segX, bw.nacelleBotY + 4, 6, bw.nacelleH - 8);
+      }
+    }
+
+    // Dynamic Charge Bar & Callout Box work across ALL EV styles (OEM, Custom, Vector)
+    if (bw.showDynamicBar === true) {
+      roundRect(ctx, bw.hullX, bw.hullY, bw.hullW, bw.hullH, 8);
+      ctx.fillStyle = 'rgba(15,25,45,0.6)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(153,204,255,0.8)'; ctx.lineWidth = 2; ctx.stroke();
+      const activeSegs = Math.round(pct * 16);
+      for (let s = 0; s < 16; s++) {
+        ctx.fillStyle = s < activeSegs ? (pct <= 0.2 ? '#FF4433' : cfg.colors.sensorCyan) : 'rgba(153,204,255,0.18)';
+        const barX = bw.hullX + 10 + s * ((bw.hullW - 20) / 16.0);
+        ctx.fillRect(barX, bw.hullY + 4, 14, bw.hullH - 8);
+      }
+    }
+
+    if (bw.showCalloutBox === true) {
+      roundRect(ctx, (bw.calloutX || 149) + bTxtOffX, (bw.calloutY || 20) + bTxtOffY, bw.calloutW || 164, bw.calloutH || 79, bw.calloutRadius || 12);
+      ctx.fillStyle = 'rgba(8,12,26,0.82)'; ctx.fill();
+      ctx.strokeStyle = cfg.colors.primary; ctx.lineWidth = 2.2; ctx.stroke();
+    }
+
+    if (!hideRangeBox) {
+      roundRect(ctx, 578 + rangeOffX, 203 + rangeOffY, 198, 87, 12);
+      ctx.fillStyle = 'rgba(56, 61, 68, 0.89)';
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(168, 176, 186, 0.84)';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    }
+
+    if (showHud) {
+      // Exact widget_ev_main_v2.xml text positions relative to (596, 335) + user offsets
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = 'bold 21px "Segoe UI"';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText('Battery', 274 + bTxtOffX, 56 + bTxtOffY);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 62px "Segoe UI"';
+      ctx.fillText(Math.round(pct * 100) + '%', 274 + bTxtOffX, 118 + bTxtOffY);
+
+      // Range / 81 mi text inside the Range box (marginStart=589.5, marginTop=204, width=171) + user offsets
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '500 23px "Segoe UI"';
+      ctx.fillText('Range', 676 + rangeOffX, 232 + rangeOffY);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 35px "Segoe UI"';
+      ctx.fillText('81 mi', 676 + rangeOffX, 274 + rangeOffY);
+    }
+    ctx.restore();
+
+    if (showHud) {
+      // Exact on-car Clock, Date, Media & Progress Bar positions (X=82)
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.font = '500 33px "Segoe UI"';
+      ctx.fillText('Thu, Nov. 12', 82, 335);
+      ctx.font = 'bold 124px "Segoe UI"';
+      ctx.fillText('12:45', 76, 468);
+      ctx.font = 'bold 32px "Segoe UI"';
+      ctx.fillText('PM', 416, 398);
+      ctx.font = '500 32px "Segoe UI"';
+      ctx.fillText('SiriusXM CH2', 82, 556);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillText('Hits 1', 82, 612);
+
+      // Dotted cyan progress bar at Y=644, X=82..620
+      for (let px = 82; px < 620; px += 9) {
+        ctx.fillStyle = px < 420 ? '#38bdf8' : 'rgba(148, 163, 184, 0.45)';
+        ctx.fillRect(px, 643, 6, 7);
+      }
+    }
+  }
+}
+
+function smoothStepJS(u) {
+  if (u <= 0) return 0;
+  if (u >= 1) return 1;
+  return u * u * (3 - 2 * u);
+}
+
+function applyMapAlphaFadeToCanvas(offCtx, rx, ry, rw, rh, mode, fadeWidth, centerOpacityPct) {
+  const w = 1920, h = 720;
+  const imgData = offCtx.getImageData(0, 0, w, h);
+  const px = imgData.data;
+  const minAlphaRatio = Math.max(0, Math.min(1, centerOpacityPct / 100.0));
+
+  if (mode === 'oem-alpha') {
+    for (let y = 0; y < h; y++) {
+      const rowOff = y * w * 4;
+      for (let x = 1125; x < w; x++) {
+        const u = Math.max(0, Math.min(1, (x - 1125.0) / 115.0));
+        const holeStrength = smoothStepJS(u);
+        const eff = 1.0 - holeStrength * (1.0 - minAlphaRatio);
+        const idx = rowOff + x * 4 + 3;
+        px[idx] = Math.round(px[idx] * eff);
+      }
+    }
+    offCtx.putImageData(imgData, 0, 0);
+    return;
+  }
+
+  const F = Math.max(1.0, fadeWidth);
+  const FEdge = Math.max(1.0, Math.min(F * 0.35, 28.0));
+  const x0 = Math.max(0, Math.floor(rx));
+  const y0 = Math.max(0, Math.floor(ry));
+  const x1 = Math.min(w, Math.ceil(rx + rw));
+  const y1 = Math.min(h, Math.ceil(ry + rh));
+
+  for (let y = y0; y < y1; y++) {
+    const dT = y - ry;
+    const dB = (ry + rh - 1) - y;
+    const sT = (mode === 'feather-left') ? smoothStepJS(dT / FEdge) : smoothStepJS(dT / F);
+    const sB = (mode === 'feather-left') ? smoothStepJS(dB / FEdge) : smoothStepJS(dB / F);
+    const sY = sT * sB;
+    const rowOff = y * w * 4;
+
+    for (let x = x0; x < x1; x++) {
+      const dL = x - rx;
+      const dR = (rx + rw - 1) - x;
+      const sL = smoothStepJS(dL / F);
+      const sR = (mode === 'feather-left') ? smoothStepJS(dR / FEdge) : smoothStepJS(dR / F);
+      const holeStrength = sL * sR * sY;
+      const alphaMult = 1.0 - holeStrength * (1.0 - minAlphaRatio);
+      const idx = rowOff + x * 4 + 3;
+      px[idx] = Math.round(px[idx] * alphaMult);
+    }
+  }
+  offCtx.putImageData(imgData, 0, 0);
+}
+
+function roundRectSubpath(ctx, x, y, w, h, r) {
+  const rr = Math.max(0, Math.min(r, w / 2, h / 2));
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+function setToast(msg) {
+  document.getElementById('statusToast').textContent = msg;
+}
+
+let autoSaveTimer = null;
+function scheduleAutoSave() {
+  const badge = document.getElementById('diskSaveBadge');
+  if (badge) badge.textContent = '💾 Saving to disk...';
+  if (autoSaveTimer) clearTimeout(autoSaveTimer);
+  autoSaveTimer = setTimeout(async () => {
+    try {
+      const res = await fetch('/api/save-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cfg, null, 2)
+      });
+      const j = await res.json();
+      if (j.themes) {
+        themesList = j.themes;
+        populateThemesDropdown();
+      }
+      if (badge) badge.textContent = '💾 Auto-Saved: studio/themes/' + activeThemeId;
+    } catch (e) {
+      if (badge) badge.textContent = '💾 Disk: studio/themes/' + activeThemeId;
+    }
+  }, 550);
+}
+
+async function saveConfigOnly() {
+  setToast('Saving theme "' + (cfg.themeName || activeThemeId) + '" to studio/themes/' + activeThemeId + '...');
+  const res = await fetch('/api/save-config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(cfg, null, 2)
+  });
+  const j = await res.json();
+  if (j.themes) {
+    themesList = j.themes;
+    populateThemesDropdown();
+  }
+  const badge = document.getElementById('diskSaveBadge');
+  if (badge) badge.textContent = '💾 Saved: studio/themes/' + activeThemeId;
+  setToast(j.message || 'Saved!');
+}
+
+async function exportCurrentThemeZip() {
+  try {
+    setToast('Saving & exporting "' + (cfg.themeName || activeThemeId) + '" for sharing...');
+    await fetch('/api/save-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cfg, null, 2)
+    });
+    const url = '/api/themes/export?id=' + encodeURIComponent(activeThemeId) + '&t=' + Date.now();
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${activeThemeId}-v1.5.0.gen5wtheme`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setToast('Exported shareable theme file: ' + activeThemeId + '-v1.5.0.gen5wtheme');
+  } catch (e) {
+    setToast('Export error: ' + e.message);
+  }
+}
+
+function importThemeZipFile(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  setToast('Importing theme pack "' + file.name + '"...');
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    try {
+      const res = await fetch('/api/themes/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: file.name, dataUrl: ev.target.result })
+      });
+      const j = await res.json();
+      if (!j.ok) throw new Error(j.error || 'Import failed');
+      activeThemeId = j.activeTheme;
+      themesList = j.themes || themesList;
+      cfg = j.config;
+      assetCacheBust = Date.now();
+      loadedImages = {};
+      populateThemesDropdown();
+      bindControls();
+      render();
+      const badge = document.getElementById('diskSaveBadge');
+      if (badge) badge.textContent = '💾 Imported: studio/themes/' + activeThemeId;
+      setToast(j.message || ('Imported theme "' + j.name + '"!'));
+      if (j.compatNote && j.compatNote.startsWith('Warning:')) {
+        alert(j.compatNote);
+      }
+    } catch (e) {
+      setToast('Import failed: ' + e.message);
+      alert('Could not import theme ZIP: ' + e.message);
+    } finally {
+      input.value = '';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function openHelpModal() {
+  document.getElementById('helpModal').style.display = 'flex';
+}
+function closeHelpModal() {
+  document.getElementById('helpModal').style.display = 'none';
+}
+
+function openBuildModal() {
+  const box = document.getElementById('buildThemesChecklist');
+  box.innerHTML = '';
+  const nonStock = themesList.filter(t => !t.isStock);
+  themesList.forEach(t => {
+    const lbl = document.createElement('label');
+    lbl.style.cssText = 'display:flex;align-items:center;gap:10px;padding:7px 10px;background:#161c28;border:1px solid #283246;border-radius:6px;cursor:pointer;font-size:13px;';
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.className = 'chk-build-theme';
+    chk.value = t.id;
+    chk.dataset.isStock = t.isStock ? '1' : '0';
+    chk.checked = (t.id === activeThemeId) || (!t.isStock && nonStock.length > 1);
+    const span = document.createElement('span');
+    span.innerHTML = `<b>${t.name}</b> <span style="color:#94a3b8;font-size:11px;">(studio/themes/${t.id}${t.id === activeThemeId ? ' — Current' : ''})</span>`;
+    lbl.appendChild(chk);
+    lbl.appendChild(span);
+    box.appendChild(lbl);
+  });
+  document.getElementById('buildModal').style.display = 'flex';
+}
+
+function closeBuildModal() {
+  document.getElementById('buildModal').style.display = 'none';
+}
+
+function toggleAllBuildThemes(allCustom) {
+  document.querySelectorAll('.chk-build-theme').forEach(chk => {
+    if (allCustom) {
+      chk.checked = (chk.dataset.isStock !== '1') || (chk.value === activeThemeId);
+    } else {
+      chk.checked = (chk.value === activeThemeId);
+    }
+  });
+}
+
+async function buildAndDeploySelected() {
+  const selectedIds = Array.from(document.querySelectorAll('.chk-build-theme:checked')).map(c => c.value);
+  if (selectedIds.length === 0) {
+    selectedIds.push(activeThemeId);
+  }
+  closeBuildModal();
+
+  const btn = document.getElementById('btnBuildDeploy');
+  btn.disabled = true;
+  btn.textContent = `Building ${selectedIds.length} Theme(s)...`;
+  setToast(`Building ${selectedIds.length} theme(s) into multi-theme USB installer ZIP (~${selectedIds.length * 10}s)...`);
+  try {
+    const res = await fetch('/api/build-and-deploy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ config: cfg, selectedThemes: selectedIds }, null, 2)
+    });
+    const j = await res.json();
+    if (!j.ok) throw new Error(j.error || 'Build failed');
+    setToast(j.message);
+    if (j.downloadUrl) {
+      const a = document.createElement('a');
+      a.href = j.downloadUrl;
+      a.download = j.fileName || 'Gen5W-Theme-USB.zip';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+  } catch (e) {
+    setToast('Build error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Build & Download USB ZIP...';
+  }
+}
+
+window.addEventListener('DOMContentLoaded', async () => {
+  const tRes = await fetch('/api/themes');
+  const tData = await tRes.json();
+  activeThemeId = tData.activeTheme || 'stock-oem';
+  themesList = tData.themes || [];
+  populateThemesDropdown();
+  const badge = document.getElementById('diskSaveBadge');
+  if (badge) badge.textContent = '💾 Disk: studio/themes/' + activeThemeId;
+
+  const res = await fetch('/api/config');
+  cfg = await res.json();
+  bindControls();
+  render();
+});
+</script>
+</body>
+</html>

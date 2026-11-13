@@ -9,7 +9,7 @@ Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-$StudioVersion = "1.1.0"
+$StudioVersion = "1.1.2"
 $SchemaVersion = 3
 
 function Ensure-ThemeConfigDefaults($CfgObj) {
@@ -28,6 +28,13 @@ function Ensure-ThemeConfigDefaults($CfgObj) {
         if (-not $CfgObj.homeScreen.PSObject.Properties["mediaOffsetX"])       { $CfgObj.homeScreen | Add-Member -NotePropertyName "mediaOffsetX"       -NotePropertyValue 0 }
         if (-not $CfgObj.homeScreen.PSObject.Properties["mediaOffsetY"])       { $CfgObj.homeScreen | Add-Member -NotePropertyName "mediaOffsetY"       -NotePropertyValue 0 }
         if (-not $CfgObj.homeScreen.PSObject.Properties["mediaFontScale"])     { $CfgObj.homeScreen | Add-Member -NotePropertyName "mediaFontScale"     -NotePropertyValue 100 }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["navCursorStyle"])     { $CfgObj.homeScreen | Add-Member -NotePropertyName "navCursorStyle"     -NotePropertyValue "oem" }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["navCursorColor"])     { $CfgObj.homeScreen | Add-Member -NotePropertyName "navCursorColor"     -NotePropertyValue "#2EE8D6" }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["navCursorArrowColor"]){ $CfgObj.homeScreen | Add-Member -NotePropertyName "navCursorArrowColor"-NotePropertyValue "#E8FAFF" }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["navCursorScale"])     { $CfgObj.homeScreen | Add-Member -NotePropertyName "navCursorScale"     -NotePropertyValue 100 }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["navCursorOffsetX"])   { $CfgObj.homeScreen | Add-Member -NotePropertyName "navCursorOffsetX"   -NotePropertyValue 0 }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["navCursorOffsetY"])   { $CfgObj.homeScreen | Add-Member -NotePropertyName "navCursorOffsetY"   -NotePropertyValue 0 }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["bakeNavCursorToBg"])  { $CfgObj.homeScreen | Add-Member -NotePropertyName "bakeNavCursorToBg"  -NotePropertyValue $false }
     }
     if ($null -ne $CfgObj.batteryWidget) {
         if (-not $CfgObj.batteryWidget.PSObject.Properties["rangeOffsetX"])    { $CfgObj.batteryWidget | Add-Member -NotePropertyName "rangeOffsetX"    -NotePropertyValue 0 }
@@ -38,10 +45,14 @@ function Ensure-ThemeConfigDefaults($CfgObj) {
     if (-not $CfgObj.PSObject.Properties["statusBar"] -or $null -eq $CfgObj.statusBar) {
         $CfgObj | Add-Member -Force -NotePropertyName "statusBar" -NotePropertyValue ([PSCustomObject]@{
             bgMode = "oem"; customBgFile = ""; bgFit = "cover"; bgScale = 100; bgOffsetX = 0; bgOffsetY = 0;
+            bgOpacity = 100; barOpacity = 100;
             bgColor = "#060810"; accentColor = "#3B82F6"; secondaryColor = "#38BDF8"; borderHeight = 4;
             buttonStyle = "oem"; buttonBgColor = "#141C2B"; buttonAccentColor = "#3B82F6"; buttonGlyphColor = "#FFCC66";
             customHomeFile = ""; customBackFile = ""
         })
+    } else {
+        if (-not $CfgObj.statusBar.PSObject.Properties["bgOpacity"])          { $CfgObj.statusBar | Add-Member -NotePropertyName "bgOpacity"          -NotePropertyValue 100 }
+        if (-not $CfgObj.statusBar.PSObject.Properties["barOpacity"])         { $CfgObj.statusBar | Add-Member -NotePropertyName "barOpacity"         -NotePropertyValue 100 }
     }
     if (-not $CfgObj.PSObject.Properties["climateScreen"] -or $null -eq $CfgObj.climateScreen) {
         $CfgObj | Add-Member -Force -NotePropertyName "climateScreen" -NotePropertyValue ([PSCustomObject]@{
@@ -61,8 +72,18 @@ function Ensure-ThemeConfigDefaults($CfgObj) {
             bgMode = "oem"; customBgFile = ""; bgFit = "cover"; bgScale = 100; bgOffsetX = 0; bgOffsetY = 0; bgDim = 0;
             bgColor = "#060911"; accentColor = "#3B82F6"; secondaryColor = "#38BDF8"; showLcarsFrame = $false;
             carStyle = "oem"; customCarFile = ""; carScale = 100; carOffsetX = 0; carOffsetY = 0;
-            cardStyle = "oem"; hideRangeRadar = $false
+            cardStyle = "oem"; hideRangeRadar = $false;
+            roadStyle = "oem"; roadColor = "#00E5FF"; roadGridColor = "#005577"; roadOpacity = 85; customRoadFile = ""
         })
+    } else {
+        if (-not $CfgObj.evScreen.PSObject.Properties["roadStyle"]) {
+            $rs = if ($CfgObj.evScreen.hideRangeRadar -eq $true) { "hidden" } else { "oem" }
+            $CfgObj.evScreen | Add-Member -NotePropertyName "roadStyle" -NotePropertyValue $rs
+        }
+        if (-not $CfgObj.evScreen.PSObject.Properties["roadColor"])      { $CfgObj.evScreen | Add-Member -NotePropertyName "roadColor"      -NotePropertyValue "#00E5FF" }
+        if (-not $CfgObj.evScreen.PSObject.Properties["roadGridColor"])  { $CfgObj.evScreen | Add-Member -NotePropertyName "roadGridColor"  -NotePropertyValue "#005577" }
+        if (-not $CfgObj.evScreen.PSObject.Properties["roadOpacity"])    { $CfgObj.evScreen | Add-Member -NotePropertyName "roadOpacity"    -NotePropertyValue 85 }
+        if (-not $CfgObj.evScreen.PSObject.Properties["customRoadFile"]) { $CfgObj.evScreen | Add-Member -NotePropertyName "customRoadFile" -NotePropertyValue "" }
     }
 }
 

@@ -161,6 +161,154 @@ function Save-WebpOrPng {
     }
 }
 
+function ConvertTo-CompiledNinePatchBytes([byte[]]$PngBytes) {
+    if ($null -eq $PngBytes -or $PngBytes.Length -lt 33) { return $PngBytes }
+    if ($PngBytes[0] -ne 0x89 -or $PngBytes[1] -ne 0x50 -or $PngBytes[2] -ne 0x4E -or $PngBytes[3] -ne 0x47) { return $PngBytes }
+    $pos = 8
+    $ihdrEnd = -1
+    $width = 0
+    $height = 0
+    while ($pos + 12 -le $PngBytes.Length) {
+        $len = ([int]$PngBytes[$pos] -shl 24) -bor ([int]$PngBytes[$pos + 1] -shl 16) -bor ([int]$PngBytes[$pos + 2] -shl 8) -bor [int]$PngBytes[$pos + 3]
+        if ($len -lt 0 -or ($pos + 12 + $len) -gt $PngBytes.Length) { break }
+        $tag = [System.Text.Encoding]::ASCII.GetString($PngBytes, $pos + 4, 4)
+        if ($tag -eq "npTc") { return $PngBytes }
+        if ($tag -eq "IHDR" -and $len -ge 8) {
+            $width = ([int]$PngBytes[$pos + 8] -shl 24) -bor ([int]$PngBytes[$pos + 9] -shl 16) -bor ([int]$PngBytes[$pos + 10] -shl 8) -bor [int]$PngBytes[$pos + 11]
+            $height = ([int]$PngBytes[$pos + 12] -shl 24) -bor ([int]$PngBytes[$pos + 13] -shl 16) -bor ([int]$PngBytes[$pos + 14] -shl 8) -bor [int]$PngBytes[$pos + 15]
+            $ihdrEnd = $pos + 12 + $len
+        }
+        $pos += 12 + $len
+    }
+    if ($ihdrEnd -lt 33 -or $width -le 0 -or $height -le 0) { return $PngBytes }
+
+    $npTc = New-Object byte[] 84
+    $npTc[0] = 0; $npTc[1] = 2; $npTc[2] = 2; $npTc[3] = 9
+    $writeBE = {
+        param([byte[]]$arr, [int]$off, [uint32]$v)
+        $arr[$off]     = [byte](($v -shr 24) -band 0xFF)
+        $arr[$off + 1] = [byte](($v -shr 16) -band 0xFF)
+        $arr[$off + 2] = [byte](($v -shr 8) -band 0xFF)
+        $arr[$off + 3] = [byte]($v -band 0xFF)
+    }
+    & $writeBE $npTc 4 32
+    & $writeBE $npTc 8 40
+    & $writeBE $npTc 28 48
+    & $writeBE $npTc 32 1
+    & $writeBE $npTc 36 ([uint32][Math]::Max(2, $width - 1))
+    & $writeBE $npTc 40 1
+    & $writeBE $npTc 44 ([uint32][Math]::Max(2, $height - 1))
+    for ($ci = 0; $ci -lt 9; $ci++) { & $writeBE $npTc (48 + $ci * 4) 1 }
+
+    $chunkType = [System.Text.Encoding]::ASCII.GetBytes("npTc")
+    [uint32]$crc = [uint32]4294967295
+    [uint32]$poly = [uint32]3988292384
+    foreach ($byteVal in ($chunkType + $npTc)) {
+        $crc = $crc -bxor [uint32]$byteVal
+        for ($b = 0; $b -lt 8; $b++) {
+            if (($crc -band [uint32]1) -ne 0) { $crc = ($crc -shr 1) -bxor $poly }
+            else { $crc = $crc -shr 1 }
+        }
+    }
+    $crc = $crc -bxor [uint32]4294967295
+
+    $out = New-Object byte[] ($PngBytes.Length + 12 + $npTc.Length)
+    [Array]::Copy($PngBytes, 0, $out, 0, $ihdrEnd)
+    & $writeBE $out $ihdrEnd ([uint32]$npTc.Length)
+    [Array]::Copy($chunkType, 0, $out, $ihdrEnd + 4, 4)
+    [Array]::Copy($npTc, 0, $out, $ihdrEnd + 8, $npTc.Length)
+    & $writeBE $out ($ihdrEnd + 8 + $npTc.Length) $crc
+    [Array]::Copy($PngBytes, $ihdrEnd, $out, $ihdrEnd + 12 + $npTc.Length, $PngBytes.Length - $ihdrEnd)
+    return $out
+}
+
+function ConvertTo-StaticTtfBytes([byte[]]$FontBytes) {
+    if ($null -eq $FontBytes -or $FontBytes.Length -lt 12) { return $FontBytes }
+    # Only strip OpenType 1.8 variable tables from SFNT TrueType (0x00010000) fonts so Android 4.4 FreeType renders cleanly
+    if ($FontBytes[0] -ne 0x00 -or $FontBytes[1] -ne 0x01 -or $FontBytes[2] -ne 0x00 -or $FontBytes[3] -ne 0x00) {
+        return $FontBytes
+    }
+    $numTables = ([int]$FontBytes[4] -shl 8) -bor [int]$FontBytes[5]
+    if ($numTables -le 0 -or (12 + $numTables * 16) -gt $FontBytes.Length) { return $FontBytes }
+
+    $varTags = @("fvar", "gvar", "avar", "cvar", "HVAR", "VVAR", "MVAR", "STAT")
+    $hasVarTable = $false
+    $kept = New-Object System.Collections.Generic.List[object]
+    for ($i = 0; $i -lt $numTables; $i++) {
+        $recOff = 12 + $i * 16
+        $tag = [System.Text.Encoding]::ASCII.GetString($FontBytes, $recOff, 4)
+        $tOff = ([uint32]$FontBytes[$recOff + 8] -shl 24) -bor ([uint32]$FontBytes[$recOff + 9] -shl 16) -bor ([uint32]$FontBytes[$recOff + 10] -shl 8) -bor [uint32]$FontBytes[$recOff + 11]
+        $tLen = ([uint32]$FontBytes[$recOff + 12] -shl 24) -bor ([uint32]$FontBytes[$recOff + 13] -shl 16) -bor ([uint32]$FontBytes[$recOff + 14] -shl 8) -bor [uint32]$FontBytes[$recOff + 15]
+        if ($varTags -contains $tag) {
+            $hasVarTable = $true
+        } else {
+            $tBytes = New-Object byte[] $tLen
+            [Array]::Copy($FontBytes, [int]$tOff, $tBytes, 0, [int]$tLen)
+            if ($tag -eq "head" -and $tLen -ge 12) {
+                $tBytes[8] = 0; $tBytes[9] = 0; $tBytes[10] = 0; $tBytes[11] = 0
+            }
+            $kept.Add(@{ Tag = $tag; Data = $tBytes; Len = [int]$tLen })
+        }
+    }
+    if (-not $hasVarTable) { return $FontBytes }
+
+    $newCount = $kept.Count
+    $hdrSize = 12 + $newCount * 16
+    $totalSize = $hdrSize
+    foreach ($t in $kept) { $totalSize += (($t.Len + 3) -band (-bnot 3)) }
+    $out = New-Object byte[] $totalSize
+
+    # SFNT header
+    $out[0] = 0x00; $out[1] = 0x01; $out[2] = 0x00; $out[3] = 0x00
+    $out[4] = [byte](($newCount -shr 8) -band 0xFF); $out[5] = [byte]($newCount -band 0xFF)
+    $maxPow2 = 1; $entrySel = 0
+    while (($maxPow2 * 2) -le $newCount) { $maxPow2 *= 2; $entrySel++ }
+    $searchRange = $maxPow2 * 16
+    $rangeShift = $newCount * 16 - $searchRange
+    $out[6] = [byte](($searchRange -shr 8) -band 0xFF); $out[7] = [byte]($searchRange -band 0xFF)
+    $out[8] = [byte](($entrySel -shr 8) -band 0xFF);    $out[9] = [byte]($entrySel -band 0xFF)
+    $out[10] = [byte](($rangeShift -shr 8) -band 0xFF); $out[11] = [byte]($rangeShift -band 0xFF)
+
+    $curOff = $hdrSize
+    $headFileOff = -1
+    for ($i = 0; $i -lt $newCount; $i++) {
+        $t = $kept[$i]
+        [Array]::Copy($t.Data, 0, $out, $curOff, $t.Len)
+        $paddedLen = ($t.Len + 3) -band (-bnot 3)
+        [uint64]$sum = 0
+        for ($j = 0; $j -lt $paddedLen; $j += 4) {
+            [uint64]$w = ([uint64]$out[$curOff + $j] -shl 24) -bor ([uint64]$out[$curOff + $j + 1] -shl 16) -bor ([uint64]$out[$curOff + $j + 2] -shl 8) -bor [uint64]$out[$curOff + $j + 3]
+            $sum = ($sum + $w) -band [uint64]4294967295
+        }
+        $recOff = 12 + $i * 16
+        $tagBytes = [System.Text.Encoding]::ASCII.GetBytes($t.Tag)
+        [Array]::Copy($tagBytes, 0, $out, $recOff, 4)
+        $out[$recOff + 4]  = [byte](($sum -shr 24) -band 0xFF);    $out[$recOff + 5]  = [byte](($sum -shr 16) -band 0xFF)
+        $out[$recOff + 6]  = [byte](($sum -shr 8) -band 0xFF);     $out[$recOff + 7]  = [byte]($sum -band 0xFF)
+        $out[$recOff + 8]  = [byte](($curOff -shr 24) -band 0xFF); $out[$recOff + 9]  = [byte](($curOff -shr 16) -band 0xFF)
+        $out[$recOff + 10] = [byte](($curOff -shr 8) -band 0xFF);  $out[$recOff + 11] = [byte]($curOff -band 0xFF)
+        $out[$recOff + 12] = [byte](($t.Len -shr 24) -band 0xFF);  $out[$recOff + 13] = [byte](($t.Len -shr 16) -band 0xFF)
+        $out[$recOff + 14] = [byte](($t.Len -shr 8) -band 0xFF);   $out[$recOff + 15] = [byte]($t.Len -band 0xFF)
+        if ($t.Tag -eq "head" -and $t.Len -ge 12) { $headFileOff = $curOff }
+        $curOff += $paddedLen
+    }
+
+    if ($headFileOff -ge 0) {
+        [uint64]$wholeSum = 0
+        $lim = $out.Length - ($out.Length % 4)
+        for ($j = 0; $j -lt $lim; $j += 4) {
+            [uint64]$w = ([uint64]$out[$j] -shl 24) -bor ([uint64]$out[$j + 1] -shl 16) -bor ([uint64]$out[$j + 2] -shl 8) -bor [uint64]$out[$j + 3]
+            $wholeSum = ($wholeSum + $w) -band [uint64]4294967295
+        }
+        [uint64]$adj = ([uint64]4294967296 + [uint64]2981146554 - $wholeSum) -band [uint64]4294967295
+        $out[$headFileOff + 8]  = [byte](($adj -shr 24) -band 0xFF)
+        $out[$headFileOff + 9]  = [byte](($adj -shr 16) -band 0xFF)
+        $out[$headFileOff + 10] = [byte](($adj -shr 8) -band 0xFF)
+        $out[$headFileOff + 11] = [byte]($adj -band 0xFF)
+    }
+    return $out
+}
+
 function New-RoundedRectPath {
     param([float]$X, [float]$Y, [float]$W, [float]$H, [float]$R)
     $path = New-Object System.Drawing.Drawing2D.GraphicsPath
@@ -278,7 +426,7 @@ $rTxtOffY = if ($null -ne $bwCfg.rangeOffsetY)    { [double]$bwCfg.rangeOffsetY 
 function Format-DpPatchPairs([int]$Offset, [int]$BaseDp, [double]$OffsetPx) {
     $dp = [int][Math]::Round($BaseDp + ($OffsetPx / 1.5))
     $mantissa = $dp -band 0xFFFFFF
-    $val = [uint32](($mantissa -shl 8) -bor 1)
+    $val = [int32](($mantissa -shl 8) -bor 1)
     $bytes = [BitConverter]::GetBytes($val)
     $pairs = @()
     for ($bi = 0; $bi -lt 4; $bi++) {
@@ -289,7 +437,7 @@ function Format-DpPatchPairs([int]$Offset, [int]$BaseDp, [double]$OffsetPx) {
 
 function Format-SpPatchPairs([int]$Offset, [int]$SpVal) {
     $sp = [Math]::Max(8, $SpVal)
-    $val = [uint32]((($sp -band 0xFFFFFF) -shl 8) -bor 2)
+    $val = [int32]((($sp -band 0xFFFFFF) -shl 8) -bor 2)
     $bytes = [BitConverter]::GetBytes($val)
     $pairs = @()
     for ($bi = 0; $bi -lt 4; $bi++) {
@@ -382,7 +530,9 @@ switch ($fontFamilyChoice) {
 if ($script:ResolvedThemeFontFile -and (Test-Path $script:ResolvedThemeFontFile)) {
     $launcherFontsDir = Join-Path $themeOutDir "assets\fonts"
     New-Item -ItemType Directory -Force -Path $launcherFontsDir | Out-Null
-    Copy-Item $script:ResolvedThemeFontFile (Join-Path $launcherFontsDir "CubeN.ttf") -Force
+    $rawFontBytes = [System.IO.File]::ReadAllBytes($script:ResolvedThemeFontFile)
+    $staticFontBytes = ConvertTo-StaticTtfBytes $rawFontBytes
+    [System.IO.File]::WriteAllBytes((Join-Path $launcherFontsDir "CubeN.ttf"), $staticFontBytes)
 }
 
 $cOrange  = Parse-HexColor $cfg.colors.primary
@@ -605,6 +755,8 @@ function Draw-HomeOverlay {
     if ($fadeMode -ne "hard") {
         [AlphaFadeHelper]::ApplyMapFade($bmp, $mapViewX, $mapViewY, $mapViewW, $mapViewH, $fadeMode, $fadeWidth, $centerOpacity, $null)
     }
+
+    # Note: navCursorStyle/customNavCursorFile/bakeNavCursorToBg from legacy theme configs are intentionally ignored.
 
     if ($hs.showLcarsFrame -ne $true) {
         if (([float]$hs.mapCutoutBorderW) -gt 0) {
@@ -1216,18 +1368,22 @@ function Draw-ShuttleGalileoOnGraphics {
         $bPortPyl = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(115, 82, 102, 118))
         $pPortPyl = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(165, 186, 208, 224), 1.4)
         $ptsPortPyl = @(
-            (New-Object System.Drawing.PointF(158, 124)),
-            (New-Object System.Drawing.PointF(138, 92)),
-            (New-Object System.Drawing.PointF(205, 84)),
-            (New-Object System.Drawing.PointF(222, 116))
+            (New-Object System.Drawing.PointF(136, 150)),
+            (New-Object System.Drawing.PointF(216, 140)),
+            (New-Object System.Drawing.PointF(202, 166)),
+            (New-Object System.Drawing.PointF(122, 176))
         )
         $G.FillPolygon($bPortPyl, $ptsPortPyl)
         $G.DrawPolygon($pPortPyl, $ptsPortPyl)
         $bPortPyl.Dispose(); $pPortPyl.Dispose()
 
         $stPN = $G.Save()
-        $G.TranslateTransform(215.0, 80.0)
+        $G.TranslateTransform(212.0, 166.0)
         $G.RotateTransform(-6.6)
+        $bExP = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(175, 71, 85, 105))
+        $pExP = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(180, 203, 213, 225), 1.3)
+        $G.FillEllipse($bExP, -134, -7, 16, 16)
+        $G.DrawEllipse($pExP, -134, -7, 16, 16)
         $bPN = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(120, 100, 124, 142))
         $pPN = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(185, 198, 218, 232), 1.5)
         $ptsPN = @(
@@ -1246,7 +1402,7 @@ function Draw-ShuttleGalileoOnGraphics {
         $pBusP = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(220, 254, 215, 170), 1.4)
         $G.FillPie($bBusP, 100, -12, 24, 24, -90, 180)
         $G.DrawPie($pBusP, 100, -12, 24, 24, -90, 180)
-        $bPN.Dispose(); $pPN.Dispose(); $pRing.Dispose(); $bBusP.Dispose(); $pBusP.Dispose()
+        $bExP.Dispose(); $pExP.Dispose(); $bPN.Dispose(); $pPN.Dispose(); $pRing.Dispose(); $bBusP.Dispose(); $pBusP.Dispose()
         $G.Restore($stPN)
 
         # 3. Under-Chassis Landing Skids (Aft & Forward Ski Pads)
@@ -1568,6 +1724,267 @@ function Draw-WireframeEvCarOnGraphics {
     $G.Restore($stOuter)
 }
 
+function Draw-DeLoreanWireframeOnGraphics {
+    param(
+        [System.Drawing.Graphics]$G,
+        [double]$Pct = 0.68,
+        [bool]$IsAlertRed = $false,
+        [string]$LayerMode = "all", # "all", "bg", or "cover"
+        [float]$ScalePct = 100.0,
+        [float]$OffsetX = 0.0,
+        [float]$OffsetY = 0.0,
+        [float]$BoxW = 635.0,
+        [float]$BoxH = 318.0
+    )
+    $stOuter = $G.Save()
+    $G.ScaleTransform(($BoxW / 635.0), ($BoxH / 318.0))
+    $s = if ($ScalePct -gt 0) { $ScalePct / 100.0 } else { 1.0 }
+    $G.TranslateTransform((317.5 + $OffsetX), (159.0 + $OffsetY))
+    $G.ScaleTransform($s, $s)
+    $G.TranslateTransform(-317.5, -159.0)
+
+    if ($LayerMode -eq "all" -or $LayerMode -eq "bg") {
+        # 1. Ground Shadow & Far-Side Wheels + Lower Chassis Tray
+        $stSh = $G.Save()
+        $G.TranslateTransform(335.0, 196.0)
+        $G.RotateTransform(-6.0)
+        $bSh = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(95, 0, 0, 0))
+        $G.FillEllipse($bSh, -245, -42, 490, 84)
+        $bSh.Dispose()
+        $G.Restore($stSh)
+
+        $bFw = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(148, 20, 26, 34))
+        $pFw = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(90, 148, 163, 184), 1.2)
+        foreach ($fw in @(@{X=145.0; Y=172.0; RX=32.0; RY=38.0}, @{X=455.0; Y=132.0; RX=29.0; RY=35.0})) {
+            $G.FillEllipse($bFw, ([float]$fw.X - [float]$fw.RX), ([float]$fw.Y - [float]$fw.RY), ([float]$fw.RX * 2), ([float]$fw.RY * 2))
+            $G.DrawEllipse($pFw, ([float]$fw.X - [float]$fw.RX), ([float]$fw.Y - [float]$fw.RY), ([float]$fw.RX * 2), ([float]$fw.RY * 2))
+        }
+        $bFw.Dispose(); $pFw.Dispose()
+
+        $bChassis = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(204, 22, 28, 36))
+        $ptsCh = @(
+            (New-Object System.Drawing.PointF(82, 168)),
+            (New-Object System.Drawing.PointF(165, 145)),
+            (New-Object System.Drawing.PointF(420, 122)),
+            (New-Object System.Drawing.PointF(585, 162)),
+            (New-Object System.Drawing.PointF(490, 192)),
+            (New-Object System.Drawing.PointF(240, 226)),
+            (New-Object System.Drawing.PointF(158, 222))
+        )
+        $G.FillPolygon($bChassis, $ptsCh)
+        $bChassis.Dispose()
+    }
+
+    if ($LayerMode -eq "all") {
+        Draw-3DBatterySlabOnGraphics -G $G -Pct $Pct -IsAlertRed $IsAlertRed
+    }
+
+    if ($LayerMode -eq "all" -or $LayerMode -eq "cover") {
+        # Sharp-Edged DMC-12 Translucent Wedge Body
+        $ptsBody = @(
+            (New-Object System.Drawing.PointF(162, 228)),
+            (New-Object System.Drawing.PointF(76, 186)),
+            (New-Object System.Drawing.PointF(68, 142)),
+            (New-Object System.Drawing.PointF(78, 102)),
+            (New-Object System.Drawing.PointF(128, 62)),
+            (New-Object System.Drawing.PointF(248, 30)),
+            (New-Object System.Drawing.PointF(348, 22)),
+            (New-Object System.Drawing.PointF(408, 34)),
+            (New-Object System.Drawing.PointF(492, 82)),
+            (New-Object System.Drawing.PointF(572, 98)),
+            (New-Object System.Drawing.PointF(598, 124)),
+            (New-Object System.Drawing.PointF(588, 168)),
+            (New-Object System.Drawing.PointF(558, 180)),
+            (New-Object System.Drawing.PointF(484, 192)),
+            (New-Object System.Drawing.PointF(248, 230))
+        )
+        $bBody = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+            (New-Object System.Drawing.PointF(90, 26)),
+            (New-Object System.Drawing.PointF(560, 225)),
+            [System.Drawing.Color]::FromArgb(88, 148, 172, 192),
+            [System.Drawing.Color]::FromArgb(98, 96, 120, 142)
+        )
+        $pBody = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(224, 220, 236, 248), 1.8)
+        $G.FillPolygon($bBody, $ptsBody)
+        $G.DrawPolygon($pBody, $ptsBody)
+        $bBody.Dispose(); $pBody.Dispose()
+
+        # Rear Transom Taillight Panel & Grid Cells
+        $ptsTail = @(
+            (New-Object System.Drawing.PointF(72, 108)),
+            (New-Object System.Drawing.PointF(164, 144)),
+            (New-Object System.Drawing.PointF(160, 178)),
+            (New-Object System.Drawing.PointF(68, 142))
+        )
+        $bTailBg = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(184, 20, 28, 38))
+        $pTailBd = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(192, 210, 226, 238), 1.2)
+        $G.FillPolygon($bTailBg, $ptsTail)
+        $G.DrawPolygon($pTailBd, $ptsTail)
+        $bTailBg.Dispose(); $pTailBd.Dispose()
+
+        $bTailRed = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(166, 239, 68, 68))
+        $bTailAmb = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(166, 245, 158, 11))
+        for ($tc = 0; $tc -lt 4; $tc++) {
+            $f0 = $tc / 4.0 + 0.03
+            $f1 = ($tc + 1) / 4.0 - 0.03
+            $ptsCell = @(
+                (New-Object System.Drawing.PointF([float](72 + (164 - 72) * $f0), [float](108 + (144 - 108) * $f0))),
+                (New-Object System.Drawing.PointF([float](72 + (164 - 72) * $f1), [float](108 + (144 - 108) * $f1))),
+                (New-Object System.Drawing.PointF([float](68 + (160 - 68) * $f1), [float](142 + (178 - 142) * $f1))),
+                (New-Object System.Drawing.PointF([float](68 + (160 - 68) * $f0), [float](142 + (178 - 142) * $f0)))
+            )
+            $bCell = if ($tc -eq 0 -or $tc -eq 3) { $bTailRed } else { $bTailAmb }
+            $G.FillPolygon($bCell, $ptsCell)
+        }
+        $bTailRed.Dispose(); $bTailAmb.Dispose()
+
+        # Dual Exhaust Tips
+        $bEx = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(166, 180, 198, 214))
+        $G.FillRectangle($bEx, 88, 184, 14, 7)
+        $G.FillRectangle($bEx, 128, 200, 14, 7)
+        $bEx.Dispose()
+
+        # Aft Twin Black Reactor Cooling Shroud Towers & Louvers
+        $bTw = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(184, 24, 34, 48))
+        $pTw = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(198, 198, 218, 234), 1.3)
+        $pLv = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(140, 148, 172, 194), 1.0)
+        $towers = @(
+            @( @(86.0, 98.0), @(108.0, 54.0), @(156.0, 48.0), @(142.0, 114.0) ),
+            @( @(142.0, 118.0), @(166.0, 68.0), @(218.0, 60.0), @(202.0, 134.0) )
+        )
+        foreach ($tw in $towers) {
+            $ptsTw = @(
+                (New-Object System.Drawing.PointF([float]$tw[0][0], [float]$tw[0][1])),
+                (New-Object System.Drawing.PointF([float]$tw[1][0], [float]$tw[1][1])),
+                (New-Object System.Drawing.PointF([float]$tw[2][0], [float]$tw[2][1])),
+                (New-Object System.Drawing.PointF([float]$tw[3][0], [float]$tw[3][1]))
+            )
+            $G.FillPolygon($bTw, $ptsTw)
+            $G.DrawPolygon($pTw, $ptsTw)
+            for ($lv = 1; $lv -le 4; $lv++) {
+                $t = $lv / 5.0
+                $lx0 = [float]($tw[1][0] + ($tw[0][0] - $tw[1][0]) * $t)
+                $ly0 = [float]($tw[1][1] + ($tw[0][1] - $tw[1][1]) * $t)
+                $lx1 = [float]($tw[2][0] + ($tw[3][0] - $tw[2][0]) * $t)
+                $ly1 = [float]($tw[2][1] + ($tw[3][1] - $tw[2][1]) * $t)
+                $G.DrawLine($pLv, $lx0, $ly0, $lx1, $ly1)
+            }
+        }
+        $bTw.Dispose(); $pTw.Dispose(); $pLv.Dispose()
+
+        # Mr. Fusion Home Energy Reactor perched at rear deck
+        $bMfBase = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(216, 30, 41, 59))
+        $bMfCan  = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(210, 241, 245, 249))
+        $pMfCan  = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(230, 203, 213, 225), 1.2)
+        $bMfCap  = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(216, 239, 68, 68))
+        $G.FillRectangle($bMfBase, 186, 60, 28, 12)
+        $G.FillRectangle($bMfCan, 190, 34, 20, 26)
+        $G.DrawRectangle($pMfCan, 190, 34, 20, 26)
+        $G.FillRectangle($bMfCap, 193, 30, 14, 5)
+        $bMfBase.Dispose(); $bMfCan.Dispose(); $pMfCan.Dispose(); $bMfCap.Dispose()
+
+        # Rear Window Sunshade Louvers
+        $pLouv = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(166, 206, 224, 238), 1.4)
+        for ($ls = 0; $ls -lt 5; $ls++) {
+            $f = $ls / 4.0
+            $xA = [float](155.0 + $f * 92.0)
+            $yA = [float](58.0 - $f * 20.0)
+            $G.DrawLine($pLouv, $xA, $yA, ($xA + 22.0), ($yA + 16.0))
+        }
+        $pLouv.Dispose()
+
+        # Side Greenhouse & Toll-Booth Window
+        $ptsDlo = @(
+            (New-Object System.Drawing.PointF(246, 124)),
+            (New-Object System.Drawing.PointF(276, 66)),
+            (New-Object System.Drawing.PointF(372, 54)),
+            (New-Object System.Drawing.PointF(426, 64)),
+            (New-Object System.Drawing.PointF(478, 104)),
+            (New-Object System.Drawing.PointF(348, 122))
+        )
+        $bDlo = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(122, 22, 36, 52))
+        $pSeam = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(184, 206, 224, 238), 1.3)
+        $G.FillPolygon($bDlo, $ptsDlo)
+        $G.DrawPolygon($pSeam, $ptsDlo)
+
+        $ptsToll = @(
+            (New-Object System.Drawing.PointF(288, 86)),
+            (New-Object System.Drawing.PointF(356, 78)),
+            (New-Object System.Drawing.PointF(362, 114)),
+            (New-Object System.Drawing.PointF(282, 120))
+        )
+        $pToll = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(153, 186, 208, 224), 1.1)
+        $G.DrawPolygon($pToll, $ptsToll)
+        $pToll.Dispose()
+
+        # Gullwing Door Cutlines & Giugiaro Beltline / Rub Strip
+        $G.DrawLine($pSeam, 265, 124, 268, 208)
+        $G.DrawLine($pSeam, 372, 54, 382, 118)
+        $G.DrawLine($pSeam, 382, 118, 384, 196)
+        $G.DrawLine($pSeam, 164, 154, 594, 126)
+        $bDlo.Dispose(); $pSeam.Dispose()
+
+        # Glowing Flux Capacitor "Y" inside Rear Cabin Window
+        $pFluxY = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(240, 255, 214, 0), 2.0)
+        $G.DrawLine($pFluxY, 225, 86, 232, 96)
+        $G.DrawLine($pFluxY, 239, 86, 232, 96)
+        $G.DrawLine($pFluxY, 232, 96, 232, 108)
+        $pFluxY.Dispose()
+
+        # Glowing Cyan (#00E5FF) Flux Dispersal Bands
+        $pFluxGlow = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(216, 0, 229, 255), 3.4)
+        $pFluxGlow.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
+        $pFluxGlow.EndCap   = [System.Drawing.Drawing2D.LineCap]::Round
+        $pFluxGlow.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
+        $pFluxCore = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(245, 224, 249, 255), 1.4)
+        $pFluxCore.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
+        $pFluxCore.EndCap   = [System.Drawing.Drawing2D.LineCap]::Round
+        $pFluxCore.LineJoin = [System.Drawing.Drawing2D.LineJoin]::Round
+
+        $band1 = @((New-Object System.Drawing.PointF(238, 44)), (New-Object System.Drawing.PointF(262, 122)), (New-Object System.Drawing.PointF(174, 136)), (New-Object System.Drawing.PointF(148, 212)))
+        $band2 = @((New-Object System.Drawing.PointF(262, 218)), (New-Object System.Drawing.PointF(462, 192)))
+        $band3 = @((New-Object System.Drawing.PointF(476, 178)), (New-Object System.Drawing.PointF(512, 114)), (New-Object System.Drawing.PointF(576, 112)), (New-Object System.Drawing.PointF(600, 128)), (New-Object System.Drawing.PointF(574, 140)))
+        $G.DrawLines($pFluxGlow, $band1); $G.DrawLines($pFluxCore, $band1)
+        $G.DrawLines($pFluxGlow, $band2); $G.DrawLines($pFluxCore, $band2)
+        $G.DrawLines($pFluxGlow, $band3); $G.DrawLines($pFluxCore, $band3)
+        $pFluxGlow.Dispose(); $pFluxCore.Dispose()
+
+        # Front Amber Marker & Headlight Glow
+        $bFAmb = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(216, 245, 158, 11))
+        $bFHl  = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(216, 224, 249, 255))
+        $G.FillRectangle($bFAmb, 550, 122, 12, 5)
+        $G.FillRectangle($bFHl, 574, 108, 18, 9)
+        $bFAmb.Dispose(); $bFHl.Dispose()
+
+        # Near-Side 3D DMC Turbine Wheels
+        $pSpoke = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(192, 71, 85, 105), 1.2)
+        $bHub   = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(245, 51, 65, 85))
+        $pHub   = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(166, 226, 232, 240), 1.0)
+        foreach ($w in @(@{X=204.0; Y=218.0; RX=41.0; RY=49.0}, @{X=526.0; Y=171.0; RX=37.0; RY=45.0})) {
+            $bTire = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(240, 38, 45, 54))
+            $bRim  = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb(235, 203, 213, 225))
+            $pRim  = New-Object System.Drawing.Pen([System.Drawing.Color]::FromArgb(200, 100, 116, 139), 1.5)
+            $wx = [float]$w.X; $wy = [float]$w.Y; $wrx = [float]$w.RX; $wry = [float]$w.RY
+            $G.FillEllipse($bTire, ($wx - $wrx), ($wy - $wry), ($wrx * 2), ($wry * 2))
+            $G.DrawEllipse($pRim, ($wx - $wrx), ($wy - $wry), ($wrx * 2), ($wry * 2))
+            $rrx = $wrx * 0.72; $rry = $wry * 0.72
+            $G.FillEllipse($bRim, ($wx - $rrx + 2), ($wy - $rry + 1), ($rrx * 2), ($rry * 2))
+            $G.DrawEllipse($pRim, ($wx - $rrx + 2), ($wy - $rry + 1), ($rrx * 2), ($rry * 2))
+            for ($sp = 0; $sp -lt 12; $sp++) {
+                $ang = ($sp / 12.0) * [Math]::PI * 2.0
+                $G.DrawLine($pSpoke, [float]($wx + 2.0 + [Math]::Cos($ang) * $wrx * 0.24), [float]($wy + 1.0 + [Math]::Sin($ang) * $wry * 0.24), [float]($wx + 2.0 + [Math]::Cos($ang) * $wrx * 0.69), [float]($wy + 1.0 + [Math]::Sin($ang) * $wry * 0.69))
+            }
+            $hrx = $wrx * 0.22; $hry = $wry * 0.22
+            $G.FillEllipse($bHub, ($wx + 3 - $hrx), ($wy + 1 - $hry), ($hrx * 2), ($hry * 2))
+            $G.DrawEllipse($pHub, ($wx + 3 - $hrx), ($wy + 1 - $hry), ($hrx * 2), ($hry * 2))
+            $bTire.Dispose(); $bRim.Dispose(); $pRim.Dispose()
+        }
+        $pSpoke.Dispose(); $bHub.Dispose(); $pHub.Dispose()
+    }
+
+    $G.Restore($stOuter)
+}
+
 function Draw-BatteryGraphic {
     param([int]$Level, [int]$MaxLevel, [string]$Variant)
     $bw = $cfg.batteryWidget
@@ -1597,6 +2014,9 @@ function Draw-BatteryGraphic {
         # Vehicle's built-in 3D EV car graphic is composited underneath this overlay at runtime on the headunit
     } elseif ($bw.style -eq "galileo") {
         Draw-ShuttleGalileoOnGraphics -G $g -Pct $pct -IsAlertRed ($Variant -eq "r" -or $pct -le 0.20) -LayerMode "all" `
+            -ScalePct $scalePct -OffsetX $offX -OffsetY $offY -BoxW 635.0 -BoxH 318.0
+    } elseif ($bw.style -eq "delorean") {
+        Draw-DeLoreanWireframeOnGraphics -G $g -Pct $pct -IsAlertRed ($Variant -eq "r" -or $pct -le 0.20) -LayerMode "all" `
             -ScalePct $scalePct -OffsetX $offX -OffsetY $offY -BoxW 635.0 -BoxH 318.0
     } elseif ($bw.style -eq "wireframeCar") {
         Draw-WireframeEvCarOnGraphics -G $g -Pct $pct -IsAlertRed ($Variant -eq "r" -or $pct -le 0.20) -LayerMode "all" `
@@ -1755,35 +2175,62 @@ Write-Host "[7/7] Generating Optional Sub-APK Overlays (Status Bar, Climate/Warm
 $sbCfg = $cfg.statusBar
 if ($null -ne $sbCfg) {
     $sbBgMode = if ($sbCfg.bgMode) { [string]$sbCfg.bgMode } else { "oem" }
+    if ($sbBgMode -eq "transparent") { $sbBgMode = "oem" }
     $sbBtnStyle = if ($sbCfg.buttonStyle) { [string]$sbCfg.buttonStyle } else { "oem" }
+    $sbBgOpacity = 100.0
+    $sbBarOpacity = 100.0
+    $effBgAlpha = 255
+    $effBarAlpha = 255
+
     $sysuiManifest = New-Object 'System.Collections.Generic.List[string]'
+    $sysuiRuntimeLines = New-Object 'System.Collections.Generic.List[string]'
 
     if ($sbBgMode -ne "oem") {
         $bmpSb = New-Object System.Drawing.Bitmap(1920, 90, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
         $gSb = [System.Drawing.Graphics]::FromImage($bmpSb)
         $gSb.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+        $gSb.Clear([System.Drawing.Color]::FromArgb(0, 0, 0, 0))
         $sbBgHex = if ($sbCfg.bgColor) { [string]$sbCfg.bgColor } else { "#060810" }
         $sbAccHex = if ($sbCfg.accentColor) { [string]$sbCfg.accentColor } else { [string]$cfg.colors.primary }
         $sbSecHex = if ($sbCfg.secondaryColor) { [string]$sbCfg.secondaryColor } else { [string]$cfg.colors.accentBlue }
         $sbBorderH = if ($null -ne $sbCfg.borderHeight) { [int]$sbCfg.borderHeight } else { 4 }
 
-        $bBg = New-Object System.Drawing.SolidBrush((Parse-HexColor $sbBgHex 255))
-        $gSb.FillRectangle($bBg, 0, 0, 1920, 90)
-        $bBg.Dispose()
+        if ($sbBgMode -ne "transparent" -and $effBgAlpha -gt 0) {
+            $bBg = New-Object System.Drawing.SolidBrush((Parse-HexColor $sbBgHex $effBgAlpha))
+            $gSb.FillRectangle($bBg, 0, 0, 1920, 90)
+            $bBg.Dispose()
 
-        if ($sbBgMode -eq "custom" -and $sbCfg.customBgFile) {
-            $cFile = Join-Path $CustomAssetsDir ([string]$sbCfg.customBgFile)
-            $cFit = if ($sbCfg.bgFit) { [string]$sbCfg.bgFit } else { "cover" }
-            $cScale = if ($null -ne $sbCfg.bgScale) { [float]$sbCfg.bgScale } else { 100.0 }
-            $cOffX = if ($null -ne $sbCfg.bgOffsetX) { [float]$sbCfg.bgOffsetX } else { 0.0 }
-            $cOffY = if ($null -ne $sbCfg.bgOffsetY) { [float]$sbCfg.bgOffsetY } else { 0.0 }
-            Draw-FittedImage -G $gSb -ImgPath $cFile -TargetW 1920 -TargetH 90 -Fit $cFit -ScalePct $cScale -OffsetX $cOffX -OffsetY $cOffY | Out-Null
+            if ($sbBgMode -eq "custom" -and $sbCfg.customBgFile) {
+                $cFile = Join-Path $CustomAssetsDir ([string]$sbCfg.customBgFile)
+                $cFit = if ($sbCfg.bgFit) { [string]$sbCfg.bgFit } else { "cover" }
+                $cScale = if ($null -ne $sbCfg.bgScale) { [float]$sbCfg.bgScale } else { 100.0 }
+                $cOffX = if ($null -ne $sbCfg.bgOffsetX) { [float]$sbCfg.bgOffsetX } else { 0.0 }
+                $cOffY = if ($null -ne $sbCfg.bgOffsetY) { [float]$sbCfg.bgOffsetY } else { 0.0 }
+                if ($effBgAlpha -ge 255) {
+                    Draw-FittedImage -G $gSb -ImgPath $cFile -TargetW 1920 -TargetH 90 -Fit $cFit -ScalePct $cScale -OffsetX $cOffX -OffsetY $cOffY | Out-Null
+                } else {
+                    $tmpSb = New-Object System.Drawing.Bitmap(1920, 90, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+                    $gTmp = [System.Drawing.Graphics]::FromImage($tmpSb)
+                    $gTmp.Clear([System.Drawing.Color]::FromArgb(0, 0, 0, 0))
+                    $drew = Draw-FittedImage -G $gTmp -ImgPath $cFile -TargetW 1920 -TargetH 90 -Fit $cFit -ScalePct $cScale -OffsetX $cOffX -OffsetY $cOffY
+                    $gTmp.Dispose()
+                    if ($drew) {
+                        $cm = New-Object System.Drawing.Imaging.ColorMatrix
+                        $cm.Matrix33 = [float]($effBgAlpha / 255.0)
+                        $ia = New-Object System.Drawing.Imaging.ImageAttributes
+                        $ia.SetColorMatrix($cm)
+                        $gSb.DrawImage($tmpSb, (New-Object System.Drawing.Rectangle(0, 0, 1920, 90)), 0, 0, 1920, 90, [System.Drawing.GraphicsUnit]::Pixel, $ia)
+                        $ia.Dispose()
+                    }
+                    $tmpSb.Dispose()
+                }
+            }
         }
 
-        if ($sbBgMode -eq "lcars") {
-            $bAcc = New-Object System.Drawing.SolidBrush((Parse-HexColor $sbAccHex 255))
-            $bSec = New-Object System.Drawing.SolidBrush((Parse-HexColor $sbSecHex 255))
-            $bTer = New-Object System.Drawing.SolidBrush($cMagenta)
+        if ($sbBgMode -eq "lcars" -and $effBarAlpha -gt 0) {
+            $bAcc = New-Object System.Drawing.SolidBrush((Parse-HexColor $sbAccHex $effBarAlpha))
+            $bSec = New-Object System.Drawing.SolidBrush((Parse-HexColor $sbSecHex $effBarAlpha))
+            $bTer = New-Object System.Drawing.SolidBrush([System.Drawing.Color]::FromArgb($effBarAlpha, $cMagenta.R, $cMagenta.G, $cMagenta.B))
             $bh = [Math]::Max(2, [Math]::Min(16, $sbBorderH))
             $by = 90 - $bh
             $gSb.FillRectangle($bAcc, 0, $by, 390, $bh)
@@ -1792,19 +2239,36 @@ if ($null -ne $sbCfg) {
             $gSb.FillRectangle($bAcc, 854, $by, 620, $bh)
             $gSb.FillRectangle($bSec, 1482, $by, 438, $bh)
             $bAcc.Dispose(); $bSec.Dispose(); $bTer.Dispose()
-        } elseif ($sbBorderH -gt 0) {
-            $bAcc = New-Object System.Drawing.SolidBrush((Parse-HexColor $sbAccHex 255))
+        } elseif ($sbBorderH -gt 0 -and $sbBgMode -ne "transparent" -and $effBgAlpha -gt 0) {
+            $bAcc = New-Object System.Drawing.SolidBrush((Parse-HexColor $sbAccHex $effBgAlpha))
             $gSb.FillRectangle($bAcc, 0, (90 - $sbBorderH), 1920, $sbBorderH)
             $bAcc.Dispose()
         }
         $gSb.Dispose()
         Save-WebpOrPng -Bitmap $bmpSb -RelPath "systemui\status_bg.png"
+        $statusPngPath = Join-Path $themeOutDir "systemui\status_bg.png"
+        $status9PngPath = Join-Path $themeOutDir "systemui\status_bg.9.png"
+        $status9Bytes = ConvertTo-CompiledNinePatchBytes ([System.IO.File]::ReadAllBytes($statusPngPath))
+        [System.IO.File]::WriteAllBytes($status9PngPath, $status9Bytes)
         $bmpSb.Dispose()
 
-        $sysuiManifest.Add("res/drawable-eco-hdpi/co_bg_status.9.png|status_bg.png")
-        $sysuiManifest.Add("res/drawable-eco-night-hdpi/co_bg_status.9.png|status_bg.png")
+        $bmpLine = New-Object System.Drawing.Bitmap(16, 2, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+        $gLine = [System.Drawing.Graphics]::FromImage($bmpLine)
+        $gLine.Clear([System.Drawing.Color]::FromArgb(0, 0, 0, 0))
+        if ($effBgAlpha -gt 0 -and $sbBgMode -ne "transparent") {
+            $pLine = New-Object System.Drawing.SolidBrush((Parse-HexColor $sbAccHex ([int][Math]::Min(255, $effBgAlpha))))
+            $gLine.FillRectangle($pLine, 0, 0, 16, 2)
+            $pLine.Dispose()
+        }
+        $gLine.Dispose()
+        Save-WebpOrPng -Bitmap $bmpLine -RelPath "systemui\status_line.png"
+        $bmpLine.Dispose()
+
+        $sysuiManifest.Add("res/drawable-eco-hdpi/co_bg_status.9.png|status_bg.9.png")
+        $sysuiManifest.Add("res/drawable-eco-night-hdpi/co_bg_status.9.png|status_bg.9.png")
         $sysuiManifest.Add("res/drawable-hdpi/co_bg_status.png|status_bg.png")
         $sysuiManifest.Add("res/drawable-mdpi/co_bg_status.png|status_bg.png")
+        $sysuiManifest.Add("res/drawable-hdpi/co_bg_sta_line.png|status_line.png")
     }
 
     if ($sbBtnStyle -ne "oem") {
@@ -1830,10 +2294,13 @@ if ($null -ne $sbCfg) {
                 }
             }
 
+            $baseBtnAlpha = if ($IsPush) { 230.0 } else { 225.0 }
+            $btnFillAlpha = [int][Math]::Round($baseBtnAlpha * ($effBarAlpha / 255.0))
             $pill = New-RoundedRectPath -X 8 -Y 10 -W ($W - 16) -H ($H - 20) -R 24
-            $fillCol = if ($IsPush) { Parse-HexColor $btnAccHex 230 } else { Parse-HexColor $btnBgHex 225 }
-            $bordCol = Parse-HexColor $btnAccHex 255
-            $glyphCol = if ($IsPush) { [System.Drawing.Color]::FromArgb(255, 10, 12, 18) } else { Parse-HexColor $btnGlyphHex 255 }
+            $fillCol = Parse-HexColor $btnBgHex $btnFillAlpha
+            if ($IsPush) { $fillCol = Parse-HexColor $btnAccHex $btnFillAlpha }
+            $bordCol = Parse-HexColor $btnAccHex $effBarAlpha
+            $glyphCol = if ($IsPush) { [System.Drawing.Color]::FromArgb($effBarAlpha, 10, 12, 18) } else { Parse-HexColor $btnGlyphHex $effBarAlpha }
 
             $bFill = New-Object System.Drawing.SolidBrush($fillCol)
             $pBord = New-Object System.Drawing.Pen($bordCol, 2.5)
@@ -1907,10 +2374,13 @@ if ($null -ne $sbCfg) {
         }
     }
 
-    if ($sysuiManifest.Count -gt 0) {
+    if ($sysuiManifest.Count -gt 0 -or $sysuiRuntimeLines.Count -gt 0) {
         $sysuiDir = Join-Path $themeOutDir "systemui"
         New-Item -ItemType Directory -Force -Path $sysuiDir | Out-Null
         [System.IO.File]::WriteAllLines((Join-Path $sysuiDir "manifest.txt"), $sysuiManifest, $utf8NoBom)
+        if ($sysuiRuntimeLines.Count -gt 0) {
+            [System.IO.File]::WriteAllLines((Join-Path $sysuiDir "runtime-composite.txt"), $sysuiRuntimeLines, $utf8NoBom)
+        }
     }
 }
 
@@ -2181,6 +2651,25 @@ if ($null -ne $clmCfg) {
             $g = [System.Drawing.Graphics]::FromImage($b)
             $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
             $g.Clear([System.Drawing.Color]::FromArgb(0, 0, 0, 0))
+            if ($Sz -eq 129) {
+                # Fit strictly inside OEM bbox (X=42..86, Y=42..96) completely below top LED pill (Y=11..20)
+                $pRim = New-Object System.Drawing.Pen($cHeat, 3.8)
+                $pRim.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
+                $pRim.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
+                $g.DrawEllipse($pRim, 45.5, 57.0, 38.0, 38.0)
+                $g.DrawLine($pRim, 47.5, 76.0, 81.5, 76.0)
+                $g.DrawLine($pRim, 64.5, 76.0, 64.5, 93.5)
+                $pWave = New-Object System.Drawing.Pen([System.Drawing.Color]::White, 2.3)
+                $pWave.StartCap = [System.Drawing.Drawing2D.LineCap]::Round
+                $pWave.EndCap = [System.Drawing.Drawing2D.LineCap]::Round
+                for ($wi = 0; $wi -lt 3; $wi++) {
+                    $wx = 55.5 + ($wi * 9.0)
+                    $g.DrawBezier($pWave, $wx, 61.5, ($wx - 2.6), 55.5, ($wx + 2.6), 49.5, $wx, 43.0)
+                }
+                $pWave.Dispose(); $pRim.Dispose(); $g.Dispose()
+                return $b
+            }
+
             $sc = $Sz / 54.0
             $g.ScaleTransform($sc, $sc)
 
@@ -2208,11 +2697,16 @@ if ($null -ne $clmCfg) {
             $g = [System.Drawing.Graphics]::FromImage($b)
             $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
             $g.Clear([System.Drawing.Color]::FromArgb(0, 0, 0, 0))
-            $padX = [Math]::Max(2.0, [float]($W * 0.14))
-            $padY = [Math]::Max(2.0, [float]($H * 0.22))
-            $rw = $W - ($padX * 2.0)
-            $rh = $H - ($padY * 2.0)
-            $p = New-RoundedRectPath -X $padX -Y $padY -W $rw -H $rh -R ([Math]::Min($rw, $rh) * 0.35)
+            if ($W -eq 129 -and $H -eq 30) {
+                # Match OEM steering wheel heater LED pill exact bbox: X=43..86, Y=11..20 (43x9 px)
+                $p = New-RoundedRectPath -X 43.0 -Y 11.0 -W 43.0 -H 9.0 -R 4.5
+            } else {
+                $padX = [Math]::Max(2.0, [float]($W * 0.14))
+                $padY = [Math]::Max(2.0, [float]($H * 0.22))
+                $rw = $W - ($padX * 2.0)
+                $rh = $H - ($padY * 2.0)
+                $p = New-RoundedRectPath -X $padX -Y $padY -W $rw -H $rh -R ([Math]::Min($rw, $rh) * 0.35)
+            }
             $bFill = New-Object System.Drawing.SolidBrush($Col)
             $g.FillPath($bFill, $p)
             if ($IsLit) {
@@ -2546,7 +3040,9 @@ if ($null -ne $clmCfg) {
         }
         if (-not $drewCustomCenter) {
             $stCS = $gCS.Save()
-            $gCS.TranslateTransform(154.5 + $sOffX, 175.5 + $sOffY)
+            $csOffX = if ($clmSeatStyle -eq "captainsChair") { [Math]::Max(-25.0, [Math]::Min(25.0, [float]$sOffX)) } else { [float]$sOffX }
+            $csOffY = if ($clmSeatStyle -eq "captainsChair") { [Math]::Max(-25.0, [Math]::Min(25.0, [float]$sOffY)) } else { [float]$sOffY }
+            $gCS.TranslateTransform(154.5 + $csOffX, 175.5 + $csOffY)
             $gCS.ScaleTransform(($sScale / 100.0), ($sScale / 100.0))
             $gCS.TranslateTransform(-154.5, -175.5)
 
@@ -2696,7 +3192,8 @@ if ($null -ne $clmCfg) {
     if ($null -ne $hsCfg -and $hsCfg.applyFontToClimate -eq $true -and $script:ResolvedThemeFontFile -and (Test-Path $script:ResolvedThemeFontFile)) {
         $clmDirFont = Join-Path $themeOutDir "climate"
         New-Item -ItemType Directory -Force -Path $clmDirFont | Out-Null
-        Copy-Item $script:ResolvedThemeFontFile (Join-Path $clmDirFont "CubeB.ttf") -Force
+        $rawClmFont = [System.IO.File]::ReadAllBytes($script:ResolvedThemeFontFile)
+        [System.IO.File]::WriteAllBytes((Join-Path $clmDirFont "CubeB.ttf"), (ConvertTo-StaticTtfBytes $rawClmFont))
         $clmManifest.Add("assets/CubeB.ttf|CubeB.ttf")
     }
 
@@ -2884,6 +3381,9 @@ if ($null -ne $evCfg) {
         } elseif ($effCarStyle -eq "galileo") {
             Draw-ShuttleGalileoOnGraphics -G $gCar -LayerMode "bg" -ScalePct $effCarScale -OffsetX $effCarOffX -OffsetY $effCarOffY -BoxW 450.0 -BoxH 255.0
             Draw-ShuttleGalileoOnGraphics -G $gCov -LayerMode "cover" -ScalePct $effCarScale -OffsetX $effCarOffX -OffsetY $effCarOffY -BoxW 450.0 -BoxH 255.0
+        } elseif ($effCarStyle -eq "delorean") {
+            Draw-DeLoreanWireframeOnGraphics -G $gCar -LayerMode "bg" -ScalePct $effCarScale -OffsetX $effCarOffX -OffsetY $effCarOffY -BoxW 450.0 -BoxH 255.0
+            Draw-DeLoreanWireframeOnGraphics -G $gCov -LayerMode "cover" -ScalePct $effCarScale -OffsetX $effCarOffX -OffsetY $effCarOffY -BoxW 450.0 -BoxH 255.0
         } elseif ($effCarStyle -eq "wireframeCar") {
             Draw-WireframeEvCarOnGraphics -G $gCar -LayerMode "bg" -ScalePct $effCarScale -OffsetX $effCarOffX -OffsetY $effCarOffY -BoxW 450.0 -BoxH 255.0
             Draw-WireframeEvCarOnGraphics -G $gCov -LayerMode "cover" -ScalePct $effCarScale -OffsetX $effCarOffX -OffsetY $effCarOffY -BoxW 450.0 -BoxH 255.0
@@ -2949,7 +3449,22 @@ if ($null -ne $evCfg) {
         }
     }
 
-    if ($evHideRadar) {
+    $evRoadStyle = if ($evCfg.roadStyle) { [string]$evCfg.roadStyle } elseif ($evHideRadar) { "hidden" } else { "oem" }
+    if ($evHideRadar -and $evRoadStyle -eq "oem") { $evRoadStyle = "hidden" }
+    $evRoadColor = if ($evCfg.roadColor) { [string]$evCfg.roadColor } else { "#00E5FF" }
+    $evRoadGridColor = if ($evCfg.roadGridColor) { [string]$evCfg.roadGridColor } else { "#005577" }
+    $evRoadOpacity = if ($null -ne $evCfg.roadOpacity) { [int]$evCfg.roadOpacity } else { 85 }
+    $evRoadOpacity = [Math]::Max(0, [Math]::Min(100, $evRoadOpacity))
+    $evCustomRoadPath = if ($evCfg.customRoadFile) { Join-Path $CustomAssetsDir ([string]$evCfg.customRoadFile) } else { Join-Path $CustomAssetsDir "ev_road_custom.png" }
+
+    $cases = @(
+        "case1_01","case1_02","case1_03","case1_04","case1_05","case1_06",
+        "case2_07","case2_08","case2_09","case2_10","case2_11",
+        "case3_12","case3_13","case3_14","case3_15","case3_16",
+        "case4_17","case4_18","case4_19","case4_20","case4_21","case4_22","case5_loading"
+    )
+
+    if ($evRoadStyle -eq "hidden" -or $evRoadOpacity -le 0) {
         $bmpRad = New-Object System.Drawing.Bitmap(64, 64, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
         $gRad = [System.Drawing.Graphics]::FromImage($bmpRad)
         $gRad.Clear([System.Drawing.Color]::FromArgb(0, 0, 0, 0))
@@ -2957,18 +3472,197 @@ if ($null -ne $evCfg) {
         Save-WebpOrPng -Bitmap $bmpRad -RelPath "ev\ev_radar_blank.webp"
         $bmpRad.Dispose()
 
-        $cases = @(
-            "case1_01","case1_02","case1_03","case1_04","case1_05","case1_06",
-            "case2_07","case2_08","case2_09","case2_10","case2_11",
-            "case3_12","case3_13","case3_14","case3_15","case3_16",
-            "case4_17","case4_18","case4_19","case4_20","case4_21","case4_22","case5_loading"
-        )
         foreach ($folder in @("drawable-nodpi", "drawable-night-nodpi")) {
             foreach ($cs in $cases) {
                 $evManifest.Add("res/$folder/ev_etc_main_$cs.webp|ev_radar_blank.webp")
                 $evManifest.Add("res/$folder/ev_etc_main_c_$cs.webp|ev_radar_blank.webp")
             }
         }
+    } elseif ($evRoadStyle -in @("customGrid", "lcars", "bttfFire", "synthwave", "asphalt", "custom")) {
+        function New-EvRangeRoadWebp([string]$RelOut, [int]$W, [int]$H) {
+            $b = New-Object System.Drawing.Bitmap($W, $H, [System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
+            $g = [System.Drawing.Graphics]::FromImage($b)
+            $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+            $g.Clear([System.Drawing.Color]::FromArgb(0, 0, 0, 0))
+
+            $alphaByte = [int][Math]::Max(0, [Math]::Min(255, [Math]::Round(255.0 * ($evRoadOpacity / 100.0))))
+            $sx = $W / 1920.0
+            $drewCustomRoad = $false
+            if ($evRoadStyle -eq "custom" -and (Test-Path $evCustomRoadPath)) {
+                $rImg = [System.Drawing.Image]::FromFile($evCustomRoadPath)
+                $cm = New-Object System.Drawing.Imaging.ColorMatrix
+                $cm.Matrix33 = [float]($alphaByte / 255.0)
+                $ia = New-Object System.Drawing.Imaging.ImageAttributes
+                $ia.SetColorMatrix($cm)
+                $g.DrawImage($rImg, (New-Object System.Drawing.Rectangle(0, 0, $W, $H)), 0, 0, $rImg.Width, $rImg.Height, [System.Drawing.GraphicsUnit]::Pixel, $ia)
+                $ia.Dispose(); $rImg.Dispose()
+                $drewCustomRoad = $true
+            }
+
+            if (-not $drewCustomRoad) {
+                $xTR = [float](1525.0 * $sx); $yTR = 88.0
+                $xBR = [float](1650.0 * $sx); $yBR = 114.0
+                $yTL = 292.0; $yBL = 382.0
+                $poly = @(
+                    (New-Object System.Drawing.PointF(0.0, $yTL)),
+                    (New-Object System.Drawing.PointF($xTR, $yTR)),
+                    (New-Object System.Drawing.PointF($xBR, $yBR)),
+                    (New-Object System.Drawing.PointF(0.0, $yBL))
+                )
+                $gp = New-Object System.Drawing.Drawing2D.GraphicsPath
+                $gp.AddPolygon($poly)
+
+                if ($evRoadStyle -eq "bttfFire") {
+                    # Soft dark roadbed + twin fiery orange-gold tire trails fading cleanly at the horizon
+                    $bRoadFade = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+                        (New-Object System.Drawing.PointF(0.0, 0.0)),
+                        (New-Object System.Drawing.PointF($xBR, 0.0)),
+                        [System.Drawing.Color]::FromArgb([int]($alphaByte * 0.28), 10, 12, 22),
+                        [System.Drawing.Color]::FromArgb(0, 10, 12, 22)
+                    )
+                    $g.FillPath($bRoadFade, $gp); $bRoadFade.Dispose()
+                    foreach ($track in @(@(306.0, 93.0, 8.5, 2.2), @(366.0, 109.0, 9.5, 2.6))) {
+                        $ty0 = $track[0]; $ty1 = $track[1]; $w0 = $track[2]; $w1 = $track[3]
+                        foreach ($pass in @(@(1.0, "#FF4500", [int]($alphaByte * 0.65)), @(0.52, "#FF9900", [int]($alphaByte * 0.85)), @(0.20, "#FFE08A", [int]($alphaByte * 0.90)))) {
+                            $wm = $pass[0]; $cStart = Parse-HexColor $pass[1] $pass[2]; $cEnd = Parse-HexColor $pass[1] 0
+                            $tPts = @(
+                                (New-Object System.Drawing.PointF(0.0, [float]($ty0 - $w0 * $wm))),
+                                (New-Object System.Drawing.PointF($xTR, [float]($ty1 - $w1 * $wm))),
+                                (New-Object System.Drawing.PointF($xBR, [float]($ty1 + $w1 * $wm))),
+                                (New-Object System.Drawing.PointF(0.0, [float]($ty0 + $w0 * $wm)))
+                            )
+                            $bt = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+                                (New-Object System.Drawing.PointF(0.0, 0.0)),
+                                (New-Object System.Drawing.PointF($xBR, 0.0)),
+                                $cStart, $cEnd
+                            )
+                            $g.FillPolygon($bt, $tPts); $bt.Dispose()
+                        }
+                    }
+                } elseif ($evRoadStyle -eq "lcars") {
+                    # Translucent perspective lane surface fading smoothly to vanishing point + soft rails & chevron ticks
+                    $bBgFade = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+                        (New-Object System.Drawing.PointF(0.0, 0.0)),
+                        (New-Object System.Drawing.PointF($xBR, 0.0)),
+                        (Parse-HexColor $evRoadGridColor ([int]($alphaByte * 0.30))),
+                        (Parse-HexColor $evRoadColor 0)
+                    )
+                    $g.FillPath($bBgFade, $gp); $bBgFade.Dispose()
+                    $g.SetClip($gp)
+                    for ($seg = 0; $seg -lt 20; $seg++) {
+                        $u0 = $seg / 20.0; $u1 = ($seg + 0.55) / 20.0
+                        $distFade = [Math]::Max(0.0, 1.0 - [Math]::Pow($u0, 1.15))
+                        $segAlpha = [int]([Math]::Round($alphaByte * 0.42 * $distFade))
+                        if ($segAlpha -lt 4) { continue }
+                        $xT0 = [float]($u0 * $xTR); $yT0 = [float]($yTL + $u0 * ($yTR - $yTL))
+                        $xT1 = [float]($u1 * $xTR); $yT1 = [float]($yTL + $u1 * ($yTR - $yTL))
+                        $xB1 = [float]($u1 * $xBR); $yB1 = [float]($yBL + $u1 * ($yBR - $yBL))
+                        $xB0 = [float]($u0 * $xBR); $yB0 = [float]($yBL + $u0 * ($yBR - $yBL))
+                        $sPts = @(
+                            (New-Object System.Drawing.PointF($xT0, $yT0)),
+                            (New-Object System.Drawing.PointF($xT1, $yT1)),
+                            (New-Object System.Drawing.PointF($xB1, $yB1)),
+                            (New-Object System.Drawing.PointF($xB0, $yB0))
+                        )
+                        $colHex = if ($seg % 4 -eq 0) { $evRoadGridColor } else { $evRoadColor }
+                        $bs = New-Object System.Drawing.SolidBrush((Parse-HexColor $colHex $segAlpha))
+                        $g.FillPolygon($bs, $sPts); $bs.Dispose()
+                    }
+                    $g.ResetClip()
+                    $railBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+                        (New-Object System.Drawing.PointF(0.0, 0.0)),
+                        (New-Object System.Drawing.PointF($xBR, 0.0)),
+                        (Parse-HexColor $evRoadColor ([int]($alphaByte * 0.78))),
+                        (Parse-HexColor $evRoadColor 0)
+                    )
+                    $pRail = New-Object System.Drawing.Pen($railBrush, 2.5)
+                    $g.DrawLine($pRail, 0.0, $yTL, $xTR, $yTR)
+                    $g.DrawLine($pRail, 0.0, $yBL, $xBR, $yBR)
+                    $pRail.Dispose(); $railBrush.Dispose()
+                } elseif ($evRoadStyle -eq "asphalt") {
+                    $bAsp = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+                        (New-Object System.Drawing.PointF(0.0, 0.0)),
+                        (New-Object System.Drawing.PointF($xBR, 0.0)),
+                        [System.Drawing.Color]::FromArgb([int]($alphaByte * 0.78), 15, 20, 28),
+                        [System.Drawing.Color]::FromArgb(0, 15, 20, 28)
+                    )
+                    $g.FillPath($bAsp, $gp); $bAsp.Dispose()
+                    $g.SetClip($gp)
+                    $shBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+                        (New-Object System.Drawing.PointF(0.0, 0.0)),
+                        (New-Object System.Drawing.PointF($xBR, 0.0)),
+                        (Parse-HexColor $evRoadColor ([int]($alphaByte * 0.85))),
+                        (Parse-HexColor $evRoadColor 0)
+                    )
+                    $pSh = New-Object System.Drawing.Pen($shBrush, 3.5)
+                    $g.DrawLine($pSh, 0.0, ($yTL + 4.0), $xTR, ($yTR + 2.0))
+                    $g.DrawLine($pSh, 0.0, ($yBL - 4.0), $xBR, ($yBR - 2.0))
+                    $pSh.Dispose(); $shBrush.Dispose()
+                    $pMid = New-Object System.Drawing.Pen((Parse-HexColor $evRoadGridColor ([int]($alphaByte * 0.75))), 3.5)
+                    $pMid.DashPattern = @(7.0, 5.5)
+                    $g.DrawLine($pMid, 0.0, (($yTL + $yBL) / 2.0), (($xTR + $xBR) / 2.0), (($yTR + $yBR) / 2.0))
+                    $pMid.Dispose()
+                    $g.ResetClip()
+                } else {
+                    # customGrid or synthwave with smooth horizon fade
+                    $priHexEff = $evRoadColor
+                    $secHexEff = $evRoadGridColor
+                    $gridBaseHex = if ($evRoadStyle -eq "synthwave") { "#F472B6" } else { $priHexEff }
+                    $bFillG = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+                        (New-Object System.Drawing.PointF(0.0, $yTL)),
+                        (New-Object System.Drawing.PointF($xBR, $yTR)),
+                        (Parse-HexColor $secHexEff ([int]($alphaByte * 0.40))),
+                        (Parse-HexColor $priHexEff 0)
+                    )
+                    $g.FillPath($bFillG, $gp); $bFillG.Dispose()
+                    $g.SetClip($gp)
+                    $lBrush = New-Object System.Drawing.Drawing2D.LinearGradientBrush(
+                        (New-Object System.Drawing.PointF(0.0, 0.0)),
+                        (New-Object System.Drawing.PointF($xBR, 0.0)),
+                        (Parse-HexColor $gridBaseHex ([int]($alphaByte * 0.65))),
+                        (Parse-HexColor $gridBaseHex 0)
+                    )
+                    $pL = New-Object System.Drawing.Pen($lBrush, 1.5)
+                    for ($l = 0; $l -le 7; $l++) {
+                        $f = $l / 7.0
+                        $g.DrawLine($pL, 0.0, [float]($yTL + $f * ($yBL - $yTL)), [float]($xTR + $f * ($xBR - $xTR)), [float]($yTR + $f * ($yBR - $yTR)))
+                    }
+                    $pL.Dispose(); $lBrush.Dispose()
+                    for ($s = 0; $s -lt 48; $s++) {
+                        $u = $s / 48.0
+                        if ($evRoadStyle -eq "synthwave") { $u = [Math]::Pow($u, 1.35) }
+                        $distFade = [Math]::Max(0.0, 1.0 - [Math]::Pow($u, 1.2))
+                        $sAlpha = [int]([Math]::Round($alphaByte * $(if ($s % 5 -eq 0) { 0.55 } else { 0.35 }) * $distFade))
+                        if ($sAlpha -lt 4) { continue }
+                        $xT = [float]($u * $xTR); $yT = [float]($yTL + $u * ($yTR - $yTL))
+                        $xB = [float]($u * $xBR); $yB = [float]($yBL + $u * ($yBR - $yBL))
+                        $pS = New-Object System.Drawing.Pen($(if ($s % 5 -eq 0) { [System.Drawing.Color]::FromArgb($sAlpha, 255, 255, 255) } else { Parse-HexColor $gridBaseHex $sAlpha }), $(if ($s % 5 -eq 0) { 1.8 } else { 1.0 }))
+                        $g.DrawLine($pS, $xT, $yT, $xB, $yB)
+                        $pS.Dispose()
+                    }
+                    $g.ResetClip()
+                }
+                $gp.Dispose()
+            }
+
+            $g.Dispose()
+            Save-WebpOrPng -Bitmap $b -RelPath $RelOut
+            $b.Dispose()
+        }
+
+        New-EvRangeRoadWebp -RelOut "ev\ev_road_full.webp" -W 1920 -H 540
+        New-EvRangeRoadWebp -RelOut "ev\ev_road_split.webp" -W 1280 -H 540
+
+        foreach ($folder in @("drawable-nodpi", "drawable-night-nodpi")) {
+            foreach ($cs in $cases) {
+                $evManifest.Add("res/$folder/ev_etc_main_$cs.webp|ev_road_full.webp")
+                $evManifest.Add("res/$folder/ev_etc_main_c_$cs.webp|ev_road_split.webp")
+            }
+        }
+    } elseif ($evRoadColor.ToUpper() -ne "#00E5FF" -or $evRoadOpacity -lt 100) {
+        $evRuntimeLines.Add("tintOemRoad=true")
+        $evRuntimeLines.Add("roadColor=" + $evRoadColor)
+        $evRuntimeLines.Add("roadOpacity=" + $evRoadOpacity)
     }
 
     if ($evManifest.Count -gt 0 -or $evRuntimeLines.Count -gt 0) {
@@ -2983,6 +3677,7 @@ if ($null -ne $evCfg) {
 
 if (Test-Path $tempPngDir) { Remove-Item -Recurse -Force $tempPngDir }
 
+$hasCustomFontFlag = if ($script:ResolvedThemeFontFile -and (Test-Path $script:ResolvedThemeFontFile)) { "true" } else { "false" }
 $runtimeCompositeLines = @(
     ("batteryStyle=" + [string]$bw.style),
     ("batteryScale=" + $bwScalePct),
@@ -2991,6 +3686,7 @@ $runtimeCompositeLines = @(
     ("mediaOffX=" + $medOffX),
     ("mediaOffY=" + $medOffY),
     ("mediaFontScale=" + $medScale),
+    ("hasCustomFont=" + $hasCustomFontFlag),
     ("compositeOemIcons=" + ($script:CompositeOemIconsList -join ","))
 )
 [System.IO.File]::WriteAllLines((Join-Path $themeOutDir "runtime-composite.txt"), $runtimeCompositeLines, $utf8NoBom)

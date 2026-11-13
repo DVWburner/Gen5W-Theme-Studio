@@ -2,7 +2,7 @@
 # Gen5W Themer Root Helper Service (NEMESIS service.0, uid=root)
 # Supports Launcher_WP3.apk, SystemUI.apk, HKMC_Climate.apk, and HKMC_TAppEV3.apk
 # Includes Auto-Boot on Reboot + 5-Layer Failsafe (USB Kill-Switch, Pinhole 2-Strike Breaker,
-# 15s Boot Grace Window, 60s Launcher Crash Watchdog, and 45s Deadman Test Timer).
+# 6s Boot Grace Window, 60s Launcher Crash Watchdog, and 45s Deadman Test Timer).
 # Strict Gen5W toolbox + mksh compatibility (NO busybox, tr, awk, killall, pkill, or umount -l).
 
 export PATH=/data/nemesis/bin:/sbin:/vendor/bin:/system/sbin:/system/bin:/system/xbin
@@ -25,6 +25,11 @@ AUTOSTART_THEME_FILE="$PERSIST_DIR/theme_name"
 THEMED_APK="$WORK_DIR/Launcher_WP3_themed.apk"
 STOCK_APK="$WORK_DIR/Launcher_WP3_stock.apk"
 TARGET_APK="/system/app/Launcher_WP3.apk"
+
+THEMED_ODEX="$WORK_DIR/Launcher_WP3_themed.odex"
+STOCK_ODEX="$WORK_DIR/Launcher_WP3_stock.odex"
+TARGET_ODEX="/system/app/Launcher_WP3.odex"
+PERSIST_ODEX="$PERSIST_DIR/Launcher_WP3_themed.odex"
 
 THEMED_SYSUI="$WORK_DIR/SystemUI_themed.apk"
 STOCK_SYSUI="$WORK_DIR/SystemUI_stock.apk"
@@ -99,7 +104,7 @@ is_path_mounted() {
 }
 
 is_mounted() {
-    is_path_mounted "$TARGET_APK" || is_path_mounted "$TARGET_SYSUI" || is_path_mounted "$TARGET_CLIMATE" || is_path_mounted "$TARGET_EV"
+    is_path_mounted "$TARGET_APK" || is_path_mounted "$TARGET_ODEX" || is_path_mounted "$TARGET_SYSUI" || is_path_mounted "$TARGET_CLIMATE" || is_path_mounted "$TARGET_EV"
     return $?
 }
 
@@ -134,20 +139,27 @@ unmount_single_target() {
     local target_path="$1"
     local stock_copy="$2"
     local proc_pat="$3"
+    local pkg_name="$4"
 
     if ! is_path_mounted "$target_path"; then
         return 0
     fi
 
+    if [ -n "$pkg_name" ]; then
+        /system/bin/am force-stop "$pkg_name" >/dev/null 2>&1
+    fi
     kill_proc_pattern "$proc_pat"
     sleep 1
     local tries=0
-    while is_path_mounted "$target_path" && [ $tries -lt 4 ]; do
+    while is_path_mounted "$target_path" && [ $tries -lt 5 ]; do
         /system/bin/toolbox umount "$target_path" >> "$LOG_FILE" 2>&1 || umount "$target_path" >> "$LOG_FILE" 2>&1
         if ! is_path_mounted "$target_path"; then
             log_msg "Unmounted $target_path cleanly."
             kill_proc_pattern "$proc_pat"
             return 0
+        fi
+        if [ -n "$pkg_name" ]; then
+            /system/bin/am force-stop "$pkg_name" >/dev/null 2>&1
         fi
         kill_proc_pattern "$proc_pat"
         tries=$((tries + 1))
@@ -156,7 +168,7 @@ unmount_single_target() {
 
     if is_path_mounted "$target_path" && [ -s "$stock_copy" ]; then
         log_msg "Mount busy; bind-mounting clean stock copy ($stock_copy) on top of $target_path..."
-        chmod 644 "$stock_copy" 2>/dev/null
+        chmod 666 "$stock_copy" 2>/dev/null
         chown 0.0 "$stock_copy" 2>/dev/null || chown 0:0 "$stock_copy" 2>/dev/null
         /system/bin/toolbox mount -o bind "$stock_copy" "$target_path" >> "$LOG_FILE" 2>&1 || mount -o bind "$stock_copy" "$target_path" >> "$LOG_FILE" 2>&1
         kill_proc_pattern "$proc_pat"
@@ -170,17 +182,19 @@ mount_single_target() {
     local stock_copy="$2"
     local target_path="$3"
     local proc_pat="$4"
+    local pkg_name="$5"
 
     if [ ! -f "$target_path" ]; then
         log_msg "Target $target_path not present on this vehicle; skipping."
         return 0
     fi
 
+    if is_path_mounted "$target_path"; then
+        log_msg "$target_path already mounted; unmounting previous theme first..."
+        unmount_single_target "$target_path" "$stock_copy" "$proc_pat" "$pkg_name"
+    fi
+
     if [ ! -s "$themed_copy" ]; then
-        if is_path_mounted "$target_path"; then
-            log_msg "No themed override for $target_path; restoring stock..."
-            unmount_single_target "$target_path" "$stock_copy" "$proc_pat"
-        fi
         return 0
     fi
 
@@ -189,23 +203,21 @@ mount_single_target() {
         cp -f "$target_path" "$stock_copy" 2>/dev/null
     fi
     if [ -s "$stock_copy" ]; then
-        chmod 644 "$stock_copy" 2>/dev/null
+        chmod 666 "$stock_copy" 2>/dev/null
         chown 0.0 "$stock_copy" 2>/dev/null || chown 0:0 "$stock_copy" 2>/dev/null
     fi
 
-    chmod 644 "$themed_copy" 2>/dev/null
     chown 0.0 "$themed_copy" 2>/dev/null || chown 0:0 "$themed_copy" 2>/dev/null
-
-    if is_path_mounted "$target_path"; then
-        kill_proc_pattern "$proc_pat"
-        /system/bin/toolbox umount "$target_path" >/dev/null 2>&1 || umount "$target_path" >/dev/null 2>&1
-    fi
+    chmod 666 "$themed_copy" 2>/dev/null
 
     log_msg "Running: toolbox mount -o bind $themed_copy $target_path"
     /system/bin/toolbox mount -o bind "$themed_copy" "$target_path" >> "$LOG_FILE" 2>&1 || mount -o bind "$themed_copy" "$target_path" >> "$LOG_FILE" 2>&1
 
     if is_path_mounted "$target_path"; then
         log_msg "Mounted $target_path; restarting $proc_pat..."
+        if [ -n "$pkg_name" ]; then
+            /system/bin/am force-stop "$pkg_name" >/dev/null 2>&1
+        fi
         kill_proc_pattern "$proc_pat"
         return 0
     else
@@ -221,6 +233,7 @@ do_disable_autostart() {
     fi
     rm -f "$AUTOSTART_ENABLED_FILE" 2>/dev/null
     rm -f "$PERSIST_DIR/Launcher_WP3_themed.apk" 2>/dev/null
+    rm -f "$PERSIST_ODEX" 2>/dev/null
     rm -f "$PERSIST_DIR/SystemUI_themed.apk" 2>/dev/null
     rm -f "$PERSIST_DIR/HKMC_Climate_themed.apk" 2>/dev/null
     rm -f "$PERSIST_DIR/HKMC_TAppEV3_themed.apk" 2>/dev/null
@@ -251,7 +264,7 @@ do_enable_autostart() {
     chmod 777 "/data/data/com.gen5w.themer" 2>/dev/null
     chmod 777 "$PERSIST_DIR" 2>/dev/null
 
-    rm -f "$PERSIST_DIR/Launcher_WP3_themed.apk" "$PERSIST_DIR/SystemUI_themed.apk" "$PERSIST_DIR/HKMC_Climate_themed.apk" "$PERSIST_DIR/HKMC_TAppEV3_themed.apk" 2>/dev/null
+    rm -f "$PERSIST_DIR/Launcher_WP3_themed.apk" "$PERSIST_ODEX" "$PERSIST_DIR/SystemUI_themed.apk" "$PERSIST_DIR/HKMC_Climate_themed.apk" "$PERSIST_DIR/HKMC_TAppEV3_themed.apk" 2>/dev/null
 
     log_msg "Caching confirmed themed APKs into $PERSIST_DIR for Auto-Boot..."
     cp -f "$THEMED_APK" "$PERSIST_DIR/Launcher_WP3_themed.apk" 2>/dev/null
@@ -262,6 +275,10 @@ do_enable_autostart() {
     fi
     chmod 644 "$PERSIST_DIR/Launcher_WP3_themed.apk" 2>/dev/null
 
+    if [ -s "$THEMED_ODEX" ]; then
+        cp -f "$THEMED_ODEX" "$PERSIST_ODEX" 2>/dev/null
+        chmod 644 "$PERSIST_ODEX" 2>/dev/null
+    fi
     if [ -s "$THEMED_SYSUI" ]; then
         cp -f "$THEMED_SYSUI" "$PERSIST_DIR/SystemUI_themed.apk" 2>/dev/null
         chmod 644 "$PERSIST_DIR/SystemUI_themed.apk" 2>/dev/null
@@ -294,14 +311,54 @@ do_enable_autostart() {
     return 0
 }
 
+do_backup_stock_if_clean() {
+    local target_path="$1"
+    local stock_copy="$2"
+    if [ -f "$target_path" ] && ! is_path_mounted "$target_path"; then
+        if [ ! -s "$stock_copy" ]; then
+            cp -f "$target_path" "$stock_copy" 2>/dev/null
+        fi
+        if [ -s "$stock_copy" ]; then
+            chmod 666 "$stock_copy" 2>/dev/null
+        fi
+    fi
+}
+
+do_prepare_stage() {
+    mkdir -p "$WORK_DIR" 2>/dev/null
+    chmod 777 "$WORK_DIR" 2>/dev/null
+    log_msg "Preparing clean staging area (unmounting active mounts first)..."
+    set_countdown "0"
+
+    unmount_single_target "$TARGET_EV" "$STOCK_EV" "daudio.app.ev" "com.hkmc.daudio.app.ev3"
+    unmount_single_target "$TARGET_CLIMATE" "$STOCK_CLIMATE" "HKMC_Climate|apps.climate" "com.hkmc.telematics.service.apps.climate"
+    unmount_single_target "$TARGET_SYSUI" "$STOCK_SYSUI" "com.android.systemui" ""
+    unmount_single_target "$TARGET_ODEX" "$STOCK_ODEX" "com.android.launcher3" "com.android.launcher3"
+    unmount_single_target "$TARGET_APK" "$STOCK_APK" "com.android.launcher3" "com.android.launcher3"
+
+    do_backup_stock_if_clean "$TARGET_APK" "$STOCK_APK"
+    do_backup_stock_if_clean "$TARGET_ODEX" "$STOCK_ODEX"
+    do_backup_stock_if_clean "$TARGET_SYSUI" "$STOCK_SYSUI"
+    do_backup_stock_if_clean "$TARGET_CLIMATE" "$STOCK_CLIMATE"
+    do_backup_stock_if_clean "$TARGET_EV" "$STOCK_EV"
+
+    rm -f "$THEMED_APK" "$THEMED_ODEX" "$THEMED_SYSUI" "$THEMED_CLIMATE" "$THEMED_EV" 2>/dev/null
+    chmod 777 "$WORK_DIR" 2>/dev/null
+    set_active_state "STOCK"
+    log_msg "Stage prepared cleanly (all targets unmounted, stock backed up, old themed files removed)"
+    return 0
+}
+
 do_revert_mounts_only() {
     log_msg "Reverting all themed APKs to factory stock OEM..."
     set_countdown "0"
     set_active_state "STOCK"
-    unmount_single_target "$TARGET_EV" "$STOCK_EV" "com.hkmc.daudio.app.ev3"
-    unmount_single_target "$TARGET_CLIMATE" "$STOCK_CLIMATE" "com.hkmc.telematics.service.apps.climate"
-    unmount_single_target "$TARGET_SYSUI" "$STOCK_SYSUI" "com.android.systemui"
-    unmount_single_target "$TARGET_APK" "$STOCK_APK" "com.android.launcher3"
+    unmount_single_target "$TARGET_EV" "$STOCK_EV" "daudio.app.ev" "com.hkmc.daudio.app.ev3"
+    unmount_single_target "$TARGET_CLIMATE" "$STOCK_CLIMATE" "HKMC_Climate|apps.climate" "com.hkmc.telematics.service.apps.climate"
+    unmount_single_target "$TARGET_SYSUI" "$STOCK_SYSUI" "com.android.systemui" ""
+    unmount_single_target "$TARGET_ODEX" "$STOCK_ODEX" "com.android.launcher3" "com.android.launcher3"
+    unmount_single_target "$TARGET_APK" "$STOCK_APK" "com.android.launcher3" "com.android.launcher3"
+    rm -f "$THEMED_APK" "$THEMED_ODEX" "$THEMED_SYSUI" "$THEMED_CLIMATE" "$THEMED_EV" 2>/dev/null
     kill_launcher
     sleep 1
     am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null 2>&1
@@ -312,6 +369,24 @@ do_revert() {
     do_revert_mounts_only
     set_status "STOCK (Factory Unmodified)"
     log_msg "Reverted to stock and disarmed Auto-Boot successfully."
+}
+
+do_revert_and_reboot() {
+    log_msg "Revert + Reboot requested: disarming Auto-Boot, unmounting themes, and rebooting display..."
+    do_disable_autostart "DISABLED"
+    set_countdown "0"
+    set_active_state "STOCK"
+    do_revert_mounts_only
+    set_status "STOCK (Auto-Boot Disabled - Rebooting Display...)"
+    sync
+    sleep 1
+    log_msg "Attempting root display reboot (svc power reboot / sys.powerctl / reboot)..."
+    /system/bin/svc power reboot >> "$LOG_FILE" 2>&1
+    setprop sys.powerctl reboot >> "$LOG_FILE" 2>&1
+    /system/bin/reboot >> "$LOG_FILE" 2>&1
+    /system/bin/toolbox reboot >> "$LOG_FILE" 2>&1
+    log_msg "WARNING: Software reboot commands returned without halting display; advise user to pinhole reset."
+    return 1
 }
 
 check_usb_failsafe() {
@@ -350,10 +425,15 @@ do_apply_test() {
         do_disable_autostart "DISABLED"
     fi
 
-    mount_single_target "$THEMED_APK" "$STOCK_APK" "$TARGET_APK" "com.android.launcher3"
-    mount_single_target "$THEMED_SYSUI" "$STOCK_SYSUI" "$TARGET_SYSUI" "com.android.systemui"
-    mount_single_target "$THEMED_CLIMATE" "$STOCK_CLIMATE" "$TARGET_CLIMATE" "com.hkmc.telematics.service.apps.climate"
-    mount_single_target "$THEMED_EV" "$STOCK_EV" "$TARGET_EV" "com.hkmc.daudio.app.ev3"
+    if [ -s "$THEMED_ODEX" ] && [ -f "$TARGET_ODEX" ]; then
+        mount_single_target "$THEMED_ODEX" "$STOCK_ODEX" "$TARGET_ODEX" "com.android.launcher3" "com.android.launcher3"
+    elif is_path_mounted "$TARGET_ODEX"; then
+        unmount_single_target "$TARGET_ODEX" "$STOCK_ODEX" "com.android.launcher3" "com.android.launcher3"
+    fi
+    mount_single_target "$THEMED_APK" "$STOCK_APK" "$TARGET_APK" "com.android.launcher3" "com.android.launcher3"
+    mount_single_target "$THEMED_SYSUI" "$STOCK_SYSUI" "$TARGET_SYSUI" "com.android.systemui" ""
+    mount_single_target "$THEMED_CLIMATE" "$STOCK_CLIMATE" "$TARGET_CLIMATE" "HKMC_Climate|apps.climate" "com.hkmc.telematics.service.apps.climate"
+    mount_single_target "$THEMED_EV" "$STOCK_EV" "$TARGET_EV" "daudio.app.ev" "com.hkmc.daudio.app.ev3"
 
     if is_path_mounted "$TARGET_APK"; then
         set_active_state "THEMED"
@@ -384,6 +464,11 @@ do_apply_test() {
 # Support direct one-shot invocation via `nemesis root -c "sh .../themer-helper.sh DIRECT_APPLY"`
 if [ -n "$1" ]; then
     case "$1" in
+        DIRECT_PREPARE_STAGE)
+            log_msg "Direct invocation: DIRECT_PREPARE_STAGE"
+            do_prepare_stage
+            exit $?
+            ;;
         DIRECT_APPLY)
             log_msg "Direct invocation: DIRECT_APPLY"
             do_apply_test ""
@@ -414,6 +499,11 @@ if [ -n "$1" ]; then
             log_msg "Direct invocation: DIRECT_REVERT"
             do_revert
             exit 0
+            ;;
+        DIRECT_REVERT_REBOOT)
+            log_msg "Direct invocation: DIRECT_REVERT_REBOOT"
+            do_revert_and_reboot
+            exit $?
             ;;
         DIRECT_ENABLE_AUTOSTART)
             log_msg "Direct invocation: DIRECT_ENABLE_AUTOSTART"
@@ -497,8 +587,8 @@ else
                 done
 
                 if is_autostart_enabled; then
-                    log_msg "AUTO-BOOT: Entering 15s grace window (Strike $strikes/2 - Pinhole Reset or USB Kill-Switch to abort)..."
-                    grace=15
+                    log_msg "AUTO-BOOT: Entering 6s grace window (Strike $strikes/2 - Pinhole Reset or USB Kill-Switch to abort)..."
+                    grace=6
                     aborted=0
                     while [ $grace -gt 0 ]; do
                         set_status "AUTO-BOOT IN ${grace}s (Strike $strikes/2 - Pinhole Reset or Revert to Abort)"
@@ -529,20 +619,24 @@ else
 
                     if [ "$aborted" -eq 0 ] && is_autostart_enabled; then
                         log_msg "AUTO-BOOT: Staging cached APKs from $PERSIST_DIR into $WORK_DIR..."
-                        rm -f "$THEMED_APK" "$THEMED_SYSUI" "$THEMED_CLIMATE" "$THEMED_EV" 2>/dev/null
+                        rm -f "$THEMED_APK" "$THEMED_ODEX" "$THEMED_SYSUI" "$THEMED_CLIMATE" "$THEMED_EV" 2>/dev/null
                         cp -f "$PERSIST_DIR/Launcher_WP3_themed.apk" "$THEMED_APK" 2>/dev/null
-                        chmod 644 "$THEMED_APK" 2>/dev/null
+                        chmod 666 "$THEMED_APK" 2>/dev/null
+                        if [ -s "$PERSIST_ODEX" ]; then
+                            cp -f "$PERSIST_ODEX" "$THEMED_ODEX" 2>/dev/null
+                            chmod 666 "$THEMED_ODEX" 2>/dev/null
+                        fi
                         if [ -s "$PERSIST_DIR/SystemUI_themed.apk" ]; then
                             cp -f "$PERSIST_DIR/SystemUI_themed.apk" "$THEMED_SYSUI" 2>/dev/null
-                            chmod 644 "$THEMED_SYSUI" 2>/dev/null
+                            chmod 666 "$THEMED_SYSUI" 2>/dev/null
                         fi
                         if [ -s "$PERSIST_DIR/HKMC_Climate_themed.apk" ]; then
                             cp -f "$PERSIST_DIR/HKMC_Climate_themed.apk" "$THEMED_CLIMATE" 2>/dev/null
-                            chmod 644 "$THEMED_CLIMATE" 2>/dev/null
+                            chmod 666 "$THEMED_CLIMATE" 2>/dev/null
                         fi
                         if [ -s "$PERSIST_DIR/HKMC_TAppEV3_themed.apk" ]; then
                             cp -f "$PERSIST_DIR/HKMC_TAppEV3_themed.apk" "$THEMED_EV" 2>/dev/null
-                            chmod 644 "$THEMED_EV" 2>/dev/null
+                            chmod 666 "$THEMED_EV" 2>/dev/null
                         fi
                         if [ -f "$AUTOSTART_THEME_FILE" ]; then
                             cp -f "$AUTOSTART_THEME_FILE" "$ACTIVE_THEME_NAME_FILE" 2>/dev/null
@@ -676,6 +770,13 @@ while true; do
                 TIMER_ACTIVE=0
                 TIMER_REMAINING=0
                 do_revert
+                ;;
+
+            REVERT_REBOOT*)
+                BOOT_VERIFY_REMAINING=0
+                TIMER_ACTIVE=0
+                TIMER_REMAINING=0
+                do_revert_and_reboot
                 ;;
         esac
     fi

@@ -55,8 +55,8 @@ This tool **requires** your headunit to already have **[NEMESIS (`xwtk/hmg_nemes
      - **Option 2 — Direct Apply & Keep (`[2. APPLY & KEEP]`)**: If you already trust a theme, you can tap **`2. APPLY & KEEP`** directly from Stock state to apply and lock in the theme immediately without waiting for the 45-second test countdown.
    - **Optional Auto-Launch on Boot (`[4. AUTO-BOOT: OFF -> ON ✓]`) & Hardware Failsafes**:
      - By default, rebooting the headunit wipes volatile RAM and boots 100% Factory Stock.
-     - Once a theme is confirmed, you can optionally tap **`[4. AUTO-BOOT]`** to automatically re-mount your confirmed theme 15 seconds after every headunit boot, protected by two independent hardware failsafes:
-       1. **📌 Pinhole Reset Escape Hatch (15s Boot Grace Window + 2-Strike Watchdog)**: Pressing the physical dashboard pinhole reset button during startup or within 60 seconds after the theme loads (or if the Launcher crashes twice) trips the `boot_strikes >= 2` breaker on the next boot, automatically disabling Auto-Boot and booting **100% Factory Stock**.
+     - Once a theme is confirmed, you can optionally tap **`[4. AUTO-BOOT]`** to automatically re-mount your confirmed theme 6 seconds after every headunit boot, protected by two independent hardware failsafes:
+       1. **📌 Pinhole Reset Escape Hatch (6s Boot Grace Window + 2-Strike Watchdog)**: Pressing the physical dashboard pinhole reset button during startup or within 60 seconds after the theme loads (or if the Launcher crashes twice) trips the `boot_strikes >= 2` breaker on the next boot, automatically disabling Auto-Boot and booting **100% Factory Stock**.
        2. **🔌 USB Kill-Switch (`REVERT_THEME.txt`)**: Plugging in any FAT32/exFAT USB stick containing an empty file named **`REVERT_THEME.txt`** (or `SAFE_MODE.txt` / `DISABLE_THEME.txt`) at its root immediately unmounts all theme overlays, disables Auto-Boot, and restores **100% Factory Stock** within 1–2 seconds without touching the screen.
 
 ---
@@ -78,7 +78,7 @@ If you just want to try the pre-made **LCARS** theme on your NEMESIS-equipped ca
 5. Open the **NEMESIS App Launcher** on your headunit and tap **Gen5W Themer** (palette & paintbrush icon):
    - Select your theme at the top (if multiple themes are bundled).
    - Tap **`1. TEST THEME (45s Safe Test Mode)`** to preview it safely with an automatic 45-second revert timer, followed by **`2. APPLY & KEEP`** to lock it in — **OR** tap **`2. APPLY & KEEP`** directly to skip the test timer and apply immediately.
-   - Tap **`3. REVERT TO STOCK NOW`** at any time to immediately unmount the theme and return to Factory Stock, or **`✕ EXIT TO HOME`** when finished.
+   - Tap **`3. RESTORE TO STOCK`** at any time to disarm Auto-Boot and reboot the display back into Factory Stock, or **`✕ EXIT TO HOME`** when finished.
 
 ---
 

@@ -282,8 +282,8 @@
         <ul>
           <li><b>Step 1 — Safe Test Mode (45s Rollback Timer):</b> Tap <b>[1. TEST '&lt;THEME&gt;']</b> to mount your theme in RAM (<code>/mnt/asec</code>) with a 45-second deadman countdown. If you don't confirm within 45 seconds, it automatically reverts to 100% Factory Stock.</li>
           <li><b>Step 2 — Confirm &amp; Keep:</b> Tap <b>[2. APPLY &amp; KEEP]</b> to cancel the 45-second timer (or apply a known-good theme directly).</li>
-          <li><b>Step 3 — Instant OEM Restore:</b> Tap <b>[3. REVERT TO STOCK NOW]</b> at any time to immediately unmount all overlays, disarm Auto-Boot, and restore 100% Factory Stock.</li>
-          <li><b>Step 4 — Auto-Boot on Reboot (Optional):</b> Once a theme is active and confirmed, tap <b>[4. AUTO-BOOT: OFF &rarr; ON ✓]</b> to cache your confirmed theme so it launches automatically 15 seconds after every headunit boot! (Note: the <code>/system</code> flash partition is still <b>never</b> modified on disk—Auto-Boot still uses safe RAM bind-mounts.)</li>
+          <li><b>Step 3 — Restore to Stock:</b> Tap <b>[3. RESTORE TO STOCK]</b> at any time to immediately disarm Auto-Boot and reboot the display back into 100% Factory Stock (or follow the pin-hole reset prompt if software reboot is blocked).</li>
+          <li><b>Step 4 — Auto-Boot on Reboot (Optional):</b> Once a theme is active and confirmed, tap <b>[4. AUTO-BOOT: OFF &rarr; ON ✓]</b> to cache your confirmed theme so it launches automatically 6 seconds after every headunit boot! (Note: the <code>/system</code> flash partition is still <b>never</b> modified on disk—Auto-Boot still uses safe RAM bind-mounts.)</li>
         </ul>
       </li>
     </ol>
@@ -293,8 +293,8 @@
       Even when <b>[4. AUTO-BOOT: ON ✓]</b> is enabled, two independent hardware failsafes ensure you can always return to 100% Factory Stock without touching the screen:
       <ul style="margin:8px 0 0 18px;padding:0;color:#cbd5e1;">
         <li style="margin-bottom:8px;">
-          <b>📌 Pinhole Reset Escape Hatch (15s Boot Grace Window + 2-Strike Watchdog):</b><br>
-          On every boot with Auto-Boot enabled, the background service records a boot-attempt strike on disk <i>before</i> doing anything, waits a <b>15-second grace window</b> after Android finishes booting, mounts the theme, and then monitors the Home Launcher for <b>60 continuous seconds</b> before resetting the strike counter to <code>0</code>.<br>
+          <b>📌 Pinhole Reset Escape Hatch (6s Boot Grace Window + 2-Strike Watchdog):</b><br>
+          On every boot with Auto-Boot enabled, the background service records a boot-attempt strike on disk <i>before</i> doing anything, waits a <b>6-second grace window</b> after Android finishes booting, mounts the theme, and then monitors the Home Launcher for <b>60 continuous seconds</b> before resetting the strike counter to <code>0</code>.<br>
           &rarr; <b>How to trigger:</b> Press the physical <b>dashboard pinhole reset button</b> during startup (or within 60 seconds after the theme loads). If a boot is interrupted or the Launcher crashes twice before passing the 60-second stability check (<code>boot_strikes &ge; 2</code>), the next boot <b>automatically trips the failsafe breaker, disables Auto-Boot, and boots 100% Factory Stock</b>.
         </li>
         <li>
@@ -637,6 +637,7 @@
           <select data-path="batteryWidget.style" onchange="setScreenMode('home')">
             <option value="oem">Stock Hyundai OEM Battery</option>
             <option value="galileo">Star Trek Shuttle Galileo (Wireframe / Translucent)</option>
+            <option value="delorean">BTTF DeLorean Time Machine (Wireframe / Translucent)</option>
             <option value="wireframeCar">Wireframe / Translucent EV Car</option>
             <option value="custom">Custom Uploaded Graphic</option>
             <option value="lcars">Vector Schematic</option>
@@ -785,9 +786,31 @@
           <label>Draw Tactical Frame &amp; Grid</label>
           <input type="checkbox" id="chkEvLcarsFrame" onchange="cfg.evScreen.showLcarsFrame = this.checked; scheduleAutoSave(); render();">
         </div>
+        <hr style="border:0;border-top:1px solid var(--border);margin:8px 0;">
+        <div style="font-size:11px;color:#5eead4;font-weight:600;margin-bottom:4px;" id="secEvRoad">EV Range Road Styling</div>
         <div class="ctrl">
+          <label>Range Road Style</label>
+          <select id="selEvRoadStyle" data-path="evScreen.roadStyle" onchange="cfg.evScreen.hideRangeRadar = (this.value === 'hidden'); const chk=document.getElementById('chkEvHideRadar'); if(chk) chk.checked = cfg.evScreen.hideRangeRadar; setScreenMode('ev');">
+            <option value="oem">Stock Cyan Perspective Road (Tintable)</option>
+            <option value="customGrid">Custom Perspective Grid Road</option>
+            <option value="lcars">LCARS Warp Conduit Beam</option>
+            <option value="bttfFire">88 MPH Twin Fire Trails (BTTF)</option>
+            <option value="synthwave">Synthwave Outrun Neon Highway</option>
+            <option value="asphalt">Dark Asphalt Highway + Glowing Lanes</option>
+            <option value="custom">Custom Uploaded Road Graphic (1920x540)</option>
+            <option value="hidden">Hidden (Transparent — Show Full BG)</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>Primary Road / Glow Color</label><input type="color" data-path="evScreen.roadColor"></div>
+        <div class="ctrl"><label>Secondary / Grid Color</label><input type="color" data-path="evScreen.roadGridColor"></div>
+        <div class="ctrl"><label>Range Road Opacity (%)</label><input type="range" min="0" max="100" data-path="evScreen.roadOpacity"><input type="number" min="0" max="100" data-path="evScreen.roadOpacity"></div>
+        <label class="upload-btn-label blue-btn" style="margin-top:4px;">
+          Upload Custom Range Road PNG (1920&times;540)...
+          <input type="file" accept="image/*" onchange="uploadAssetFile(this, 'ev_road_custom', 'evRoad')">
+        </label>
+        <div class="ctrl" style="display:none;">
           <label>Hide Diagonal Cyan Range Road</label>
-          <input type="checkbox" id="chkEvHideRadar" onchange="cfg.evScreen.hideRangeRadar = this.checked; scheduleAutoSave(); render();">
+          <input type="checkbox" id="chkEvHideRadar" onchange="cfg.evScreen.hideRangeRadar = this.checked; cfg.evScreen.roadStyle = this.checked ? 'hidden' : 'oem'; scheduleAutoSave(); render();">
         </div>
       </div>
 
@@ -801,6 +824,7 @@
           <select data-path="evScreen.carStyle" onchange="setScreenMode('ev')">
             <option value="oem">Stock Hyundai OEM EV Car</option>
             <option value="galileo">Star Trek Shuttle Galileo (Wireframe / Translucent)</option>
+            <option value="delorean">BTTF DeLorean Time Machine (Wireframe / Translucent)</option>
             <option value="sameAsHome">Use Same Graphic as Home EV Widget</option>
             <option value="custom">Custom Uploaded Vehicle Graphic</option>
             <option value="lcars">3/4 Wireframe EV Crossover</option>
@@ -1172,6 +1196,9 @@ function ensureConfigDefaults() {
   if (cfg.homeScreen.mediaOffsetX === undefined) cfg.homeScreen.mediaOffsetX = 0;
   if (cfg.homeScreen.mediaOffsetY === undefined) cfg.homeScreen.mediaOffsetY = 0;
   if (cfg.homeScreen.mediaFontScale === undefined) cfg.homeScreen.mediaFontScale = 100;
+  // Map cursor customization is unsupported on Gen5W; ignore any legacy theme fields safely
+  cfg.homeScreen.navCursorStyle = 'oem';
+  cfg.homeScreen.bakeNavCursorToBg = false;
 
   if (!cfg.batteryWidget) cfg.batteryWidget = {};
   if (cfg.batteryWidget.rangeOffsetX === undefined) cfg.batteryWidget.rangeOffsetX = 0;
@@ -1189,6 +1216,8 @@ function ensureConfigDefaults() {
     bgScale: 100,
     bgOffsetX: 0,
     bgOffsetY: 0,
+    bgOpacity: 100,
+    barOpacity: 100,
     bgColor: '#060810',
     accentColor: pCol,
     secondaryColor: sCol,
@@ -1200,6 +1229,9 @@ function ensureConfigDefaults() {
     customHomeFile: '',
     customBackFile: ''
   }, cfg.statusBar || {});
+  if (cfg.statusBar.bgMode === 'transparent') cfg.statusBar.bgMode = 'oem';
+  cfg.statusBar.bgOpacity = 100;
+  cfg.statusBar.barOpacity = 100;
 
   cfg.climateScreen = Object.assign({
     bgMode: 'oem',
@@ -1245,8 +1277,15 @@ function ensureConfigDefaults() {
     carOffsetX: 0,
     carOffsetY: 0,
     cardStyle: 'oem',
-    hideRangeRadar: false
+    hideRangeRadar: false,
+    roadStyle: (cfg.evScreen && cfg.evScreen.hideRangeRadar === true) ? 'hidden' : 'oem',
+    roadColor: '#00E5FF',
+    roadGridColor: '#005577',
+    roadOpacity: 85,
+    customRoadFile: ''
   }, cfg.evScreen || {});
+  if (cfg.evScreen.hideRangeRadar === true && !cfg.evScreen.roadStyle) cfg.evScreen.roadStyle = 'hidden';
+  cfg.evScreen.hideRangeRadar = (cfg.evScreen.roadStyle === 'hidden');
 }
 
 let controlsBoundOnce = false;
@@ -1602,6 +1641,13 @@ async function uploadAssetFile(input, slotName, section) {
         cfg.climateScreen.seatStyle = 'custom';
         document.querySelector('[data-path="climateScreen.seatStyle"]').value = 'custom';
         setScreenMode('climate');
+      } else if (section === 'evRoad') {
+        cfg.evScreen.customRoadFile = savedFile;
+        cfg.evScreen.roadStyle = 'custom';
+        cfg.evScreen.hideRangeRadar = false;
+        const rSel = document.getElementById('selEvRoadStyle');
+        if (rSel) rSel.value = 'custom';
+        setScreenMode('ev');
       }
       scheduleAutoSave();
       render();
@@ -1630,6 +1676,7 @@ function clearCustomBg(section) {
     cfg.batteryWidget.customScale = 100; cfg.batteryWidget.customOffsetX = 0; cfg.batteryWidget.customOffsetY = 0;
   } else if (section === 'statusBar') {
     cfg.statusBar.bgMode = 'oem';
+    cfg.statusBar.bgOpacity = 100; cfg.statusBar.barOpacity = 100;
     cfg.statusBar.bgScale = 100; cfg.statusBar.bgOffsetX = 0; cfg.statusBar.bgOffsetY = 0;
   } else if (section === 'statusBarButtons') {
     cfg.statusBar.buttonStyle = 'oem';
@@ -1638,6 +1685,7 @@ function clearCustomBg(section) {
     cfg.evScreen.bgMode = 'oem';
     cfg.evScreen.bgScale = 100; cfg.evScreen.bgOffsetX = 0; cfg.evScreen.bgOffsetY = 0; cfg.evScreen.bgDim = 0;
     cfg.evScreen.showLcarsFrame = false; cfg.evScreen.hideRangeRadar = false;
+    cfg.evScreen.roadStyle = 'oem'; cfg.evScreen.roadColor = '#00E5FF'; cfg.evScreen.roadGridColor = '#005577'; cfg.evScreen.roadOpacity = 85;
   } else if (section === 'evCar') {
     cfg.evScreen.carStyle = 'oem';
     cfg.evScreen.carScale = 100; cfg.evScreen.carOffsetX = 0; cfg.evScreen.carOffsetY = 0;
@@ -1794,12 +1842,20 @@ document.getElementById('stageCanvas').addEventListener('click', (ev) => {
     return;
   }
   if (screenMode === 'home') {
-    if (x >= 548 && x <= 1090 && y >= 350 && y <= 572) switchTab(2);
-    else switchTab(0);
+    if (x >= 548 && x <= 1090 && y >= 350 && y <= 572) {
+      switchTab(2);
+    } else {
+      switchTab(0);
+    }
     return;
   }
   if (screenMode === 'ev') {
     switchTab(4, true);
+    if (x >= 460 && y >= 260 && y <= 550) {
+      const roadSec = document.getElementById('secEvRoad');
+      if (roadSec) roadSec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setToast('Selected EV Range Road — customize its style, colors & opacity!');
+    }
     return;
   }
   if (screenMode === 'climate') {
@@ -2571,10 +2627,10 @@ function drawShuttleGalileo(ctx, pct, scalePct, offX, offY) {
   ctx.save();
   // Port swept pylon
   ctx.beginPath();
-  ctx.moveTo(158, 124);
-  ctx.lineTo(138, 92);
-  ctx.lineTo(205, 84);
-  ctx.lineTo(222, 116);
+  ctx.moveTo(136, 150);
+  ctx.lineTo(216, 140);
+  ctx.lineTo(202, 166);
+  ctx.lineTo(122, 176);
   ctx.closePath();
   ctx.fillStyle = 'rgba(82, 102, 118, 0.45)';
   ctx.fill();
@@ -2584,9 +2640,19 @@ function drawShuttleGalileo(ctx, pct, scalePct, offX, offY) {
 
   // Port cylindrical warp nacelle body (tilted -0.115 rad matching 3/4 perspective)
   ctx.save();
-  ctx.translate(215, 80);
+  ctx.translate(212, 166);
   ctx.rotate(-0.115);
-  // Nacelle tube (-125..+115, height 24)
+
+  // Aft spherical exhaust dome protruding at (-126, 1)
+  ctx.beginPath();
+  ctx.arc(-126, 1, 8, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(71, 85, 105, 0.68)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(203, 213, 225, 0.70)';
+  ctx.lineWidth = 1.3;
+  ctx.stroke();
+
+  // Nacelle tube (-128..+112, height 24)
   ctx.beginPath();
   ctx.moveTo(-128, 12);
   ctx.lineTo(-116, -12);
@@ -3001,6 +3067,389 @@ function drawShuttleGalileo(ctx, pct, scalePct, offX, offY) {
   ctx.restore();
 }
 
+function drawDeLoreanWireframe(ctx, pct, scalePct, offX, offY) {
+  ctx.save();
+  const s = (scalePct > 0 ? scalePct : 100) / 100.0;
+  ctx.translate(317.5 + (offX || 0), 159.0 + (offY || 0));
+  ctx.scale(s, s);
+  ctx.translate(-317.5, -159.0);
+
+  // 1. Under-body Ground Shadow & Far-Side Wheels (Layer 1 / bg)
+  ctx.save();
+  ctx.translate(335, 196);
+  ctx.rotate(-0.105);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 245, 42, 0, 0, Math.PI * 2);
+  const shGrad = ctx.createRadialGradient(0, 0, 25, 0, 0, 245);
+  shGrad.addColorStop(0, 'rgba(0, 0, 0, 0.72)');
+  shGrad.addColorStop(0.65, 'rgba(0, 0, 0, 0.36)');
+  shGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = shGrad;
+  ctx.fill();
+  ctx.restore();
+
+  // Far-side (port) tires glimpsed behind translucent hull
+  [
+    { x: 145, y: 172, rx: 32, ry: 38 },
+    { x: 455, y: 132, rx: 29, ry: 35 }
+  ].forEach(fw => {
+    ctx.beginPath();
+    ctx.ellipse(fw.x, fw.y, fw.rx, fw.ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(20, 26, 34, 0.58)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.35)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  });
+
+  // Dark lower chassis tray
+  ctx.beginPath();
+  ctx.moveTo(82, 168);
+  ctx.lineTo(165, 145);
+  ctx.lineTo(420, 122);
+  ctx.lineTo(585, 162);
+  ctx.lineTo(490, 192);
+  ctx.lineTo(240, 226);
+  ctx.lineTo(158, 222);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(22, 28, 36, 0.80)';
+  ctx.fill();
+
+  // 2. 3D Skateboard Battery / Power Core Slab inside the DeLorean Floor
+  const FL = [172, 158];
+  const FR = [395, 133];
+  const NR = [480, 173];
+  const NL = [250, 202];
+  const clampPct = Math.max(0.0, Math.min(1.0, pct));
+  const splitFar  = [FL[0] + (FR[0] - FL[0]) * clampPct, FL[1] + (FR[1] - FL[1]) * clampPct];
+  const splitNear = [NL[0] + (NR[0] - NL[0]) * clampPct, NL[1] + (NR[1] - NL[1]) * clampPct];
+  const slabH = 10;
+
+  if (clampPct < 0.999) {
+    ctx.beginPath();
+    ctx.moveTo(splitFar[0], splitFar[1]);
+    ctx.lineTo(FR[0], FR[1]);
+    ctx.lineTo(NR[0], NR[1]);
+    ctx.lineTo(splitNear[0], splitNear[1]);
+    ctx.closePath();
+    ctx.fillStyle = '#d8e3ea';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(splitNear[0], splitNear[1]);
+    ctx.lineTo(NR[0], NR[1]);
+    ctx.lineTo(NR[0], NR[1] + slabH);
+    ctx.lineTo(splitNear[0], splitNear[1] + slabH);
+    ctx.closePath();
+    ctx.fillStyle = '#9aa8b4';
+    ctx.fill();
+  }
+
+  if (clampPct > 0.001) {
+    const topCol  = clampPct <= 0.20 ? '#ff5252' : '#43f3b0';
+    const sideCol = clampPct <= 0.20 ? '#c62828' : '#1ec788';
+    const rearCol = clampPct <= 0.20 ? '#b71c1c' : '#25b88a';
+
+    ctx.beginPath();
+    ctx.moveTo(FL[0], FL[1]);
+    ctx.lineTo(splitFar[0], splitFar[1]);
+    ctx.lineTo(splitNear[0], splitNear[1]);
+    ctx.lineTo(NL[0], NL[1]);
+    ctx.closePath();
+    ctx.fillStyle = topCol;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(FL[0], FL[1]);
+    ctx.lineTo(NL[0], NL[1]);
+    ctx.lineTo(NL[0], NL[1] + slabH);
+    ctx.lineTo(FL[0], FL[1] + slabH);
+    ctx.closePath();
+    ctx.fillStyle = rearCol;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(NL[0], NL[1]);
+    ctx.lineTo(splitNear[0], splitNear[1]);
+    ctx.lineTo(splitNear[0], splitNear[1] + slabH);
+    ctx.lineTo(NL[0], NL[1] + slabH);
+    ctx.closePath();
+    ctx.fillStyle = sideCol;
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= 5; i++) {
+    const u = i / 6.0;
+    const x1 = FL[0] + (FR[0] - FL[0]) * u;
+    const y1 = FL[1] + (FR[1] - FL[1]) * u;
+    const x2 = NL[0] + (NR[0] - NL[0]) * u;
+    const y2 = NL[1] + (NR[1] - NL[1]) * u;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+
+  // 3. Translucent Brushed-Stainless-Steel Giugiaro Wedge Body & Time Machine Hardware (Layer 3 / cover)
+  ctx.beginPath();
+  ctx.moveTo(162, 228);
+  ctx.lineTo(76, 186);
+  ctx.lineTo(68, 142);
+  ctx.lineTo(78, 102);
+  ctx.lineTo(128, 62);
+  ctx.lineTo(248, 30);
+  ctx.lineTo(348, 22);
+  ctx.lineTo(408, 34);
+  ctx.lineTo(492, 82);
+  ctx.lineTo(572, 98);
+  ctx.lineTo(598, 124);
+  ctx.lineTo(588, 168);
+  ctx.lineTo(558, 180);
+  ctx.lineTo(484, 192);
+  ctx.lineTo(248, 230);
+  ctx.closePath();
+
+  const bodyGrad = ctx.createLinearGradient(90, 26, 560, 225);
+  bodyGrad.addColorStop(0, 'rgba(148, 172, 192, 0.34)');
+  bodyGrad.addColorStop(0.55, 'rgba(116, 140, 160, 0.30)');
+  bodyGrad.addColorStop(1, 'rgba(96, 120, 142, 0.38)');
+  ctx.fillStyle = bodyGrad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(220, 236, 248, 0.88)';
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+
+  // Rear Transom Taillight Panel (DMC grid cells)
+  ctx.beginPath();
+  ctx.moveTo(72, 108);
+  ctx.lineTo(164, 144);
+  ctx.lineTo(160, 178);
+  ctx.lineTo(68, 142);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(20, 28, 38, 0.72)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(210, 226, 238, 0.75)';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  for (let tc = 0; tc < 4; tc++) {
+    const f0 = tc / 4.0 + 0.03;
+    const f1 = (tc + 1) / 4.0 - 0.03;
+    ctx.beginPath();
+    ctx.moveTo(72 + (164 - 72) * f0, 108 + (144 - 108) * f0);
+    ctx.lineTo(72 + (164 - 72) * f1, 108 + (144 - 108) * f1);
+    ctx.lineTo(68 + (160 - 68) * f1, 142 + (178 - 142) * f1);
+    ctx.lineTo(68 + (160 - 68) * f0, 142 + (178 - 142) * f0);
+    ctx.closePath();
+    ctx.fillStyle = (tc === 0 || tc === 3) ? 'rgba(239, 68, 68, 0.65)' : 'rgba(245, 158, 11, 0.65)';
+    ctx.fill();
+  }
+
+  // Dual Exhaust Tips
+  ctx.fillStyle = 'rgba(180, 198, 214, 0.65)';
+  ctx.fillRect(88, 184, 14, 7);
+  ctx.fillRect(128, 200, 14, 7);
+
+  // Aft Twin Black Reactor Cooling Shroud Towers & Louvers
+  const drawCoolingTower = (pts) => {
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    pts.slice(1).forEach(p => ctx.lineTo(p[0], p[1]));
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(24, 34, 48, 0.72)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(198, 218, 234, 0.78)';
+    ctx.lineWidth = 1.3;
+    ctx.stroke();
+    ctx.strokeStyle = 'rgba(148, 172, 194, 0.55)';
+    ctx.lineWidth = 1.0;
+    for (let lv = 1; lv <= 4; lv++) {
+      const t = lv / 5.0;
+      const lx0 = pts[1][0] + (pts[0][0] - pts[1][0]) * t;
+      const ly0 = pts[1][1] + (pts[0][1] - pts[1][1]) * t;
+      const lx1 = pts[2][0] + (pts[3][0] - pts[2][0]) * t;
+      const ly1 = pts[2][1] + (pts[3][1] - pts[2][1]) * t;
+      ctx.beginPath();
+      ctx.moveTo(lx0, ly0);
+      ctx.lineTo(lx1, ly1);
+      ctx.stroke();
+    }
+  };
+  drawCoolingTower([[86, 98], [108, 54], [156, 48], [142, 114]]);
+  drawCoolingTower([[142, 118], [166, 68], [218, 60], [202, 134]]);
+
+  // Mr. Fusion Home Energy Reactor perched at rear deck (186..214, 30..72)
+  ctx.fillStyle = 'rgba(30, 41, 59, 0.85)';
+  ctx.fillRect(186, 60, 28, 12);
+  ctx.fillStyle = 'rgba(241, 245, 249, 0.82)';
+  ctx.strokeStyle = 'rgba(203, 213, 225, 0.90)';
+  ctx.lineWidth = 1.2;
+  ctx.fillRect(190, 34, 20, 26);
+  ctx.strokeRect(190, 34, 20, 26);
+  ctx.fillStyle = 'rgba(239, 68, 68, 0.85)';
+  ctx.fillRect(193, 30, 14, 5);
+
+  // Rear Window Sunshade Louvers (5 angled slats between (155,58) and (255,36))
+  ctx.strokeStyle = 'rgba(206, 224, 238, 0.65)';
+  ctx.lineWidth = 1.4;
+  for (let ls = 0; ls < 5; ls++) {
+    const f = ls / 4.0;
+    const xA = 155 + f * 92;
+    const yA = 58 - f * 20;
+    ctx.beginPath();
+    ctx.moveTo(xA, yA);
+    ctx.lineTo(xA + 22, yA + 16);
+    ctx.stroke();
+  }
+
+  // Side Greenhouse & Toll-Booth Window
+  ctx.beginPath();
+  ctx.moveTo(246, 124);
+  ctx.lineTo(276, 66);
+  ctx.lineTo(372, 54);
+  ctx.lineTo(426, 64);
+  ctx.lineTo(478, 104);
+  ctx.lineTo(348, 122);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(22, 36, 52, 0.48)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(206, 224, 238, 0.72)';
+  ctx.lineWidth = 1.3;
+  ctx.stroke();
+
+  // Inset Toll-Booth Window
+  ctx.beginPath();
+  ctx.moveTo(288, 86);
+  ctx.lineTo(356, 78);
+  ctx.lineTo(362, 114);
+  ctx.lineTo(282, 120);
+  ctx.closePath();
+  ctx.strokeStyle = 'rgba(186, 208, 224, 0.60)';
+  ctx.lineWidth = 1.1;
+  ctx.stroke();
+
+  // Gullwing Door Cutlines & Giugiaro Beltline / Rub Strip
+  ctx.strokeStyle = 'rgba(206, 224, 238, 0.65)';
+  ctx.lineWidth = 1.3;
+  ctx.beginPath();
+  ctx.moveTo(265, 124); ctx.lineTo(268, 208);
+  ctx.moveTo(372, 54); ctx.lineTo(382, 118); ctx.lineTo(384, 196);
+  ctx.moveTo(164, 154); ctx.lineTo(594, 126);
+  ctx.stroke();
+
+  // Glowing Flux Capacitor "Y" inside Rear Cabin Window at (232, 96)
+  ctx.save();
+  ctx.strokeStyle = '#FFD600';
+  ctx.shadowColor = '#00E5FF';
+  ctx.shadowBlur = 8;
+  ctx.lineWidth = 2.0;
+  ctx.beginPath();
+  ctx.moveTo(225, 86); ctx.lineTo(232, 96);
+  ctx.moveTo(239, 86); ctx.lineTo(232, 96);
+  ctx.moveTo(232, 96); ctx.lineTo(232, 108);
+  ctx.stroke();
+  ctx.restore();
+
+  // Glowing Cyan (#00E5FF) Flux Dispersal Bands
+  const drawFluxBand = (pts) => {
+    ctx.save();
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowColor = '#00E5FF';
+    ctx.shadowBlur = 10;
+    ctx.strokeStyle = 'rgba(0, 229, 255, 0.85)';
+    ctx.lineWidth = 3.2;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    pts.slice(1).forEach(p => ctx.lineTo(p[0], p[1]));
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+    ctx.strokeStyle = '#E0F9FF';
+    ctx.lineWidth = 1.4;
+    ctx.stroke();
+    ctx.restore();
+  };
+  drawFluxBand([[238, 44], [262, 122], [174, 136], [148, 212]]);
+  drawFluxBand([[262, 218], [462, 192]]);
+  drawFluxBand([[476, 178], [512, 114], [576, 112], [600, 128], [574, 140]]);
+
+  // Front Amber Marker & Headlight Glow
+  ctx.fillStyle = 'rgba(245, 158, 11, 0.85)';
+  ctx.fillRect(550, 122, 12, 5);
+  ctx.fillStyle = 'rgba(224, 249, 255, 0.85)';
+  ctx.fillRect(574, 108, 18, 9);
+
+  // Near-Side 3D DMC Turbine Wheels
+  [
+    { x: 204, y: 218, rx: 41, ry: 49, rot: 0.08 },
+    { x: 526, y: 171, rx: 37, ry: 45, rot: 0.08 }
+  ].forEach(w => {
+    ctx.save();
+    ctx.translate(w.x, w.y);
+    ctx.rotate(w.rot);
+
+    ctx.beginPath();
+    ctx.ellipse(0, -2, w.rx + 5, w.ry + 5, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(12, 18, 26, 0.85)';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.ellipse(-5, -2, w.rx, w.ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#262d34';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.ellipse(0, 0, w.rx, w.ry, 0, 0, Math.PI * 2);
+    const tireGrad = ctx.createRadialGradient(-8, -10, w.rx * 0.5, 0, 0, w.ry);
+    tireGrad.addColorStop(0, '#47525e');
+    tireGrad.addColorStop(0.75, '#2b323b');
+    tireGrad.addColorStop(1, '#1a2026');
+    ctx.fillStyle = tireGrad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(148, 163, 184, 0.50)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.ellipse(2, 1, w.rx * 0.72, w.ry * 0.72, 0, 0, Math.PI * 2);
+    const rimGrad = ctx.createLinearGradient(-w.rx, -w.ry, w.rx, w.ry);
+    rimGrad.addColorStop(0, '#f1f5f9');
+    rimGrad.addColorStop(0.5, '#cbd5e1');
+    rimGrad.addColorStop(1, '#94a3b8');
+    ctx.fillStyle = rimGrad;
+    ctx.fill();
+    ctx.strokeStyle = '#64748b';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // 12 Radial Turbine Spokes
+    ctx.strokeStyle = 'rgba(71, 85, 105, 0.75)';
+    ctx.lineWidth = 1.2;
+    for (let sp = 0; sp < 12; sp++) {
+      const ang = (sp / 12.0) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.moveTo(2 + Math.cos(ang) * w.rx * 0.24, 1 + Math.sin(ang) * w.ry * 0.24);
+      ctx.lineTo(2 + Math.cos(ang) * w.rx * 0.69, 1 + Math.sin(ang) * w.ry * 0.69);
+      ctx.stroke();
+    }
+
+    // Dark recessed DMC center hubcap
+    ctx.beginPath();
+    ctx.ellipse(3, 1, w.rx * 0.22, w.ry * 0.22, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#334155';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(226, 232, 240, 0.65)';
+    ctx.lineWidth = 1.0;
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  ctx.restore();
+}
+
 function render() {
   if (!cfg) return;
   const canvas = document.getElementById('stageCanvas');
@@ -3255,26 +3704,9 @@ function render() {
       }
     }
 
-    // Navigation cursor on Map (matches car photo at X=1525, Y=555)
+    // Simulated stock OEM Navigation cursor on Map preview when HUD is visible
     if (showHud) {
-      ctx.save();
-      ctx.translate(1525, 555);
-      ctx.beginPath();
-      ctx.ellipse(0, 0, 56, 40, 0, 0, Math.PI * 2);
-      ctx.fillStyle = 'rgba(10, 22, 34, 0.85)';
-      ctx.fill();
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = '#5eead4';
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(0, -24);
-      ctx.lineTo(24, 18);
-      ctx.lineTo(0, 10);
-      ctx.lineTo(-24, 18);
-      ctx.closePath();
-      ctx.fillStyle = '#e2f8ff';
-      ctx.fill();
-      ctx.restore();
+      drawNavCursorIcon(ctx, hs);
     }
 
     const bw = cfg.batteryWidget;
@@ -3298,6 +3730,8 @@ function render() {
       drawSimulatedOemEvCar(ctx, pct, bScale, bOffX, bOffY);
     } else if (bw.style === 'galileo') {
       drawShuttleGalileo(ctx, pct, bScale, bOffX, bOffY);
+    } else if (bw.style === 'delorean') {
+      drawDeLoreanWireframe(ctx, pct, bScale, bOffX, bOffY);
     } else if (bw.style === 'custom' && bw.customFile) {
       const cBat = getCachedImage(customAssetUrl(bw.customFile));
       if (cBat) drawFittedImgInBox(ctx, cBat, 0, 0, 620, 280, 'contain', bScale, bOffX, bOffY);
@@ -3429,44 +3863,75 @@ function render() {
   }
 }
 
+function drawNavCursorIcon(ctx, hs) {
+  ctx.save();
+  ctx.translate(1525, 555);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 56, 40, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(10, 22, 34, 0.85)';
+  ctx.fill();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = '#2EE8D6';
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, -24);
+  ctx.lineTo(24, 18);
+  ctx.lineTo(0, 10);
+  ctx.lineTo(-24, 18);
+  ctx.closePath();
+  ctx.fillStyle = '#E8FAFF';
+  ctx.fill();
+  ctx.restore();
+}
+
 function drawTopStatusBar(ctx, showHud, showBackBtn) {
   const sb = cfg.statusBar || {};
-  const bgMode = sb.bgMode || 'oem';
+  const rawMode = sb.bgMode || 'oem';
+  const bgMode = (rawMode === 'transparent') ? 'oem' : rawMode;
   const btnStyle = sb.buttonStyle || 'oem';
+  const barAlpha = 1.0;
+  const bgAlpha = 1.0;
   if (!showHud && bgMode === 'oem' && btnStyle === 'oem') return;
 
   ctx.save();
-  if (bgMode === 'oem') {
-    ctx.fillStyle = 'rgba(11, 14, 20, 0.90)';
-    ctx.fillRect(0, 0, 1920, 84);
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-    ctx.fillRect(0, 83, 1920, 1);
-  } else {
-    ctx.fillStyle = sb.bgColor || '#060810';
-    ctx.fillRect(0, 0, 1920, 86);
-    if (bgMode === 'custom' && sb.customBgFile) {
-      const sbImg = getCachedImage(customAssetUrl(sb.customBgFile));
-      if (sbImg) {
-        drawFittedImgInBox(ctx, sbImg, 0, 0, 1920, 86, sb.bgFit || 'cover', sb.bgScale || 100, sb.bgOffsetX || 0, sb.bgOffsetY || 0);
+  if (bgAlpha > 0.005) {
+    ctx.save();
+    ctx.globalAlpha = bgAlpha;
+    if (bgMode === 'oem') {
+      ctx.fillStyle = 'rgba(11, 14, 20, 0.90)';
+      ctx.fillRect(0, 0, 1920, 84);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.fillRect(0, 83, 1920, 1);
+    } else {
+      ctx.fillStyle = sb.bgColor || '#060810';
+      ctx.fillRect(0, 0, 1920, 86);
+      if (bgMode === 'custom' && sb.customBgFile) {
+        const sbImg = getCachedImage(customAssetUrl(sb.customBgFile));
+        if (sbImg) {
+          drawFittedImgInBox(ctx, sbImg, 0, 0, 1920, 86, sb.bgFit || 'cover', sb.bgScale || 100, sb.bgOffsetX || 0, sb.bgOffsetY || 0);
+        }
+      }
+      const bh = Math.max(0, Math.min(16, sb.borderHeight !== undefined ? sb.borderHeight : 4));
+      const acc = sb.accentColor || cfg.colors.primary || '#3B82F6';
+      const sec = sb.secondaryColor || cfg.colors.accentBlue || '#38BDF8';
+      const ter = cfg.colors.tertiary || '#818CF8';
+      if (bgMode === 'lcars') {
+        const h = Math.max(2, bh || 4);
+        const by = 86 - h;
+        ctx.fillStyle = acc; ctx.fillRect(0, by, 390, h);
+        ctx.fillStyle = sec; ctx.fillRect(398, by, 260, h);
+        ctx.fillStyle = ter; ctx.fillRect(666, by, 180, h);
+        ctx.fillStyle = acc; ctx.fillRect(854, by, 620, h);
+        ctx.fillStyle = sec; ctx.fillRect(1482, by, 438, h);
+      } else if (bh > 0) {
+        ctx.fillStyle = acc;
+        ctx.fillRect(0, 86 - bh, 1920, bh);
       }
     }
-    const bh = Math.max(0, Math.min(16, sb.borderHeight !== undefined ? sb.borderHeight : 4));
-    const acc = sb.accentColor || cfg.colors.primary || '#3B82F6';
-    const sec = sb.secondaryColor || cfg.colors.accentBlue || '#38BDF8';
-    const ter = cfg.colors.tertiary || '#818CF8';
-    if (bgMode === 'lcars') {
-      const h = Math.max(2, bh || 4);
-      const by = 86 - h;
-      ctx.fillStyle = acc; ctx.fillRect(0, by, 390, h);
-      ctx.fillStyle = sec; ctx.fillRect(398, by, 260, h);
-      ctx.fillStyle = ter; ctx.fillRect(666, by, 180, h);
-      ctx.fillStyle = acc; ctx.fillRect(854, by, 620, h);
-      ctx.fillStyle = sec; ctx.fillRect(1482, by, 438, h);
-    } else if (bh > 0) {
-      ctx.fillStyle = acc;
-      ctx.fillRect(0, 86 - bh, 1920, bh);
-    }
+    ctx.restore();
   }
+
+  ctx.globalAlpha = barAlpha;
 
   function drawNavBtn(bx, by, bw, bh, kind) {
     ctx.save();
@@ -3658,62 +4123,170 @@ function drawEvScreen(ctx, isNight, showHud) {
     ctx.fillText('Electric Vehicle', 960, 127);
   }
 
-  // 2. Diagonal Glowing Cyan Perspective Range Road/Strip (ev_etc_main_case*, unless hidden)
-  if (!ev.hideRangeRadar) {
+  // 2. Diagonal Perspective Range Road/Strip (ev_etc_main_case*)
+  const rStyle = (ev.hideRangeRadar === true && (!ev.roadStyle || ev.roadStyle === 'hidden')) ? 'hidden' : (ev.roadStyle || 'oem');
+  const rAlpha = Math.max(0, Math.min(1, (ev.roadOpacity !== undefined ? Number(ev.roadOpacity) : 85) / 100.0));
+  if (rStyle !== 'hidden' && rAlpha > 0.01) {
+    const rPri = ev.roadColor || '#00E5FF';
+    const rSec = ev.roadGridColor || '#005577';
     ctx.save();
-    // Perspective strip polygon from bottom-left (under car) up-right to x=1650
-    const roadPts = [
-      { x: 0,    y: 472 },
-      { x: 1525, y: 268 },
-      { x: 1650, y: 294 },
-      { x: 0,    y: 562 }
-    ];
+    ctx.globalAlpha = rAlpha;
 
-    // Soft cyan ambient underglow
-    const glowGrad = ctx.createLinearGradient(0, 520, 1650, 280);
-    glowGrad.addColorStop(0, 'rgba(6, 182, 212, 0.45)');
-    glowGrad.addColorStop(0.55, 'rgba(34, 211, 238, 0.65)');
-    glowGrad.addColorStop(1, 'rgba(34, 211, 238, 0.35)');
-
-    ctx.beginPath();
-    ctx.moveTo(roadPts[0].x, roadPts[0].y);
-    roadPts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
-    ctx.closePath();
-    ctx.shadowColor = '#22d3ee';
-    ctx.shadowBlur = 28;
-    ctx.fillStyle = glowGrad;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // Perspective grid lines & glowing cyan dots inside the strip
-    ctx.save();
-    ctx.clip();
-    ctx.strokeStyle = 'rgba(207, 250, 254, 0.55)';
-    ctx.lineWidth = 1.3;
-    for (let l = 0; l <= 7; l++) {
-      const f = l / 7.0;
-      const yStart = 472 + f * (562 - 472);
-      const yEnd   = 268 + f * (294 - 268);
-      const xEnd   = 1525 + f * (1650 - 1525);
-      ctx.beginPath();
-      ctx.moveTo(0, yStart);
-      ctx.lineTo(xEnd, yEnd);
-      ctx.stroke();
+    if (rStyle === 'custom') {
+      const rImg = getCachedImage(customAssetUrl(ev.customRoadFile || 'ev_road_custom.png'));
+      if (rImg) {
+        drawFittedImgInBox(ctx, rImg, 0, 180, 1920, 540, 'contain', 100, 0, 0);
+      }
     }
-    for (let s = 0; s < 58; s++) {
-      const u = s / 58.0;
-      const xTop = u * 1525;
-      const yTop = 472 + u * (268 - 472);
-      const xBot = u * 1650;
-      const yBot = 562 + u * (294 - 562);
-      ctx.strokeStyle = s % 5 === 0 ? 'rgba(255, 255, 255, 0.55)' : 'rgba(165, 243, 252, 0.28)';
-      ctx.lineWidth = s % 5 === 0 ? 1.8 : 1.0;
+
+    if (rStyle !== 'custom' || !getCachedImage(customAssetUrl(ev.customRoadFile || 'ev_road_custom.png'))) {
+      const roadPts = [
+        { x: 0,    y: 472 },
+        { x: 1525, y: 268 },
+        { x: 1650, y: 294 },
+        { x: 0,    y: 562 }
+      ];
       ctx.beginPath();
-      ctx.moveTo(xTop, yTop);
-      ctx.lineTo(xBot, yBot);
-      ctx.stroke();
+      ctx.moveTo(roadPts[0].x, roadPts[0].y);
+      roadPts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+      ctx.closePath();
+
+      if (rStyle === 'bttfFire') {
+        // Soft dark roadbed + twin fiery orange-gold tire trails fading cleanly at the horizon
+        const trackGrad = ctx.createLinearGradient(0, 520, 1650, 280);
+        trackGrad.addColorStop(0, 'rgba(10, 12, 22, 0.28)');
+        trackGrad.addColorStop(1, 'rgba(10, 12, 22, 0)');
+        ctx.fillStyle = trackGrad;
+        ctx.fill();
+
+        const drawFireTrail = (y0, x1, y1, width0, width1) => {
+          ctx.save();
+          const passDefs = [
+            [1.0, '#FF4500', 0.65],
+            [0.52, '#FF9900', 0.85],
+            [0.20, '#FFE08A', 0.90]
+          ];
+          for (let pass = 0; pass < passDefs.length; pass++) {
+            const wMult = passDefs[pass][0];
+            const colHex = passDefs[pass][1];
+            const aMax = Math.round(passDefs[pass][2] * 255);
+            const gTrail = ctx.createLinearGradient(0, y0, x1, y1);
+            gTrail.addColorStop(0, hexWithAlpha(colHex, aMax));
+            gTrail.addColorStop(1, hexWithAlpha(colHex, 0));
+            ctx.beginPath();
+            ctx.moveTo(0, y0 - width0 * wMult);
+            ctx.lineTo(x1, y1 - width1 * wMult);
+            ctx.lineTo(x1, y1 + width1 * wMult);
+            ctx.lineTo(0, y0 + width0 * wMult);
+            ctx.closePath();
+            ctx.fillStyle = gTrail;
+            ctx.fill();
+          }
+          ctx.restore();
+        };
+        drawFireTrail(486, 1545, 273, 8.5, 2.2);
+        drawFireTrail(546, 1630, 289, 9.5, 2.6);
+      } else if (rStyle === 'lcars') {
+        // Translucent perspective lane surface fading smoothly to vanishing point + soft rails
+        const bgFade = ctx.createLinearGradient(0, 520, 1650, 280);
+        bgFade.addColorStop(0, hexWithAlpha(rSec, 78));
+        bgFade.addColorStop(1, hexWithAlpha(rPri, 0));
+        ctx.fillStyle = bgFade;
+        ctx.fill();
+        ctx.save();
+        ctx.clip();
+        for (let seg = 0; seg < 20; seg++) {
+          const u0 = seg / 20.0;
+          const u1 = (seg + 0.55) / 20.0;
+          const distFade = Math.max(0.0, 1.0 - Math.pow(u0, 1.15));
+          const segAlpha = Math.round(110 * distFade);
+          if (segAlpha < 4) continue;
+          const xT0 = u0 * 1525, yT0 = 472 + u0 * (268 - 472);
+          const xT1 = u1 * 1525, yT1 = 472 + u1 * (268 - 472);
+          const xB1 = u1 * 1650, yB1 = 562 + u1 * (294 - 562);
+          const xB0 = u0 * 1650, yB0 = 562 + u0 * (294 - 562);
+          ctx.beginPath();
+          ctx.moveTo(xT0, yT0); ctx.lineTo(xT1, yT1); ctx.lineTo(xB1, yB1); ctx.lineTo(xB0, yB0); ctx.closePath();
+          ctx.fillStyle = hexWithAlpha((seg % 4 === 0) ? rSec : rPri, segAlpha);
+          ctx.fill();
+        }
+        ctx.restore();
+        const railGrad = ctx.createLinearGradient(0, 520, 1650, 280);
+        railGrad.addColorStop(0, hexWithAlpha(rPri, 200));
+        railGrad.addColorStop(1, hexWithAlpha(rPri, 0));
+        ctx.strokeStyle = railGrad;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(0, 472); ctx.lineTo(1525, 268); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, 562); ctx.lineTo(1650, 294); ctx.stroke();
+      } else if (rStyle === 'synthwave') {
+        const swGrad = ctx.createLinearGradient(0, 520, 1650, 280);
+        swGrad.addColorStop(0, hexWithAlpha(rSec, 150));
+        swGrad.addColorStop(0.55, hexWithAlpha(rPri, 165));
+        swGrad.addColorStop(1, 'rgba(236, 72, 153, 0.45)');
+        ctx.shadowColor = rPri; ctx.shadowBlur = 28;
+        ctx.fillStyle = swGrad; ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.save(); ctx.clip();
+        for (let l = 0; l <= 6; l++) {
+          const f = l / 6.0;
+          ctx.strokeStyle = (l === 0 || l === 6) ? '#F472B6' : hexWithAlpha('#E0F2FE', 180);
+          ctx.lineWidth = (l === 0 || l === 6) ? 3.5 : 1.4;
+          ctx.beginPath(); ctx.moveTo(0, 472 + f * 90); ctx.lineTo(1525 + f * 125, 268 + f * 26); ctx.stroke();
+        }
+        for (let s = 0; s < 36; s++) {
+          const u = Math.pow(s / 36.0, 1.35);
+          ctx.strokeStyle = hexWithAlpha('#F472B6', 175);
+          ctx.lineWidth = 1.6;
+          ctx.beginPath(); ctx.moveTo(u * 1525, 472 - u * 204); ctx.lineTo(u * 1650, 562 - u * 268); ctx.stroke();
+        }
+        ctx.restore();
+      } else if (rStyle === 'asphalt') {
+        ctx.fillStyle = 'rgba(15, 20, 28, 0.92)';
+        ctx.fill();
+        ctx.save(); ctx.clip();
+        // Shoulder lines
+        ctx.strokeStyle = rPri; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(0, 476); ctx.lineTo(1525, 270); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, 558); ctx.lineTo(1650, 292); ctx.stroke();
+        // Dashed center line
+        ctx.strokeStyle = rSec; ctx.lineWidth = 4; ctx.setLineDash([28, 22]);
+        ctx.beginPath(); ctx.moveTo(0, 517); ctx.lineTo(1588, 281); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      } else {
+        // 'oem' (tintable) or 'customGrid'
+        const glowGrad = ctx.createLinearGradient(0, 520, 1650, 280);
+        glowGrad.addColorStop(0, hexWithAlpha(rSec, 125));
+        glowGrad.addColorStop(0.55, hexWithAlpha(rPri, 175));
+        glowGrad.addColorStop(1, hexWithAlpha(rPri, 90));
+        ctx.shadowColor = rPri;
+        ctx.shadowBlur = 28;
+        ctx.fillStyle = glowGrad;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        ctx.save();
+        ctx.clip();
+        ctx.strokeStyle = hexWithAlpha(rPri, 160);
+        ctx.lineWidth = 1.3;
+        for (let l = 0; l <= 7; l++) {
+          const f = l / 7.0;
+          const yStart = 472 + f * (562 - 472);
+          const yEnd   = 268 + f * (294 - 268);
+          const xEnd   = 1525 + f * (1650 - 1525);
+          ctx.beginPath(); ctx.moveTo(0, yStart); ctx.lineTo(xEnd, yEnd); ctx.stroke();
+        }
+        for (let s = 0; s < 58; s++) {
+          const u = s / 58.0;
+          const xTop = u * 1525, yTop = 472 + u * (268 - 472);
+          const xBot = u * 1650, yBot = 562 + u * (294 - 562);
+          ctx.strokeStyle = s % 5 === 0 ? 'rgba(255, 255, 255, 0.58)' : hexWithAlpha(rSec, 110);
+          ctx.lineWidth = s % 5 === 0 ? 1.8 : 1.0;
+          ctx.beginPath(); ctx.moveTo(xTop, yTop); ctx.lineTo(xBot, yBot); ctx.stroke();
+        }
+        ctx.restore();
+      }
     }
-    ctx.restore();
     ctx.restore();
   }
 
@@ -3742,6 +4315,11 @@ function drawEvScreen(ctx, isNight, showHud) {
     ctx.save();
     ctx.scale(430 / 635.0, 235 / 318.0);
     drawShuttleGalileo(ctx, pct, effScale, effOffX, effOffY);
+    ctx.restore();
+  } else if (effStyle === 'delorean') {
+    ctx.save();
+    ctx.scale(430 / 635.0, 235 / 318.0);
+    drawDeLoreanWireframe(ctx, pct, effScale, effOffX, effOffY);
     ctx.restore();
   } else if (effStyle === 'custom' && effFile) {
     const cCar = getCachedImage(customAssetUrl(effFile));
@@ -4764,16 +5342,21 @@ function drawClimateAndWarmerScreen(ctx, isNight, showHud, isWarmer) {
 
   ctx.save();
   ctx.translate(942, 225);
+  ctx.beginPath();
+  ctx.rect(0, 0, 309, 351);
+  ctx.clip();
+  const seatOffXEff = seatStyle === 'captainsChair' ? Math.max(-25, Math.min(25, sOffX)) : sOffX;
+  const seatOffYEff = seatStyle === 'captainsChair' ? Math.max(-25, Math.min(25, sOffY)) : sOffY;
   let drewCustomSeat = false;
   if (seatStyle === 'custom' && clm.customDriverSeatFile) {
     const sImg = getCachedImage(customAssetUrl(clm.customDriverSeatFile));
     if (sImg) {
-      drewCustomSeat = drawFittedImgInBox(ctx, sImg, 0, 0, 309, 351, 'contain', sScale, sOffX, sOffY);
+      drewCustomSeat = drawFittedImgInBox(ctx, sImg, 0, 0, 309, 351, 'contain', sScale, seatOffXEff, seatOffYEff);
     }
   }
   if (!drewCustomSeat) {
     ctx.save();
-    ctx.translate(154.5 + sOffX, 175.5 + sOffY);
+    ctx.translate(154.5 + seatOffXEff, 175.5 + seatOffYEff);
     ctx.scale(sScale / 100.0, sScale / 100.0);
     ctx.translate(-154.5, -175.5);
 
@@ -4852,16 +5435,16 @@ function drawClimateAndWarmerScreen(ctx, isNight, showHud, isWarmer) {
 
   // 6. Center Circular Buttons: Steering Wheel Warmer (cx=604, cy=502) & Seat Shortcut (cx=1292, cy=502)
   drawClimateCircleBtn(604, 502, 52);
-  roundRect(ctx, 588, 464, 32, 7, 3.5);
+  roundRect(ctx, 588, 463, 32, 6, 3);
   ctx.fillStyle = heatLv > 0 ? heatCol : 'rgba(226, 232, 240, 0.7)';
   ctx.fill();
   ctx.strokeStyle = iconStyle === 'themed' ? heatCol : '#ffffff';
   ctx.lineWidth = 3;
   ctx.beginPath();
-  ctx.arc(600, 516, 16, 0, Math.PI * 2);
+  ctx.arc(604, 518, 15, 0, Math.PI * 2);
   ctx.stroke();
   for (let w = 0; w < 3; w++) {
-    const wx = 600 + w * 6;
+    const wx = 597 + w * 7;
     ctx.beginPath();
     ctx.moveTo(wx, 498); ctx.lineTo(wx, 480);
     ctx.stroke();
@@ -5229,7 +5812,7 @@ async function buildAndDeploySelected() {
   }
 }
 
-const STUDIO_CURRENT_VERSION = '1.1.0';
+const STUDIO_CURRENT_VERSION = '1.1.2';
 function isRemoteVersionNewer(remoteVer, localVer) {
   const clean = v => String(v || '').replace(/^[^0-9]*/, '').split('-')[0].split('.').map(n => parseInt(n, 10) || 0);
   const r = clean(remoteVer);

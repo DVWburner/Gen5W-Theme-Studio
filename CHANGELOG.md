@@ -1,5 +1,21 @@
 # Changelog — Gen5W Theme Studio & Safe RAM Launcher Themer
 
+## [v1.1.2] — 2026-11-13
+
+### 🔧 Fixes & In-Car Improvements
+- **Clean Theme Switching (`DIRECT_PREPARE_STAGE`)**: Unmounts all active RAM theme overlays and clears stale staged APKs/ODEX files before staging a new theme so remnants from the previous theme do not remain onscreen.
+- **Restore to Stock Workflow (`[3. RESTORE TO STOCK]`)**: Immediately disables Auto-Boot on disk, prompts that a display reboot is about to happen, attempts a root display reboot (`svc power reboot` / `sys.powerctl` / `reboot`), and falls back to a pin-hole reset advisory dialog if the head unit blocks software reboot.
+- **Faster Auto-Boot Startup Delay**: Reduced the Auto-Boot grace window from `15` seconds to `6` seconds on startup while preserving the Pinhole 2-Strike Watchdog and USB Kill-Switch (`REVERT_THEME.txt`).
+- **Home Split-Screen Fonts & Media Widget Offsets**: Fixed custom `.ttf`/`.otf` font loading on Home Split-Screen via in-RAM `Launcher_WP3.odex` patching (`CustomTextView.init()`), stripped mismatched static font entries, and fixed `translationX`/`translationY` `StringPool` + `ResourceMap` injection in `widget_av_main_*` / `widget_av_land_*`.
+- **In-Car Graphic & Layout Fixes**:
+  - Fixed Shuttlecraft Galileo far-side warp nacelle and downward support pylon 3D perspective.
+  - Fixed Climate Captain's Chair half-clipping, Steering Wheel Warmer LED/icon overlap, and EV Range Road perspective rendering (`ev_etc_main_*`).
+  - Restored proper 9-patch `npTc` chunks for modified `.9.png` drawables.
+- **In-Car OEM Built-In Asset Mixer & New Graphics**: Added on-device OEM variant mixing (`Kia Eco Red`, `N-Sport Red`, `Amber Gold`, `CE Streamliner`) alongside the 3D wireframe DeLorean (`delorean`) and customizable EV Range Road styling.
+- **Unsupported Feature Cleanup (Backward-Compatible)**: Removed the Home Split-Screen custom map cursor and Top Status Bar transparency options from Studio UI and build scripts; existing `.gen5wtheme` packs containing those fields load safely with standard OEM defaults.
+
+---
+
 ## [v1.1.0] — 2026-11-12
 
 ### 🚀 On-Car Auto-Launch on Boot & 5-Layer Failsafe Architecture

@@ -33,7 +33,7 @@ SAFETY ARCHITECTURE (RAM-ONLY OVERLAY)
   to skip the 45-second timer if you already trust the theme.
 - By default, rebooting the headunit boots 100% unmodified Factory Stock.
 - Optional Auto-Boot on Reboot (`[ 4. AUTO-BOOT ]`): Once a theme is confirmed,
-  you can toggle Button 4 to automatically mount your theme 15s after every boot,
+  you can toggle Button 4 to automatically mount your theme 6s after every boot,
   protected by two hardware failsafes:
   1. Pinhole Reset Escape Hatch: Pressing the dashboard pinhole reset during boot
      or within 60s of the theme loading (2-strike watchdog) automatically trips
@@ -101,6 +101,6 @@ PREREQUISITE: Your Gen5W headunit must already have NEMESIS installed:
    - Tap `[ 1. TEST THEME (45s Safe Test Mode) ]` to test with a 45-second
      automatic rollback timer, OR tap `[ 2. APPLY & KEEP ]` directly to skip
      the timer and lock in the theme immediately.
-   - Tap `[ 3. REVERT TO STOCK NOW ]` at any time to unmount the overlay and
-     return to Factory Stock, or tap `[ X EXIT TO HOME ]` when done.
+   - Tap `[ 3. RESTORE TO STOCK ]` at any time to disarm Auto-Boot and reboot
+     back to Factory Stock (or follow the pin-hole reset dialog), or tap `[ X EXIT TO HOME ]` when done.
 ================================================================================

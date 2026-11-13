@@ -1,14 +1,20 @@
 package com.gen5w.themer;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
@@ -43,6 +49,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.zip.Adler32;
 import java.util.zip.CRC32;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
@@ -70,6 +77,10 @@ public class MainActivity extends Activity {
     private static final String STOCK_APK = WORK_DIR + "/Launcher_WP3_stock.apk";
     private static final String TARGET_APK = "/system/app/Launcher_WP3.apk";
 
+    private static final String THEMED_ODEX = WORK_DIR + "/Launcher_WP3_themed.odex";
+    private static final String STOCK_ODEX = WORK_DIR + "/Launcher_WP3_stock.odex";
+    private static final String TARGET_ODEX = "/system/app/Launcher_WP3.odex";
+
     private static final String THEMED_SYSUI = WORK_DIR + "/SystemUI_themed.apk";
     private static final String STOCK_SYSUI = WORK_DIR + "/SystemUI_stock.apk";
     private static final String TARGET_SYSUI = "/system/priv-app/SystemUI.apk";
@@ -92,6 +103,9 @@ public class MainActivity extends Activity {
     private Button revertStockBtn;
     private Button autoBootBtn;
     private Button scanBtn;
+    private Button oemCarBtn;
+    private Button oemBatteryBtn;
+    private Button oemBrandBtn;
 
     private static class ThemeEntry {
         final String slug;
@@ -105,6 +119,18 @@ public class MainActivity extends Activity {
     }
 
     private final List<ThemeEntry> bundledThemes = new ArrayList<ThemeEntry>();
+    private final List<String> detectedEvCarModels = new ArrayList<String>();
+    private boolean hasOemRedBattery = false;
+    private boolean hasOemYellowBattery = false;
+    private boolean hasOemKiaUi = false;
+    private boolean hasOemCeSedanHome = false;
+
+    // In-car OEM Built-In Override selectors ("default" keeps the selected theme's behavior)
+    private String oemCarOverride = "default";     // default, suv, ce_sedan, sedan, hatch, 1ttruck
+    private String oemBatteryOverride = "default"; // default, cyan, red, yellow
+    private String oemBrandOverride = "default";   // default, kia, hyundai
+    private String oemScanSummary = "";
+
     private String selectedThemeSlug = "lcars";
     private String bundledThemeName = "Custom Theme";
 
@@ -296,8 +322,71 @@ public class MainActivity extends Activity {
 
         LinearLayout.LayoutParams pickerLp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        pickerLp.setMargins(0, 0, 0, 10);
+        pickerLp.setMargins(0, 0, 0, 8);
         root.addView(pickerBar, pickerLp);
+
+        // In-Car Built-In OEM Asset Override Bar (reads directly from vehicle's /system APKs)
+        LinearLayout oemOverrideBar = new LinearLayout(this);
+        oemOverrideBar.setOrientation(LinearLayout.HORIZONTAL);
+        oemOverrideBar.setGravity(Gravity.CENTER_VERTICAL);
+        oemOverrideBar.setPadding(14, 6, 14, 6);
+        GradientDrawable oemBarBg = new GradientDrawable();
+        oemBarBg.setColor(Color.parseColor("#111827"));
+        oemBarBg.setStroke(2, Color.parseColor("#1F2937"));
+        oemBarBg.setCornerRadius(12f);
+        oemOverrideBar.setBackground(oemBarBg);
+
+        TextView oemLbl = new TextView(this);
+        oemLbl.setText("IN-CAR OEM MIXER:  ");
+        oemLbl.setTextSize(TypedValue.COMPLEX_UNIT_PX, 16);
+        oemLbl.setTypeface(Typeface.DEFAULT_BOLD);
+        oemLbl.setTextColor(Color.parseColor("#94A3B8"));
+        oemOverrideBar.addView(oemLbl);
+
+        oemCarBtn = new Button(this);
+        oemCarBtn.setTextSize(TypedValue.COMPLEX_UNIT_PX, 16);
+        oemCarBtn.setTypeface(Typeface.DEFAULT_BOLD);
+        oemCarBtn.setPadding(16, 6, 16, 6);
+        oemCarBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cycleOemCarOverride();
+            }
+        });
+
+        oemBatteryBtn = new Button(this);
+        oemBatteryBtn.setTextSize(TypedValue.COMPLEX_UNIT_PX, 16);
+        oemBatteryBtn.setTypeface(Typeface.DEFAULT_BOLD);
+        oemBatteryBtn.setPadding(16, 6, 16, 6);
+        oemBatteryBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cycleOemBatteryOverride();
+            }
+        });
+
+        oemBrandBtn = new Button(this);
+        oemBrandBtn.setTextSize(TypedValue.COMPLEX_UNIT_PX, 16);
+        oemBrandBtn.setTypeface(Typeface.DEFAULT_BOLD);
+        oemBrandBtn.setPadding(16, 6, 16, 6);
+        oemBrandBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                cycleOemBrandOverride();
+            }
+        });
+
+        LinearLayout.LayoutParams obLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        obLp.setMargins(0, 0, 12, 0);
+        oemOverrideBar.addView(oemCarBtn, obLp);
+        oemOverrideBar.addView(oemBatteryBtn, obLp);
+        oemOverrideBar.addView(oemBrandBtn, obLp);
+
+        LinearLayout.LayoutParams oemBarLp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        oemBarLp.setMargins(0, 0, 0, 10);
+        root.addView(oemOverrideBar, oemBarLp);
 
         // Action Buttons Row
         LinearLayout btnRow = new LinearLayout(this);
@@ -325,12 +414,12 @@ public class MainActivity extends Activity {
         });
 
         revertStockBtn = createActionButton(
-                "3. REVERT TO STOCK NOW\n(Instant OEM Restore)",
+                "3. RESTORE TO STOCK\n(Disable Auto-Boot & Reboot)",
                 "#EF4444", "#FFFFFF");
         revertStockBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                executeThemeActionAsync("REVERT_STOCK", "DIRECT_REVERT");
+                onRevertStockClicked();
             }
         });
 
@@ -389,11 +478,15 @@ public class MainActivity extends Activity {
         if (!bundledThemes.isEmpty()) {
             selectThemeEntry(bundledThemes.get(0), false);
         }
+        updateOemOverrideButtons();
 
         appendLog("==========================================================================");
-        appendLog(" GEN5W OEM LAUNCHER THEME MANAGER v1.1.0 // " + bundledThemes.size() + " THEME(S) IN PACK");
+        appendLog(" GEN5W OEM LAUNCHER THEME MANAGER v1.1.2 // " + bundledThemes.size() + " THEME(S) AVAILABLE");
         appendLog("==========================================================================");
         appendLog(" - Selected Theme: " + bundledThemeName + " (tap any theme button above to switch)");
+        if (!oemScanSummary.isEmpty()) {
+            appendLog(" - Built-In OEM Scan: " + oemScanSummary);
+        }
         appendLog(" - Theme Storage: Built on-device in RAM (" + WORK_DIR + ") - NO USB stick needed!");
         appendLog(" - Auto-Boot on Reboot: Optional toggle with 5-Layer Failsafe (Pinhole 2-Strike + USB REVERT_THEME.txt)");
         appendLog("==========================================================================\n");
@@ -465,8 +558,186 @@ public class MainActivity extends Activity {
             bundledThemes.add(new ThemeEntry("lcars", fallbackName));
         }
 
+        discoverBuiltInOemThemesAndVariants();
+
         selectedThemeSlug = bundledThemes.get(0).slug;
         bundledThemeName = bundledThemes.get(0).name;
+    }
+
+    private File getBestSourceApk(String stockBackupPath, String targetSystemPath) {
+        File backup = new File(stockBackupPath);
+        if (backup.exists() && backup.length() > 10000L) {
+            return backup;
+        }
+        return new File(targetSystemPath);
+    }
+
+    private void discoverBuiltInOemThemesAndVariants() {
+        detectedEvCarModels.clear();
+        hasOemRedBattery = false;
+        hasOemYellowBattery = false;
+        hasOemKiaUi = false;
+        hasOemCeSedanHome = false;
+
+        List<String> foundSummary = new ArrayList<String>();
+        ZipFile lZip = null;
+        try {
+            File lFile = getBestSourceApk(STOCK_APK, TARGET_APK);
+            if (lFile.exists()) {
+                lZip = new ZipFile(lFile);
+                if (lZip.getEntry("res/drawable-hdpi/home_etc_battery_r_05.webp") != null) {
+                    hasOemRedBattery = true;
+                }
+                if (lZip.getEntry("res/drawable-hdpi/home_etc_battery_y_05.webp") != null) {
+                    hasOemYellowBattery = true;
+                }
+                if (lZip.getEntry("res/drawable-hdpi/home_etc_battery_ce_sedan_05.webp") != null) {
+                    hasOemCeSedanHome = true;
+                }
+            }
+        } catch (Exception ignored) {
+        } finally {
+            if (lZip != null) { try { lZip.close(); } catch (Exception ignored) {} }
+        }
+
+        ZipFile sZip = null;
+        try {
+            File sFile = getBestSourceApk(STOCK_SYSUI, TARGET_SYSUI);
+            if (sFile.exists()) {
+                sZip = new ZipFile(sFile);
+                if (sZip.getEntry("res/drawable-kia-hdpi/co_btn_home_1920_nor.png") != null
+                        || sZip.getEntry("res/drawable-eco-kia-hdpi/co_btn_home_1280_focus.png") != null) {
+                    hasOemKiaUi = true;
+                }
+            }
+        } catch (Exception ignored) {
+        } finally {
+            if (sZip != null) { try { sZip.close(); } catch (Exception ignored) {} }
+        }
+
+        ZipFile eZip = null;
+        try {
+            File eFile = getBestSourceApk(STOCK_EV, TARGET_EV);
+            if (eFile.exists()) {
+                eZip = new ZipFile(eFile);
+                String[] candidates = new String[] { "suv", "ce_sedan", "sedan", "hatch", "1ttruck" };
+                for (int i = 0; i < candidates.length; i++) {
+                    String m = candidates[i];
+                    if (eZip.getEntry("res/drawable-nodpi/ev_ic_battery_bg_" + m + "_nor.webp") != null) {
+                        detectedEvCarModels.add(m);
+                    }
+                }
+                if (eZip.getEntry("res/drawable-nodpi/ev_etc_battery_r_05.webp") != null) {
+                    hasOemRedBattery = true;
+                }
+                if (eZip.getEntry("res/drawable-nodpi/ev_etc_battery_y_05.webp") != null) {
+                    hasOemYellowBattery = true;
+                }
+            }
+        } catch (Exception ignored) {
+        } finally {
+            if (eZip != null) { try { eZip.close(); } catch (Exception ignored) {} }
+        }
+
+        if (hasOemKiaUi) {
+            bundledThemes.add(new ThemeEntry("oem:kia_eco", "[OEM] Kia Eco Red UI"));
+            foundSummary.add("Kia UI");
+        }
+        if (hasOemRedBattery) {
+            bundledThemes.add(new ThemeEntry("oem:n_sport", "[OEM] N-Sport Red"));
+            foundSummary.add("Red Battery");
+        }
+        if (hasOemYellowBattery) {
+            bundledThemes.add(new ThemeEntry("oem:amber_gold", "[OEM] Amber Gold"));
+            foundSummary.add("Amber Battery");
+        }
+        if (detectedEvCarModels.contains("ce_sedan") || hasOemCeSedanHome) {
+            bundledThemes.add(new ThemeEntry("oem:ioniq6_sedan", "[OEM] CE Streamliner"));
+        }
+        if (detectedEvCarModels.contains("1ttruck")) {
+            bundledThemes.add(new ThemeEntry("oem:ev_1ttruck", "[OEM] 1-Ton EV Truck"));
+        }
+        if (!detectedEvCarModels.isEmpty()) {
+            foundSummary.add(detectedEvCarModels.size() + " EV bodies");
+        }
+        StringBuilder sum = new StringBuilder();
+        for (int i = 0; i < foundSummary.size(); i++) {
+            if (i > 0) sum.append(", ");
+            sum.append(foundSummary.get(i));
+        }
+        oemScanSummary = sum.toString();
+    }
+
+    private String formatCarModelLabel(String code) {
+        if ("suv".equals(code)) return "SUV";
+        if ("ce_sedan".equals(code)) return "CE SEDAN";
+        if ("sedan".equals(code)) return "SEDAN";
+        if ("hatch".equals(code)) return "HATCH";
+        if ("1ttruck".equals(code)) return "1T TRUCK";
+        return "THEME DEFAULT";
+    }
+
+    private void cycleOemCarOverride() {
+        List<String> opts = new ArrayList<String>();
+        opts.add("default");
+        for (int i = 0; i < detectedEvCarModels.size(); i++) {
+            opts.add(detectedEvCarModels.get(i));
+        }
+        if (opts.size() == 1 && hasOemCeSedanHome) {
+            opts.add("ce_sedan");
+        }
+        int idx = opts.indexOf(oemCarOverride);
+        oemCarOverride = opts.get((idx + 1) % opts.size());
+        updateOemOverrideButtons();
+        appendLog("In-Car OEM Car Body override -> " + formatCarModelLabel(oemCarOverride));
+    }
+
+    private void cycleOemBatteryOverride() {
+        List<String> opts = new ArrayList<String>();
+        opts.add("default");
+        opts.add("cyan");
+        if (hasOemRedBattery) opts.add("red");
+        if (hasOemYellowBattery) opts.add("yellow");
+        int idx = opts.indexOf(oemBatteryOverride);
+        oemBatteryOverride = opts.get((idx + 1) % opts.size());
+        updateOemOverrideButtons();
+        appendLog("In-Car OEM Battery Color override -> " + oemBatteryOverride.toUpperCase());
+    }
+
+    private void cycleOemBrandOverride() {
+        List<String> opts = new ArrayList<String>();
+        opts.add("default");
+        if (hasOemKiaUi) opts.add("kia");
+        opts.add("hyundai");
+        int idx = opts.indexOf(oemBrandOverride);
+        oemBrandOverride = opts.get((idx + 1) % opts.size());
+        updateOemOverrideButtons();
+        appendLog("In-Car OEM Status Bar Brand override -> " + oemBrandOverride.toUpperCase());
+    }
+
+    private void styleMixerButton(Button btn, String text, boolean active) {
+        if (btn == null) return;
+        btn.setText(text);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(10f);
+        if (active) {
+            bg.setColor(Color.parseColor("#F59E0B"));
+            bg.setStroke(2, Color.parseColor("#FEF3C7"));
+            btn.setTextColor(Color.parseColor("#050811"));
+        } else {
+            bg.setColor(Color.parseColor("#1E293B"));
+            bg.setStroke(2, Color.parseColor("#334155"));
+            btn.setTextColor(Color.parseColor("#CBD5E1"));
+        }
+        btn.setBackground(bg);
+    }
+
+    private void updateOemOverrideButtons() {
+        styleMixerButton(oemCarBtn, "EV BODY: " + formatCarModelLabel(oemCarOverride), !"default".equals(oemCarOverride));
+        String batLbl = "default".equals(oemBatteryOverride) ? "THEME DEFAULT" : oemBatteryOverride.toUpperCase();
+        styleMixerButton(oemBatteryBtn, "BATTERY: " + batLbl, !"default".equals(oemBatteryOverride));
+        String brLbl = "default".equals(oemBrandOverride) ? "THEME DEFAULT" : (oemBrandOverride.toUpperCase() + " UI");
+        styleMixerButton(oemBrandBtn, "TOP BAR: " + brLbl, !"default".equals(oemBrandOverride));
     }
 
     private void selectThemeEntry(ThemeEntry chosen, boolean logSelection) {
@@ -476,16 +747,17 @@ public class MainActivity extends Activity {
             ThemeEntry te = bundledThemes.get(i);
             if (te.pillBtn == null) continue;
             boolean isSel = te.slug.equals(selectedThemeSlug);
+            boolean isOem = te.slug.startsWith("oem:");
             GradientDrawable bg = new GradientDrawable();
             if (isSel) {
-                bg.setColor(Color.parseColor("#38BDF8"));
-                bg.setStroke(2, Color.parseColor("#E0F2FE"));
+                bg.setColor(Color.parseColor(isOem ? "#F59E0B" : "#38BDF8"));
+                bg.setStroke(2, Color.parseColor(isOem ? "#FEF3C7" : "#E0F2FE"));
                 te.pillBtn.setTextColor(Color.parseColor("#050811"));
                 te.pillBtn.setText("✓ " + te.name);
             } else {
                 bg.setColor(Color.parseColor("#1E293B"));
-                bg.setStroke(2, Color.parseColor("#334155"));
-                te.pillBtn.setTextColor(Color.parseColor("#E2E8F0"));
+                bg.setStroke(2, Color.parseColor(isOem ? "#B45309" : "#334155"));
+                te.pillBtn.setTextColor(Color.parseColor(isOem ? "#FDE68A" : "#E2E8F0"));
                 te.pillBtn.setText(te.name);
             }
             bg.setCornerRadius(12f);
@@ -498,7 +770,8 @@ public class MainActivity extends Activity {
             confirmKeepBtn.setText("2. APPLY & KEEP '" + bundledThemeName.toUpperCase() + "'\n(Confirm or Skip 45s Timer)");
         }
         if (logSelection) {
-            appendLog("Selected theme to apply: '" + bundledThemeName + "' (pack: themes/" + selectedThemeSlug + ")");
+            String srcLabel = selectedThemeSlug.startsWith("oem:") ? ("on-device OEM remap: " + selectedThemeSlug) : ("pack: themes/" + selectedThemeSlug);
+            appendLog("Selected theme to apply: '" + bundledThemeName + "' (" + srcLabel + ")");
         }
         updateLiveStatusBanner();
     }
@@ -623,6 +896,85 @@ public class MainActivity extends Activity {
         }
         appendLog("Arming Auto-Boot on Reboot for confirmed theme (with Pinhole 2-Strike & USB REVERT_THEME.txt failsafes)...");
         executeThemeActionAsync("ENABLE_AUTOSTART", "DIRECT_ENABLE_AUTOSTART");
+    }
+
+    private void onRevertStockClicked() {
+        appendLog("\n>>> Restore to Stock requested: disarming Auto-Boot on disk first...");
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    writeHelperCommandFile("DISABLE_AUTOSTART");
+                    CmdResult res = execNemesis("root", "-c", "sh " + HELPER_SH + " DIRECT_DISABLE_AUTOSTART");
+                    appendLog("Auto-Boot disarm rc=" + res.rc + (res.out.isEmpty() ? "" : (" (" + res.out + ")")));
+                    mainHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            updateLiveStatusBanner();
+                        }
+                    });
+                } catch (Exception e) {
+                    appendLog("ERROR disarming Auto-Boot: " + e.toString());
+                }
+            }
+        }).start();
+        showRestoreStockDialog();
+    }
+
+    private void showRestoreStockDialog() {
+        if (isFinishing()) return;
+        new AlertDialog.Builder(this)
+                .setTitle("Restore to Factory Stock")
+                .setMessage("Auto-Boot has been disabled.\n\n"
+                        + "A display reboot is about to happen to cleanly restore all head-unit screens back to factory OEM stock.\n\n"
+                        + "Tap [REBOOT DISPLAY NOW] to restart the head unit into stock mode.")
+                .setCancelable(true)
+                .setPositiveButton("REBOOT DISPLAY NOW", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        triggerRevertAndRebootAsync();
+                    }
+                })
+                .setNegativeButton("CLOSE", null)
+                .show();
+    }
+
+    private void triggerRevertAndRebootAsync() {
+        setBannerStyle("DISABLING AUTO-BOOT & REBOOTING DISPLAY TO FACTORY STOCK...", "#EF4444", "#FFFFFF");
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    appendLog("\n>>> Disabling Auto-Boot, unmounting overlays, and rebooting display...");
+                    writeHelperCommandFile("REVERT_REBOOT");
+                    CmdResult res = execNemesis("root", "-c", "sh " + HELPER_SH + " DIRECT_REVERT_REBOOT");
+                    appendLog("DIRECT_REVERT_REBOOT rc=" + res.rc + (res.out.isEmpty() ? "" : (" (" + res.out + ")")));
+                } catch (Exception e) {
+                    appendLog("ERROR requesting reboot: " + e.toString());
+                }
+            }
+        }).start();
+
+        mainHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (!isFinishing()) {
+                    updateLiveStatusBanner();
+                    showPinholeResetDialog();
+                }
+            }
+        }, 3000);
+    }
+
+    private void showPinholeResetDialog() {
+        if (isFinishing()) return;
+        new AlertDialog.Builder(this)
+                .setTitle("Pin-Hole Reset Required")
+                .setMessage("Auto-Boot is disabled, and the head unit could not reboot automatically.\n\n"
+                        + "Please press the recessed PIN-HOLE RESET button on the dashboard bezel (using a paperclip or pin) to finish reverting to factory stock.")
+                .setCancelable(true)
+                .setPositiveButton("OK", null)
+                .show();
     }
 
     private void updateLiveStatusBanner() {
@@ -750,13 +1102,25 @@ public class MainActivity extends Activity {
         confirmKeepBtn.setEnabled(false);
         final String targetSlug = selectedThemeSlug;
         final String targetName = bundledThemeName;
+        final String effCar = resolveEffCar(targetSlug);
+        final String effBat = resolveEffBat(targetSlug);
+        final String effBrand = resolveEffBrand(targetSlug);
 
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     long t0 = System.currentTimeMillis();
-                    appendLog("\n>>> [STEP 1/3] Building Custom Launcher APK ('" + targetName + "') in RAM (" + THEMED_APK + ")...");
+                    StringBuilder mixerLog = new StringBuilder();
+                    if (!"default".equals(oemCarOverride)) mixerLog.append(" [Body=").append(formatCarModelLabel(effCar)).append("]");
+                    if (!"default".equals(oemBatteryOverride)) mixerLog.append(" [Bat=").append(effBat.toUpperCase()).append("]");
+                    if (!"default".equals(oemBrandOverride)) mixerLog.append(" [Bar=").append(effBrand.toUpperCase()).append("]");
+                    final String displayThemeName = targetName + mixerLog.toString();
+
+                    appendLog("\n>>> [STEP 1/3] Cleaning previous theme mounts & building '" + displayThemeName + "' in RAM...");
+
+                    CmdResult prepRes = execNemesis("root", "-c", "sh " + HELPER_SH + " DIRECT_PREPARE_STAGE");
+                    appendLog("DIRECT_PREPARE_STAGE rc=" + prepRes.rc + (prepRes.out.isEmpty() ? "" : (" (" + prepRes.out + ")")));
 
                     File workDir = new File(WORK_DIR);
                     if (!workDir.exists()) {
@@ -781,7 +1145,7 @@ public class MainActivity extends Activity {
                     File sourceApk = cleanStockBackup.exists() ? cleanStockBackup : stockApk;
 
                     File outApkTmp = new File(WORK_DIR, "Launcher_WP3_themed.apk.tmp");
-                    int replacedCount = buildThemedLauncherApk(sourceApk, outApkTmp, "themes/" + targetSlug);
+                    int replacedCount = buildThemedLauncherApk(sourceApk, outApkTmp, "themes/" + targetSlug, effCar, effBat);
 
                     File outApk = new File(THEMED_APK);
                     if (outApk.exists()) {
@@ -793,10 +1157,12 @@ public class MainActivity extends Activity {
                     }
                     outApk.setReadable(true, false);
 
+                    stagePatchedLauncherOdexForCustomFont(themeHasCustomFont("themes/" + targetSlug));
+
                     try {
                         File nameFile = new File(ACTIVE_THEME_NAME_FILE);
                         FileOutputStream nFos = new FileOutputStream(nameFile);
-                        nFos.write((targetName + "\n").getBytes("UTF-8"));
+                        nFos.write((displayThemeName + "\n").getBytes("UTF-8"));
                         nFos.flush();
                         nFos.close();
                         nameFile.setReadable(true, false);
@@ -808,9 +1174,9 @@ public class MainActivity extends Activity {
                             + outApk.getAbsolutePath() + " (" + (outApk.length() / 1024) + " KB) in " + elapsed + " ms.");
 
                     // Optional Sub-APKs: Status Bar (SystemUI), Climate & Warmer (HKMC_Climate), EV Screen (HKMC_TAppEV3)
-                    stageOptionalSubApk("Status Bar (SystemUI)", TARGET_SYSUI, STOCK_SYSUI, THEMED_SYSUI, "themes/" + targetSlug + "/systemui");
-                    stageOptionalSubApk("Climate & Warmer (HKMC_Climate)", TARGET_CLIMATE, STOCK_CLIMATE, THEMED_CLIMATE, "themes/" + targetSlug + "/climate");
-                    stageOptionalSubApk("EV Screen (HKMC_TAppEV3)", TARGET_EV, STOCK_EV, THEMED_EV, "themes/" + targetSlug + "/ev");
+                    stageOptionalSubApk("Status Bar (SystemUI)", "sysui", TARGET_SYSUI, STOCK_SYSUI, THEMED_SYSUI, "themes/" + targetSlug + "/systemui", effCar, effBat, effBrand);
+                    stageOptionalSubApk("Climate & Warmer (HKMC_Climate)", "climate", TARGET_CLIMATE, STOCK_CLIMATE, THEMED_CLIMATE, "themes/" + targetSlug + "/climate", effCar, effBat, effBrand);
+                    stageOptionalSubApk("EV Screen (HKMC_TAppEV3)", "ev", TARGET_EV, STOCK_EV, THEMED_EV, "themes/" + targetSlug + "/ev", effCar, effBat, effBrand);
 
                     appendLog(">>> [STEP 2/3] Ensuring Root Helper Service is active...");
                     CmdResult svcRes = execNemesis("service", "start", HELPER_SVC);
@@ -884,19 +1250,73 @@ public class MainActivity extends Activity {
         }).start();
     }
 
-    private int buildThemedLauncherApk(File sourceApk, File destApk, String assetThemePrefix) throws Exception {
+    private String resolveEffCar(String slug) {
+        if (!"default".equals(oemCarOverride)) return oemCarOverride;
+        if ("oem:ioniq6_sedan".equals(slug)) return "ce_sedan";
+        if ("oem:ev_1ttruck".equals(slug)) return "1ttruck";
+        return "default";
+    }
+
+    private String resolveEffBat(String slug) {
+        if (!"default".equals(oemBatteryOverride)) return oemBatteryOverride;
+        if ("oem:amber_gold".equals(slug)) return "yellow";
+        if ("oem:kia_eco".equals(slug) || "oem:n_sport".equals(slug)) return "red";
+        return "default";
+    }
+
+    private String resolveEffBrand(String slug) {
+        if (!"default".equals(oemBrandOverride)) return oemBrandOverride;
+        if ("oem:kia_eco".equals(slug)) return "kia";
+        return "default";
+    }
+
+    private String resolveOemHomeBatteryEntryName(String name, String effCar, String effBat, ZipFile origZip) {
+        int slash = name.lastIndexOf('/');
+        if (slash < 0) return null;
+        String dir = name.substring(0, slash + 1);
+        String file = name.substring(slash + 1);
+        if (!file.startsWith("home_etc_battery_") || !file.endsWith(".webp")) return null;
+        String tail = file.substring("home_etc_battery_".length(), file.length() - ".webp".length());
+        boolean isCeBase = tail.startsWith("ce_sedan_");
+        if (isCeBase) {
+            tail = tail.substring("ce_sedan_".length());
+        }
+        // Skip already color-suffixed source entries (_r_XX / _y_XX) or non-two-digit tails
+        if (tail.length() != 2 || !Character.isDigit(tail.charAt(0)) || !Character.isDigit(tail.charAt(1))) {
+            return null;
+        }
+        boolean wantCe = "ce_sedan".equals(effCar) || (isCeBase && "default".equals(effCar));
+        String colorInfix = "red".equals(effBat) ? "r_" : ("yellow".equals(effBat) ? "y_" : "");
+        String candidate = dir + "home_etc_battery_" + (wantCe ? "ce_sedan_" : "") + colorInfix + tail + ".webp";
+        if (origZip.getEntry(candidate) != null) return candidate;
+        if (wantCe && !colorInfix.isEmpty()) {
+            String fallbackColor = dir + "home_etc_battery_" + colorInfix + tail + ".webp";
+            if (origZip.getEntry(fallbackColor) != null) return fallbackColor;
+        }
+        return null;
+    }
+
+    private int buildThemedLauncherApk(File sourceApk, File destApk, String assetThemePrefix, String effCar, String effBat) throws Exception {
         AssetManager am = getAssets();
         Set<String> themeEntries = new HashSet<String>();
-        InputStream manifestIn = am.open(assetThemePrefix + "/manifest.txt");
-        BufferedReader br = new BufferedReader(new InputStreamReader(manifestIn, "UTF-8"));
-        String line;
-        while ((line = br.readLine()) != null) {
-            String trimmed = line.trim();
-            if (!trimmed.isEmpty() && !trimmed.equals("manifest.txt") && !trimmed.equals("layout-patches.txt") && !trimmed.equals("runtime-composite.txt")) {
-                themeEntries.add(trimmed);
+        InputStream manifestIn = null;
+        try {
+            manifestIn = am.open(assetThemePrefix + "/manifest.txt");
+            BufferedReader br = new BufferedReader(new InputStreamReader(manifestIn, "UTF-8"));
+            String line;
+            while ((line = br.readLine()) != null) {
+                String trimmed = line.trim();
+                if (!trimmed.isEmpty() && !trimmed.equals("manifest.txt") && !trimmed.equals("layout-patches.txt") && !trimmed.equals("runtime-composite.txt")) {
+                    themeEntries.add(trimmed);
+                }
+            }
+            br.close();
+        } catch (Exception ignored) {
+        } finally {
+            if (manifestIn != null) {
+                try { manifestIn.close(); } catch (Exception ignored) {}
             }
         }
-        br.close();
 
         Map<String, String> layoutPatches = new HashMap<String, String>();
         try {
@@ -968,7 +1388,14 @@ public class MainActivity extends Activity {
                     byte[] replacementBytes = readAssetBytes(am, assetThemePrefix + "/" + name);
                     if (compositeOemBattery && name.contains("home_etc_battery_") && name.endsWith(".webp")) {
                         try {
-                            byte[] stockBytes = readStreamBytes(origZip.getInputStream(origEntry));
+                            ZipEntry stockSrcEntry = origEntry;
+                            if (!"default".equals(effCar) || !"default".equals(effBat)) {
+                                String mappedHome = resolveOemHomeBatteryEntryName(name, effCar, effBat, origZip);
+                                if (mappedHome != null && origZip.getEntry(mappedHome) != null) {
+                                    stockSrcEntry = origZip.getEntry(mappedHome);
+                                }
+                            }
+                            byte[] stockBytes = readStreamBytes(origZip.getInputStream(stockSrcEntry));
                             byte[] merged = compositeOemCarWithOverlay(stockBytes, replacementBytes, batScale, batOffX, batOffY);
                             if (merged != null) {
                                 replacementBytes = merged;
@@ -993,8 +1420,34 @@ public class MainActivity extends Activity {
                             }
                         }
                     }
+                    if (name.endsWith(".9.png")) {
+                        replacementBytes = ensureCompiledNinePatchChunk(replacementBytes);
+                    }
                     writeAlignedStoredEntry(zos, cos, name, replacementBytes);
                     replaced++;
+                } else if ((!"default".equals(effCar) || !"default".equals(effBat)) && name.contains("home_etc_battery_") && name.endsWith(".webp")) {
+                    String mappedHome = resolveOemHomeBatteryEntryName(name, effCar, effBat, origZip);
+                    ZipEntry mappedEntry = (mappedHome != null && !mappedHome.equals(name)) ? origZip.getEntry(mappedHome) : null;
+                    if (mappedEntry != null) {
+                        byte[] remappedBytes = readStreamBytes(origZip.getInputStream(mappedEntry));
+                        writeAlignedStoredEntry(zos, cos, name, remappedBytes);
+                        replaced++;
+                    } else if (origEntry.getMethod() == ZipEntry.STORED || name.equals("resources.arsc")) {
+                        byte[] raw = readStreamBytes(origZip.getInputStream(origEntry));
+                        writeAlignedStoredEntry(zos, cos, name, raw);
+                    } else {
+                        ZipEntry outEntry = new ZipEntry(name);
+                        outEntry.setMethod(ZipEntry.DEFLATED);
+                        outEntry.setExtra(null);
+                        zos.putNextEntry(outEntry);
+                        InputStream in = origZip.getInputStream(origEntry);
+                        int r;
+                        while ((r = in.read(buf)) != -1) {
+                            zos.write(buf, 0, r);
+                        }
+                        in.close();
+                        zos.closeEntry();
+                    }
                 } else if (layoutPatches.containsKey(name)) {
                     byte[] rawXml = readStreamBytes(origZip.getInputStream(origEntry));
                     String spec = layoutPatches.get(name);
@@ -1019,7 +1472,7 @@ public class MainActivity extends Activity {
                     zos.write(rawXml);
                     zos.closeEntry();
                     replaced++;
-                } else if (transformAvMain && name.startsWith("res/layout/widget_av_main_") && name.endsWith(".xml")) {
+                } else if (transformAvMain && (name.startsWith("res/layout/widget_av_main_") || name.startsWith("res/layout/widget_av_land_")) && name.endsWith(".xml")) {
                     byte[] rawXml = readStreamBytes(origZip.getInputStream(origEntry));
                     rawXml = transformAvMainLayoutXml(
                             rawXml,
@@ -1083,7 +1536,7 @@ public class MainActivity extends Activity {
         return replaced;
     }
 
-    private void stageOptionalSubApk(String label, String targetSystemPath, String stockBackupPath, String themedOutPath, String assetSubPrefix) {
+    private void stageOptionalSubApk(String label, String subRole, String targetSystemPath, String stockBackupPath, String themedOutPath, String assetSubPrefix, String effCar, String effBat, String effBrand) {
         AssetManager am = getAssets();
         Map<String, String> entryMap = new HashMap<String, String>();
         InputStream manifestIn = null;
@@ -1132,7 +1585,11 @@ public class MainActivity extends Activity {
         }
 
         boolean hasOemScaleTransform = "true".equalsIgnoreCase(runtimeCfg.get("scaleOemEvCar"))
-                || "true".equalsIgnoreCase(runtimeCfg.get("scaleOemClimateSeat"));
+                || "true".equalsIgnoreCase(runtimeCfg.get("scaleOemClimateSeat"))
+                || "true".equalsIgnoreCase(runtimeCfg.get("tintOemStatusBar"))
+                || "true".equalsIgnoreCase(runtimeCfg.get("tintOemRoad"))
+                || ("sysui".equals(subRole) && "kia".equals(effBrand))
+                || ("ev".equals(subRole) && (!"default".equals(effCar) || (!"default".equals(effBat) && !"cyan".equals(effBat))));
         File outApk = new File(themedOutPath);
 
         if (entryMap.isEmpty() && !hasOemScaleTransform) {
@@ -1159,7 +1616,7 @@ public class MainActivity extends Activity {
             }
             File sourceApk = cleanStockBackup.exists() ? cleanStockBackup : stockApk;
             File outTmp = new File(themedOutPath + ".tmp");
-            int count = buildThemedSubApk(sourceApk, outTmp, assetSubPrefix, entryMap, runtimeCfg);
+            int count = buildThemedSubApk(sourceApk, outTmp, assetSubPrefix, subRole, entryMap, runtimeCfg, effCar, effBat, effBrand);
             if (outApk.exists()) outApk.delete();
             if (!outTmp.renameTo(outApk)) {
                 copyFile(outTmp, outApk);
@@ -1174,7 +1631,79 @@ public class MainActivity extends Activity {
         }
     }
 
-    private int buildThemedSubApk(File sourceApk, File destApk, String assetSubPrefix, Map<String, String> entryMap, Map<String, String> runtimeCfg) throws Exception {
+    private String resolveKiaSysUiEntryName(String name, ZipFile origZip) {
+        String candidate = null;
+        if (name.startsWith("res/drawable-eco-hdpi/")) {
+            candidate = "res/drawable-eco-kia-hdpi/" + name.substring("res/drawable-eco-hdpi/".length());
+        } else if (name.startsWith("res/drawable-eco-night-hdpi/")) {
+            candidate = "res/drawable-eco-kia-night-hdpi/" + name.substring("res/drawable-eco-night-hdpi/".length());
+        } else if (name.startsWith("res/drawable-hdpi/")) {
+            candidate = "res/drawable-kia-hdpi/" + name.substring("res/drawable-hdpi/".length());
+        } else if (name.startsWith("res/color-eco/")) {
+            candidate = "res/color-eco-kia/" + name.substring("res/color-eco/".length());
+        } else if (name.startsWith("res/color-eco-night/")) {
+            candidate = "res/color-eco-kia-night/" + name.substring("res/color-eco-night/".length());
+        } else if (name.startsWith("res/color/")) {
+            candidate = "res/color-kia/" + name.substring("res/color/".length());
+        }
+        if (candidate != null && origZip.getEntry(candidate) != null) {
+            return candidate;
+        }
+        return null;
+    }
+
+    private String resolveOemEvEntryName(String name, String effCar, String effBat, ZipFile origZip) {
+        String dir = null;
+        if (name.startsWith("res/drawable-nodpi/")) {
+            dir = "res/drawable-nodpi/";
+        } else if (name.startsWith("res/drawable-night-nodpi/")) {
+            dir = "res/drawable-night-nodpi/";
+        } else {
+            return null;
+        }
+        String file = name.substring(dir.length());
+        if (!"default".equals(effCar)) {
+            String target = null;
+            if (file.equals("ev_ic_battery_bg_nor.webp") || (file.startsWith("ev_ic_battery_bg_") && file.endsWith("_nor.webp"))) {
+                target = "ev_ic_battery_bg_" + effCar + "_nor.webp";
+            } else if (file.equals("ev_ic_battery_bg_war.webp") || (file.startsWith("ev_ic_battery_bg_") && file.endsWith("_war.webp"))) {
+                target = "ev_ic_battery_bg_" + effCar + "_war.webp";
+            } else if (file.equals("ev_ic_battery_cover.webp") || (file.startsWith("ev_ic_battery_cover_") && file.endsWith(".webp"))) {
+                target = "ev_ic_battery_cover_" + effCar + ".webp";
+            }
+            if (target != null) {
+                if (origZip.getEntry(dir + target) != null) return dir + target;
+                if (origZip.getEntry("res/drawable-nodpi/" + target) != null) return "res/drawable-nodpi/" + target;
+            }
+        }
+        if (!"default".equals(effBat) && !"cyan".equals(effBat)) {
+            String cShort = "red".equals(effBat) ? "r" : ("yellow".equals(effBat) ? "y" : "");
+            String cLong = "red".equals(effBat) ? "red" : ("yellow".equals(effBat) ? "yellow" : "");
+            String target = null;
+            if (file.startsWith("ev_etc_battery_") && !file.contains("_r_") && !file.contains("_y_") && file.endsWith(".webp")) {
+                String rest = file.substring("ev_etc_battery_".length());
+                if (rest.startsWith("l_") && rest.length() == 6) {
+                    target = "ev_etc_battery_l_" + cShort + "_" + rest.substring(2);
+                } else if (rest.startsWith("s_") && rest.length() == 6) {
+                    target = "ev_etc_battery_s_" + cShort + "_" + rest.substring(2);
+                } else if (rest.length() == 7 && Character.isDigit(rest.charAt(0)) && Character.isDigit(rest.charAt(1))) {
+                    target = "ev_etc_battery_" + cShort + "_" + rest;
+                }
+            } else if (file.startsWith("ev_ic_battery_p_bar_") && !file.contains("_red") && !file.contains("_yellow") && file.endsWith(".webp")) {
+                String rest = file.substring("ev_ic_battery_p_bar_".length());
+                if (rest.length() == 7 && Character.isDigit(rest.charAt(0)) && Character.isDigit(rest.charAt(1))) {
+                    target = "ev_ic_battery_p_bar_" + cLong + "_" + rest;
+                }
+            }
+            if (target != null) {
+                if (origZip.getEntry(dir + target) != null) return dir + target;
+                if (origZip.getEntry("res/drawable-nodpi/" + target) != null) return "res/drawable-nodpi/" + target;
+            }
+        }
+        return null;
+    }
+
+    private int buildThemedSubApk(File sourceApk, File destApk, String assetSubPrefix, String subRole, Map<String, String> entryMap, Map<String, String> runtimeCfg, String effCar, String effBat, String effBrand) throws Exception {
         AssetManager am = getAssets();
         Map<String, byte[]> assetCache = new HashMap<String, byte[]>();
         boolean scaleOemEvCar = "true".equalsIgnoreCase(runtimeCfg.get("scaleOemEvCar"));
@@ -1187,8 +1716,18 @@ public class MainActivity extends Activity {
         float seatOffX = parseFloatSafe(runtimeCfg.get("seatOffX"), 0.0f);
         float seatOffY = parseFloatSafe(runtimeCfg.get("seatOffY"), 0.0f);
 
+        // Top Status Bar transparency patching is unsupported on Gen5W; force opaque/standard OEM handling
+        boolean tintOemStatusBar = false;
+        int sbBgOpacity = 100;
+        int sbBarOpacity = 100;
+
+        boolean tintOemRoad = "true".equalsIgnoreCase(runtimeCfg.get("tintOemRoad"));
+        String roadColorHex = runtimeCfg.get("roadColor");
+        int roadOpacity = Math.max(0, Math.min(100, Math.round(parseFloatSafe(runtimeCfg.get("roadOpacity"), 100.0f))));
+
         int replaced = 0;
         ZipFile origZip = new ZipFile(sourceApk);
+        boolean patchSysUiStatusBarBg = false;
         FileOutputStream fos = new FileOutputStream(destApk);
         BufferedOutputStream bos = new BufferedOutputStream(fos, 65536);
         CountingOutputStream cos = new CountingOutputStream(bos);
@@ -1208,7 +1747,69 @@ public class MainActivity extends Activity {
                         replacementBytes = readAssetBytes(am, assetSubPrefix + "/" + relAsset);
                         assetCache.put(relAsset, replacementBytes);
                     }
+                    if (name.endsWith(".9.png")) {
+                        replacementBytes = ensureCompiledNinePatchChunk(replacementBytes);
+                    }
                     writeAlignedStoredEntry(zos, cos, name, replacementBytes);
+                    replaced++;
+                } else if (patchSysUiStatusBarBg && (name.equals("res/layout-long-hdpi/super_status_bar_avn.xml") || name.equals("res/layout-hdpi/super_status_bar_avn.xml"))) {
+                    byte[] rawXml = readStreamBytes(origZip.getInputStream(origEntry));
+                    byte[] patchedXml = patchSuperStatusBarTransparentBg(rawXml);
+                    ZipEntry outEntry = new ZipEntry(name);
+                    outEntry.setMethod(ZipEntry.DEFLATED);
+                    outEntry.setExtra(null);
+                    zos.putNextEntry(outEntry);
+                    zos.write(patchedXml);
+                    zos.closeEntry();
+                    replaced++;
+                } else if ("sysui".equals(subRole) && "kia".equals(effBrand) && resolveKiaSysUiEntryName(name, origZip) != null) {
+                    String mappedKia = resolveKiaSysUiEntryName(name, origZip);
+                    ZipEntry kiaEntry = origZip.getEntry(mappedKia);
+                    byte[] kiaBytes = readStreamBytes(origZip.getInputStream(kiaEntry));
+                    if (tintOemStatusBar && (name.contains("co_bg_status") || name.endsWith("co_bg_sta_line.png")) && name.endsWith(".png")) {
+                        int effAlpha = (sbBgOpacity * sbBarOpacity) / 100;
+                        byte[] faded = fadeOemBitmapAlpha(kiaBytes, effAlpha);
+                        if (faded != null) kiaBytes = faded;
+                    }
+                    if (name.endsWith(".xml")) {
+                        ZipEntry outEntry = new ZipEntry(name);
+                        outEntry.setMethod(ZipEntry.DEFLATED);
+                        outEntry.setExtra(null);
+                        zos.putNextEntry(outEntry);
+                        zos.write(kiaBytes);
+                        zos.closeEntry();
+                    } else {
+                        if (name.endsWith(".9.png")) {
+                            kiaBytes = ensureCompiledNinePatchChunk(kiaBytes);
+                        }
+                        writeAlignedStoredEntry(zos, cos, name, kiaBytes);
+                    }
+                    replaced++;
+                } else if ("sysui".equals(subRole) && tintOemStatusBar && (name.contains("co_bg_status") || name.endsWith("co_bg_sta_line.png")) && name.endsWith(".png")) {
+                    byte[] stockBytes = readStreamBytes(origZip.getInputStream(origEntry));
+                    int effAlpha = (sbBgOpacity * sbBarOpacity) / 100;
+                    byte[] faded = fadeOemBitmapAlpha(stockBytes, effAlpha);
+                    byte[] outBytes = faded != null ? faded : stockBytes;
+                    if (name.endsWith(".9.png")) {
+                        outBytes = ensureCompiledNinePatchChunk(outBytes);
+                    }
+                    writeAlignedStoredEntry(zos, cos, name, outBytes);
+                    replaced++;
+                } else if ("ev".equals(subRole) && (!"default".equals(effCar) || (!"default".equals(effBat) && !"cyan".equals(effBat)))
+                        && resolveOemEvEntryName(name, effCar, effBat, origZip) != null) {
+                    String mappedEv = resolveOemEvEntryName(name, effCar, effBat, origZip);
+                    ZipEntry srcEvEntry = (mappedEv != null && !mappedEv.equals(name)) ? origZip.getEntry(mappedEv) : origEntry;
+                    byte[] srcBytes = readStreamBytes(origZip.getInputStream(srcEvEntry));
+                    if (scaleOemEvCar && (name.contains("ev_ic_battery_bg") || name.contains("ev_ic_battery_cover")) && name.endsWith(".webp")) {
+                        byte[] transformed = scaleOffsetOemImage(srcBytes, 450, 255, evCarScale, evCarOffX, evCarOffY, false);
+                        if (transformed != null) srcBytes = transformed;
+                    }
+                    writeAlignedStoredEntry(zos, cos, name, srcBytes);
+                    replaced++;
+                } else if ("ev".equals(subRole) && tintOemRoad && (name.contains("ev_etc_main_case1_") || name.contains("ev_etc_main_c_case1_") || name.contains("ev_etc_main_case5_loading")) && name.endsWith(".webp")) {
+                    byte[] stockBytes = readStreamBytes(origZip.getInputStream(origEntry));
+                    byte[] tinted = tintAndFadeOemBitmap(stockBytes, roadColorHex, roadOpacity);
+                    writeAlignedStoredEntry(zos, cos, name, tinted != null ? tinted : stockBytes);
                     replaced++;
                 } else if (scaleOemEvCar && (name.contains("ev_ic_battery_bg") || name.contains("ev_ic_battery_cover")) && name.endsWith(".webp")) {
                     byte[] stockBytes = readStreamBytes(origZip.getInputStream(origEntry));
@@ -1217,7 +1818,9 @@ public class MainActivity extends Activity {
                     replaced++;
                 } else if (scaleOemClimateSeat && name.endsWith("clm_bg_seat.png")) {
                     byte[] stockBytes = readStreamBytes(origZip.getInputStream(origEntry));
-                    byte[] transformed = scaleOffsetOemImage(stockBytes, 309, 351, seatScale, seatOffX, seatOffY, true);
+                    float clampedSeatOffX = Math.max(-25.0f, Math.min(25.0f, seatOffX));
+                    float clampedSeatOffY = Math.max(-25.0f, Math.min(25.0f, seatOffY));
+                    byte[] transformed = scaleOffsetOemImage(stockBytes, 309, 351, seatScale, clampedSeatOffX, clampedSeatOffY, true);
                     writeAlignedStoredEntry(zos, cos, name, transformed != null ? transformed : stockBytes);
                     replaced++;
                 } else if (origEntry.getMethod() == ZipEntry.STORED || name.equals("resources.arsc")) {
@@ -1296,6 +1899,70 @@ public class MainActivity extends Activity {
         }
     }
 
+    private byte[] fadeOemBitmapAlpha(byte[] stockBytes, int opacityPct) {
+        Bitmap stockBmp = BitmapFactory.decodeByteArray(stockBytes, 0, stockBytes.length);
+        if (stockBmp == null) return null;
+        try {
+            int w = Math.max(1, stockBmp.getWidth());
+            int h = Math.max(1, stockBmp.getHeight());
+            Bitmap outBmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            Canvas outCanvas = new Canvas(outBmp);
+            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+            int alphaByte = Math.max(0, Math.min(255, Math.round(opacityPct * 2.55f)));
+            p.setAlpha(alphaByte);
+            outCanvas.drawBitmap(stockBmp, 0f, 0f, p);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(16384);
+            outBmp.compress(Bitmap.CompressFormat.PNG, 100, baos);
+            outBmp.recycle();
+            return baos.toByteArray();
+        } finally {
+            stockBmp.recycle();
+        }
+    }
+
+    private byte[] tintAndFadeOemBitmap(byte[] stockBytes, String colorHex, int opacityPct) {
+        Bitmap stockBmp = BitmapFactory.decodeByteArray(stockBytes, 0, stockBytes.length);
+        if (stockBmp == null) return null;
+        try {
+            int w = Math.max(1, stockBmp.getWidth());
+            int h = Math.max(1, stockBmp.getHeight());
+            Bitmap outBmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+            Canvas outCanvas = new Canvas(outBmp);
+            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+            float aScale = Math.max(0.0f, Math.min(1.0f, opacityPct / 100.0f));
+            boolean customTint = (colorHex != null && !colorHex.trim().isEmpty() && !"#00E5FF".equalsIgnoreCase(colorHex.trim()));
+            if (customTint) {
+                try {
+                    int c = Color.parseColor(colorHex.trim());
+                    float tr = Color.red(c) / 255.0f;
+                    float tg = Color.green(c) / 255.0f;
+                    float tb = Color.blue(c) / 255.0f;
+                    ColorMatrix cm = new ColorMatrix(new float[] {
+                        0.40f * tr, 0.70f * tr, 0.35f * tr, 0f, 0f,
+                        0.40f * tg, 0.70f * tg, 0.35f * tg, 0f, 0f,
+                        0.40f * tb, 0.70f * tb, 0.35f * tb, 0f, 0f,
+                        0f, 0f, 0f, aScale, 0f
+                    });
+                    p.setColorFilter(new ColorMatrixColorFilter(cm));
+                } catch (Exception ignored) {
+                    p.setAlpha(Math.round(aScale * 255.0f));
+                }
+            } else {
+                p.setAlpha(Math.round(aScale * 255.0f));
+            }
+            outCanvas.drawBitmap(stockBmp, 0f, 0f, p);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(32768);
+            if (!outBmp.compress(Bitmap.CompressFormat.WEBP, 100, baos)) {
+                baos.reset();
+                outBmp.compress(Bitmap.CompressFormat.PNG, 100, baos);
+            }
+            outBmp.recycle();
+            return baos.toByteArray();
+        } finally {
+            stockBmp.recycle();
+        }
+    }
+
     private void writeAlignedStoredEntry(ZipOutputStream zos, CountingOutputStream cos, String name, byte[] data) throws IOException {
         ZipEntry outEntry = new ZipEntry(name);
         outEntry.setMethod(ZipEntry.STORED);
@@ -1351,59 +2018,312 @@ public class MainActivity extends Activity {
         b[off + 3] = (byte) ((val >> 24) & 0xFF);
     }
 
+    private static void writeInt32BE(byte[] b, int off, int val) {
+        b[off] = (byte) ((val >> 24) & 0xFF);
+        b[off + 1] = (byte) ((val >> 16) & 0xFF);
+        b[off + 2] = (byte) ((val >> 8) & 0xFF);
+        b[off + 3] = (byte) (val & 0xFF);
+    }
+
+    private static int readInt32BE(byte[] b, int off) {
+        return ((b[off] & 0xFF) << 24)
+                | ((b[off + 1] & 0xFF) << 16)
+                | ((b[off + 2] & 0xFF) << 8)
+                | (b[off + 3] & 0xFF);
+    }
+
+    private boolean themeHasCustomFont(String assetThemePrefix) {
+        AssetManager am = getAssets();
+        try {
+            InputStream in = am.open(assetThemePrefix + "/manifest.txt");
+            BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+            String line;
+            while ((line = br.readLine()) != null) {
+                if ("assets/fonts/CubeN.ttf".equals(line.trim())) {
+                    br.close();
+                    return true;
+                }
+            }
+            br.close();
+        } catch (Exception ignored) {
+        }
+        try {
+            InputStream in = am.open(assetThemePrefix + "/runtime-composite.txt");
+            BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+            String line;
+            while ((line = br.readLine()) != null) {
+                if ("hasCustomFont=true".equalsIgnoreCase(line.trim())) {
+                    br.close();
+                    return true;
+                }
+            }
+            br.close();
+        } catch (Exception ignored) {
+        }
+        return false;
+    }
+
+    private void stagePatchedLauncherOdexForCustomFont(boolean enableCustomFont) {
+        File outOdex = new File(THEMED_ODEX);
+        if (!enableCustomFont) {
+            if (outOdex.exists()) outOdex.delete();
+            return;
+        }
+        File stockBackup = new File(STOCK_ODEX);
+        File targetOdex = new File(TARGET_ODEX);
+        File srcOdex = (stockBackup.exists() && stockBackup.length() > 0) ? stockBackup : targetOdex;
+        if (!srcOdex.exists() || srcOdex.length() < 80) {
+            appendLog(" - NOTE: Launcher_WP3.odex not found; skipping custom font odex patch.");
+            if (outOdex.exists()) outOdex.delete();
+            return;
+        }
+        try {
+            FileInputStream odexFis = new FileInputStream(srcOdex);
+            byte[] odex = readStreamBytes(odexFis);
+            odexFis.close();
+            if (odex.length < 80 || odex[0] != 'd' || odex[1] != 'e' || odex[2] != 'y' || odex[3] != '\n') {
+                appendLog(" - WARNING: Unexpected ODEX header on Launcher_WP3.odex; skipping font patch.");
+                return;
+            }
+            int dexOff = readInt32LE(odex, 8);
+            int dexLen = readInt32LE(odex, 12);
+            if (dexOff < 40 || dexLen < 128 || dexOff + dexLen > odex.length) {
+                appendLog(" - WARNING: Invalid ODEX bounds (dexOff=" + dexOff + ", dexLen=" + dexLen + "); skipping font patch.");
+                return;
+            }
+            if (odex[dexOff] != 'd' || odex[dexOff + 1] != 'e' || odex[dexOff + 2] != 'x' || odex[dexOff + 3] != '\n') {
+                appendLog(" - WARNING: Embedded DEX header mismatch; skipping font patch.");
+                return;
+            }
+
+            // Locate CustomTextView.init():
+            //   71 00 E2 05 00 00   invoke-static {}, Lcom/android/launcher3/utils/n;->dZ()Z
+            //   0A 01               move-result v1
+            //   38 01 0C 00         if-eqz v1, +12
+            //   ... followed shortly by const-string v1, ...
+            int patchIdx = -1;
+            int searchEnd = dexOff + dexLen - 16;
+            for (int i = dexOff + 112; i < searchEnd; i += 2) {
+                if ((odex[i] & 0xFF) == 0x71 && (odex[i + 1] & 0xFF) == 0x00
+                        && (odex[i + 2] & 0xFF) == 0xE2 && (odex[i + 3] & 0xFF) == 0x05
+                        && odex[i + 4] == 0x00 && odex[i + 5] == 0x00
+                        && (odex[i + 6] & 0xFF) == 0x0A && (odex[i + 7] & 0xFF) == 0x01
+                        && (odex[i + 8] & 0xFF) == 0x38 && (odex[i + 9] & 0xFF) == 0x01) {
+                    patchIdx = i + 6;
+                    break;
+                }
+            }
+            if (patchIdx < 0) {
+                for (int i = dexOff + 112; i < searchEnd; i += 2) {
+                    if ((odex[i] & 0xFF) == 0x71 && (odex[i + 1] & 0xFF) == 0x00
+                            && odex[i + 4] == 0x00 && odex[i + 5] == 0x00
+                            && (odex[i + 6] & 0xFF) == 0x0A && (odex[i + 7] & 0xFF) == 0x01
+                            && (odex[i + 8] & 0xFF) == 0x38 && (odex[i + 9] & 0xFF) == 0x01
+                            && (odex[i + 10] & 0xFF) == 0x0C && (odex[i + 11] & 0xFF) == 0x00
+                            && (odex[i + 12] & 0xFF) == 0x71 && (odex[i + 13] & 0xFF) == 0x00) {
+                        patchIdx = i + 6;
+                        break;
+                    }
+                }
+            }
+            if (patchIdx < 0) {
+                appendLog(" - WARNING: Could not locate CustomTextView.init() vendor check in Launcher_WP3.odex.");
+                return;
+            }
+
+            // Replace `move-result v1` (0A 01) with `const/4 v1, 1` (12 11)
+            odex[patchIdx] = 0x12;
+            odex[patchIdx + 1] = 0x11;
+
+            // Update DEX Adler32 checksum at dexOff + 8 (over bytes dexOff+12 .. dexOff+dexLen)
+            Adler32 adler = new Adler32();
+            adler.update(odex, dexOff + 12, dexLen - 12);
+            writeInt32LE(odex, dexOff + 8, (int) adler.getValue());
+
+            File tmpOdex = new File(THEMED_ODEX + ".tmp");
+            FileOutputStream fos = new FileOutputStream(tmpOdex);
+            fos.write(odex);
+            fos.flush();
+            fos.close();
+            if (outOdex.exists()) outOdex.delete();
+            if (!tmpOdex.renameTo(outOdex)) {
+                copyFile(tmpOdex, outOdex);
+                tmpOdex.delete();
+            }
+            outOdex.setReadable(true, false);
+            outOdex.setWritable(true, false);
+            appendLog(" - Custom Font Unlock: Patched Launcher_WP3.odex at +" + patchIdx + " (" + (outOdex.length() / 1024) + " KB)");
+        } catch (Exception e) {
+            appendLog(" - WARNING: Failed to patch Launcher_WP3.odex for custom font: " + e.toString());
+            if (outOdex.exists()) outOdex.delete();
+        }
+    }
+
+    private static byte[] ensureCompiledNinePatchChunk(byte[] pngBytes) {
+        if (pngBytes == null || pngBytes.length < 33) return pngBytes;
+        if ((pngBytes[0] & 0xFF) != 0x89 || pngBytes[1] != 'P' || pngBytes[2] != 'N' || pngBytes[3] != 'G') {
+            return pngBytes;
+        }
+        int pos = 8;
+        int ihdrEnd = -1;
+        int width = 0;
+        int height = 0;
+        while (pos + 12 <= pngBytes.length) {
+            int len = readInt32BE(pngBytes, pos);
+            if (len < 0 || pos + 12 + len > pngBytes.length) break;
+            if (pngBytes[pos + 4] == 'n' && pngBytes[pos + 5] == 'p'
+                    && pngBytes[pos + 6] == 'T' && pngBytes[pos + 7] == 'c') {
+                return pngBytes; // Already compiled 9-patch
+            }
+            if (pngBytes[pos + 4] == 'I' && pngBytes[pos + 5] == 'H'
+                    && pngBytes[pos + 6] == 'D' && pngBytes[pos + 7] == 'R' && len >= 8) {
+                width = readInt32BE(pngBytes, pos + 8);
+                height = readInt32BE(pngBytes, pos + 12);
+                ihdrEnd = pos + 12 + len;
+            }
+            pos += 12 + len;
+        }
+        if (ihdrEnd < 33 || width <= 0 || height <= 0) return pngBytes;
+
+        byte[] npTc = new byte[84];
+        npTc[0] = 0; // wasDeserialized = 0
+        npTc[1] = 2; // numXDivs = 2
+        npTc[2] = 2; // numYDivs = 2
+        npTc[3] = 9; // numColors = 9
+        writeInt32BE(npTc, 4, 32);  // xDivsOffset
+        writeInt32BE(npTc, 8, 40);  // yDivsOffset
+        writeInt32BE(npTc, 28, 48); // colorsOffset
+        writeInt32BE(npTc, 32, 1);
+        writeInt32BE(npTc, 36, Math.max(2, width - 1));
+        writeInt32BE(npTc, 40, 1);
+        writeInt32BE(npTc, 44, Math.max(2, height - 1));
+        for (int ci = 0; ci < 9; ci++) {
+            writeInt32BE(npTc, 48 + ci * 4, 0x00000001); // NO_COLOR
+        }
+
+        byte[] chunkType = new byte[] { 'n', 'p', 'T', 'c' };
+        CRC32 crc = new CRC32();
+        crc.update(chunkType);
+        crc.update(npTc);
+
+        byte[] out = new byte[pngBytes.length + 12 + npTc.length];
+        System.arraycopy(pngBytes, 0, out, 0, ihdrEnd);
+        writeInt32BE(out, ihdrEnd, npTc.length);
+        System.arraycopy(chunkType, 0, out, ihdrEnd + 4, 4);
+        System.arraycopy(npTc, 0, out, ihdrEnd + 8, npTc.length);
+        writeInt32BE(out, ihdrEnd + 8 + npTc.length, (int) crc.getValue());
+        System.arraycopy(pngBytes, ihdrEnd, out, ihdrEnd + 12 + npTc.length, pngBytes.length - ihdrEnd);
+        return out;
+    }
+
+    private static byte[] patchSuperStatusBarTransparentBg(byte[] rawXml) {
+        if (rawXml == null || rawXml.length < 64) return rawXml;
+        try {
+            byte[] xml = new byte[rawXml.length];
+            System.arraycopy(rawXml, 0, xml, 0, rawXml.length);
+            if (readUInt16LE(xml, 0) != 0x0003) return rawXml;
+            int strPoolOff = 8;
+            if (readUInt16LE(xml, strPoolOff) != 0x0001) return rawXml;
+            int strPoolSize = readInt32LE(xml, strPoolOff + 4);
+            int resMapOff = strPoolOff + strPoolSize;
+            if (resMapOff + 8 > xml.length || readUInt16LE(xml, resMapOff) != 0x0180) return rawXml;
+            int resMapSize = readInt32LE(xml, resMapOff + 4);
+            int resMapCount = (resMapSize - 8) / 4;
+
+            int pos = resMapOff + resMapSize;
+            while (pos + 8 <= xml.length) {
+                int cType = readUInt16LE(xml, pos);
+                int cSize = readInt32LE(xml, pos + 4);
+                if (cSize <= 0 || pos + cSize > xml.length) break;
+                if (cType == 0x0102) { // First START_ELEMENT (<AvnStatusBarWindowView>)
+                    int attrCount = readUInt16LE(xml, pos + 28);
+                    for (int ai = 0; ai < attrCount; ai++) {
+                        int aOff = pos + 36 + ai * 20;
+                        if (aOff + 20 > pos + cSize) break;
+                        int nameIdx = readInt32LE(xml, aOff + 4);
+                        int resId = (nameIdx >= 0 && nameIdx < resMapCount)
+                                ? readInt32LE(xml, resMapOff + 8 + nameIdx * 4) : 0;
+                        if (resId == 0x010100D4) { // android:background
+                            writeInt32LE(xml, aOff + 8, -1); // rawVal = -1
+                            xml[aOff + 14] = 0;
+                            xml[aOff + 15] = 0x1C; // TYPE_COLOR_ARGB8
+                            writeInt32LE(xml, aOff + 16, 0x00000000); // transparent
+                            return xml;
+                        }
+                    }
+                    break;
+                }
+                pos += cSize;
+            }
+        } catch (Exception ignored) {
+        }
+        return rawXml;
+    }
+
+    private static void shiftStringIndexIfGe(byte[] xml, int off, int threshold, int delta) {
+        int val = readInt32LE(xml, off);
+        if (val >= threshold) {
+            writeInt32LE(xml, off, val + delta);
+        }
+    }
+
     private byte[] transformAvMainLayoutXml(byte[] rawXml, int offXDp, int offYDp, float scalePct) {
         if (rawXml == null || rawXml.length < 64) return rawXml;
         try {
-            if (readUInt16LE(rawXml, 0) != 0x0003) return rawXml;
+            byte[] work = new byte[rawXml.length];
+            System.arraycopy(rawXml, 0, work, 0, rawXml.length);
+
+            if (readUInt16LE(work, 0) != 0x0003) return rawXml;
             int strPoolOff = 8;
-            if (readUInt16LE(rawXml, strPoolOff) != 0x0001) return rawXml;
-            int strPoolSize = readInt32LE(rawXml, strPoolOff + 4);
-            int strCount = readInt32LE(rawXml, strPoolOff + 8);
+            if (readUInt16LE(work, strPoolOff) != 0x0001) return rawXml;
+            int strPoolSize = readInt32LE(work, strPoolOff + 4);
+            int strCount = readInt32LE(work, strPoolOff + 8);
+            int stringsStart = readInt32LE(work, strPoolOff + 20);
+            int stylesStart = readInt32LE(work, strPoolOff + 24);
 
             int resMapOff = strPoolOff + strPoolSize;
-            if (resMapOff + 8 > rawXml.length || readUInt16LE(rawXml, resMapOff) != 0x0180) return rawXml;
-            int resMapSize = readInt32LE(rawXml, resMapOff + 4);
+            if (resMapOff + 8 > work.length || readUInt16LE(work, resMapOff) != 0x0180) return rawXml;
+            int resMapSize = readInt32LE(work, resMapOff + 4);
             int resMapCount = (resMapSize - 8) / 4;
 
             // 1. Scale textSize (0x01010095) and fixed text row layout_height (0x010100F5) across all elements
             int firstStartElemOff = -1;
             int pos = resMapOff + resMapSize;
             float sFactor = (scalePct > 0f ? scalePct : 100f) / 100.0f;
-            while (pos + 8 <= rawXml.length) {
-                int cType = readUInt16LE(rawXml, pos);
-                int cSize = readInt32LE(rawXml, pos + 4);
-                if (cSize <= 0 || pos + cSize > rawXml.length) break;
+            while (pos + 8 <= work.length) {
+                int cType = readUInt16LE(work, pos);
+                int cSize = readInt32LE(work, pos + 4);
+                if (cSize <= 0 || pos + cSize > work.length) break;
                 if (cType == 0x0102) {
                     if (firstStartElemOff < 0) firstStartElemOff = pos;
                     if (Math.abs(scalePct - 100.0f) > 0.5f) {
-                        int attrCount = readUInt16LE(rawXml, pos + 28);
+                        int attrCount = readUInt16LE(work, pos + 28);
                         int aBase = pos + 36;
                         for (int ai = 0; ai < attrCount; ai++) {
                             int aOff = aBase + ai * 20;
                             if (aOff + 20 > pos + cSize) break;
-                            int nameIdx = readInt32LE(rawXml, aOff + 4);
+                            int nameIdx = readInt32LE(work, aOff + 4);
                             int resId = (nameIdx >= 0 && nameIdx < resMapCount)
-                                    ? readInt32LE(rawXml, resMapOff + 8 + nameIdx * 4) : 0;
-                            int dType = rawXml[aOff + 15] & 0xFF;
-                            int data = readInt32LE(rawXml, aOff + 16);
+                                    ? readInt32LE(work, resMapOff + 8 + nameIdx * 4) : 0;
+                            int dType = work[aOff + 15] & 0xFF;
+                            int data = readInt32LE(work, aOff + 16);
                             if (resId == 0x01010095) { // android:textSize
                                 if (dType == 5) {
                                     int unit = data & 0x0F;
                                     int baseVal = data >> 8;
                                     int newVal = Math.max(8, Math.round(baseVal * sFactor));
-                                    writeInt32LE(rawXml, aOff + 16, ((newVal & 0xFFFFFF) << 8) | unit);
+                                    writeInt32LE(work, aOff + 16, ((newVal & 0xFFFFFF) << 8) | unit);
                                 } else if (dType == 1) {
-                                    // Convert @dimen reference (stock 22sp) to direct sp dimension
                                     int newSp = Math.max(8, Math.round(22.0f * sFactor));
-                                    rawXml[aOff + 15] = 5;
-                                    writeInt32LE(rawXml, aOff + 16, ((newSp & 0xFFFFFF) << 8) | 2);
+                                    work[aOff + 15] = 5;
+                                    writeInt32LE(work, aOff + 16, ((newSp & 0xFFFFFF) << 8) | 2);
                                 }
                             } else if (resId == 0x010100F5 && sFactor > 1.0f && dType == 5) { // android:layout_height
                                 int unit = data & 0x0F;
                                 int baseVal = data >> 8;
                                 if (baseVal >= 18 && baseVal <= 120) {
                                     int newVal = Math.round(baseVal * sFactor);
-                                    writeInt32LE(rawXml, aOff + 16, ((newVal & 0xFFFFFF) << 8) | unit);
+                                    writeInt32LE(work, aOff + 16, ((newVal & 0xFFFFFF) << 8) | unit);
                                 }
                             }
                         }
@@ -1413,73 +2333,129 @@ public class MainActivity extends Activity {
             }
 
             // 2. Inject android:translationX (0x01010320) & android:translationY (0x01010321) into root StartElement
-            if ((offXDp != 0 || offYDp != 0) && firstStartElemOff > 0 && strCount >= resMapCount + 2) {
-                int rootAttrCount = readUInt16LE(rawXml, firstStartElemOff + 28);
+            // IMPORTANT: Insert 2 string slots into StringPool at index resMapCount AND shift all string indices >= resMapCount by +2!
+            if ((offXDp != 0 || offYDp != 0) && firstStartElemOff > 0 && strCount >= resMapCount && stringsStart >= 28 + strCount * 4) {
+                int rootAttrCount = readUInt16LE(work, firstStartElemOff + 28);
                 if (rootAttrCount > 0) {
-                    int nsIdx = readInt32LE(rawXml, firstStartElemOff + 36);
                     int insIdx = rootAttrCount;
                     for (int ai = 0; ai < rootAttrCount; ai++) {
                         int aOff = firstStartElemOff + 36 + ai * 20;
-                        int nameIdx = readInt32LE(rawXml, aOff + 4);
+                        int nameIdx = readInt32LE(work, aOff + 4);
                         int resId = (nameIdx >= 0 && nameIdx < resMapCount)
-                                ? readInt32LE(rawXml, resMapOff + 8 + nameIdx * 4) : 0x7FFFFFFF;
+                                ? readInt32LE(work, resMapOff + 8 + nameIdx * 4) : 0x7FFFFFFF;
                         if (resId > 0x01010320) {
                             insIdx = ai;
                             break;
                         }
                     }
 
+                    // Shift all XML string indices >= resMapCount by +2 across chunks following ResourceMap
+                    pos = resMapOff + resMapSize;
+                    while (pos + 8 <= work.length) {
+                        int cType = readUInt16LE(work, pos);
+                        int cSize = readInt32LE(work, pos + 4);
+                        if (cSize <= 0 || pos + cSize > work.length) break;
+                        shiftStringIndexIfGe(work, pos + 12, resMapCount, 2); // header.comment
+                        if (cType == 0x0100 || cType == 0x0101) { // START_NAMESPACE / END_NAMESPACE
+                            shiftStringIndexIfGe(work, pos + 16, resMapCount, 2); // prefix
+                            shiftStringIndexIfGe(work, pos + 20, resMapCount, 2); // uri
+                        } else if (cType == 0x0102) { // START_ELEMENT
+                            shiftStringIndexIfGe(work, pos + 16, resMapCount, 2); // ns
+                            shiftStringIndexIfGe(work, pos + 20, resMapCount, 2); // name
+                            int ac = readUInt16LE(work, pos + 28);
+                            for (int ai = 0; ai < ac; ai++) {
+                                int aOff = pos + 36 + ai * 20;
+                                if (aOff + 20 > pos + cSize) break;
+                                shiftStringIndexIfGe(work, aOff, resMapCount, 2);     // attr.ns
+                                shiftStringIndexIfGe(work, aOff + 4, resMapCount, 2); // attr.name
+                                shiftStringIndexIfGe(work, aOff + 8, resMapCount, 2); // attr.rawValue
+                                if ((work[aOff + 15] & 0xFF) == 3) { // TYPE_STRING
+                                    shiftStringIndexIfGe(work, aOff + 16, resMapCount, 2);
+                                }
+                            }
+                        } else if (cType == 0x0103) { // END_ELEMENT
+                            shiftStringIndexIfGe(work, pos + 16, resMapCount, 2); // ns
+                            shiftStringIndexIfGe(work, pos + 20, resMapCount, 2); // name
+                        } else if (cType == 0x0104) { // CDATA
+                            shiftStringIndexIfGe(work, pos + 16, resMapCount, 2); // data
+                        }
+                        pos += cSize;
+                    }
+
+                    // Find an attribute in root with valid android namespace index (now shifted by +2)
+                    int nsIdx = -1;
+                    for (int ai = 0; ai < rootAttrCount; ai++) {
+                        int candNs = readInt32LE(work, firstStartElemOff + 36 + ai * 20);
+                        if (candNs >= 0) {
+                            nsIdx = candNs;
+                            break;
+                        }
+                    }
+
+                    int strOffsetInsertPos = strPoolOff + 28 + resMapCount * 4;
                     int resMapInsertPos = resMapOff + resMapSize;
                     int attrInsertPos = firstStartElemOff + 36 + insIdx * 20;
-                    byte[] out = new byte[rawXml.length + 48];
+                    byte[] out = new byte[work.length + 56];
 
-                    // Copy up to end of existing ResourceMap
-                    System.arraycopy(rawXml, 0, out, 0, resMapInsertPos);
-                    // Append 0x01010320 (translationX) and 0x01010321 (translationY) to ResourceMap (+8 bytes)
-                    writeInt32LE(out, resMapInsertPos, 0x01010320);
-                    writeInt32LE(out, resMapInsertPos + 4, 0x01010321);
+                    // Part 1: Before StringPool[resMapCount] offset slot
+                    System.arraycopy(work, 0, out, 0, strOffsetInsertPos);
+                    // Insert 2 uint32 string offsets (+8 bytes, both pointing to offset 0 in string pool)
+                    writeInt32LE(out, strOffsetInsertPos, 0);
+                    writeInt32LE(out, strOffsetInsertPos + 4, 0);
 
-                    // Copy from end of ResourceMap up to attribute insertion point in root StartElement
-                    System.arraycopy(rawXml, resMapInsertPos, out, resMapInsertPos + 8, attrInsertPos - resMapInsertPos);
+                    // Part 2: Remainder of StringPool + ResourceMap (+8 shift)
+                    System.arraycopy(work, strOffsetInsertPos, out, strOffsetInsertPos + 8, resMapInsertPos - strOffsetInsertPos);
+                    // Append 0x01010320 (translationX) and 0x01010321 (translationY) to ResourceMap (+8 bytes -> total +16)
+                    writeInt32LE(out, resMapInsertPos + 8, 0x01010320);
+                    writeInt32LE(out, resMapInsertPos + 12, 0x01010321);
 
-                    // Write two 20-byte ResXMLTree_attribute structs (+40 bytes)
-                    int newAttrPos = attrInsertPos + 8;
-                    // Attribute 1: android:translationX (nameIdx = resMapCount)
+                    // Part 3: From end of ResourceMap up to attribute insertion point (+16 shift)
+                    System.arraycopy(work, resMapInsertPos, out, resMapInsertPos + 16, attrInsertPos - resMapInsertPos);
+
+                    // Write two 20-byte ResXMLTree_attribute structs (+40 bytes -> total +56)
+                    int newAttrPos = attrInsertPos + 16;
                     writeInt32LE(out, newAttrPos, nsIdx);
                     writeInt32LE(out, newAttrPos + 4, resMapCount);
                     writeInt32LE(out, newAttrPos + 8, -1);
                     writeUInt16LE(out, newAttrPos + 12, 8);
                     out[newAttrPos + 14] = 0;
-                    out[newAttrPos + 15] = 5; // TYPE_DIMENSION
+                    out[newAttrPos + 15] = 5; // TYPE_DIMENSION (dp)
                     writeInt32LE(out, newAttrPos + 16, ((offXDp & 0xFFFFFF) << 8) | 1);
 
-                    // Attribute 2: android:translationY (nameIdx = resMapCount + 1)
                     writeInt32LE(out, newAttrPos + 20, nsIdx);
                     writeInt32LE(out, newAttrPos + 24, resMapCount + 1);
                     writeInt32LE(out, newAttrPos + 28, -1);
                     writeUInt16LE(out, newAttrPos + 32, 8);
                     out[newAttrPos + 34] = 0;
-                    out[newAttrPos + 35] = 5; // TYPE_DIMENSION
+                    out[newAttrPos + 35] = 5; // TYPE_DIMENSION (dp)
                     writeInt32LE(out, newAttrPos + 36, ((offYDp & 0xFFFFFF) << 8) | 1);
 
-                    // Copy remainder of XML
-                    System.arraycopy(rawXml, attrInsertPos, out, newAttrPos + 40, rawXml.length - attrInsertPos);
+                    // Part 4: Remainder of XML (+56 shift)
+                    System.arraycopy(work, attrInsertPos, out, newAttrPos + 40, work.length - attrInsertPos);
 
-                    // Update chunk headers: total file size (+48), ResourceMap size (+8), root StartElement size (+40) & attrCount (+2)
-                    writeInt32LE(out, 4, rawXml.length + 48);
-                    writeInt32LE(out, resMapOff + 4, resMapSize + 8);
-                    int newRootOff = firstStartElemOff + 8;
+                    // Update chunk headers
+                    writeInt32LE(out, 4, work.length + 56);
+                    writeInt32LE(out, strPoolOff + 4, strPoolSize + 8);
+                    writeInt32LE(out, strPoolOff + 8, strCount + 2);
+                    writeInt32LE(out, strPoolOff + 20, stringsStart + 8);
+                    if (stylesStart > 0) {
+                        writeInt32LE(out, strPoolOff + 24, stylesStart + 8);
+                    }
+                    writeInt32LE(out, resMapOff + 8 + 4, resMapSize + 8);
+                    int newRootOff = firstStartElemOff + 16;
                     int oldRootSize = readInt32LE(out, newRootOff + 4);
                     writeInt32LE(out, newRootOff + 4, oldRootSize + 40);
                     writeUInt16LE(out, newRootOff + 28, rootAttrCount + 2);
-                    int idIdx1Based = readUInt16LE(out, newRootOff + 30);
-                    if (idIdx1Based > insIdx) {
-                        writeUInt16LE(out, newRootOff + 30, idIdx1Based + 2);
+                    for (int idxOff = 30; idxOff <= 34; idxOff += 2) {
+                        int idx1 = readUInt16LE(out, newRootOff + idxOff);
+                        if (idx1 > insIdx) {
+                            writeUInt16LE(out, newRootOff + idxOff, idx1 + 2);
+                        }
                     }
                     return out;
                 }
             }
-            return rawXml;
+            return work;
         } catch (Exception e) {
             return rawXml;
         }
@@ -1622,6 +2598,10 @@ public class MainActivity extends Activity {
                     StringBuilder sb = new StringBuilder();
                     sb.append("\n=== GEN5W THEMER DIAGNOSTICS ===\n");
                     sb.append("Bundled Theme Name        : ").append(bundledThemeName).append("\n");
+                    sb.append("OEM Variants Detected     : ").append(oemScanSummary.isEmpty() ? "None" : oemScanSummary).append("\n");
+                    sb.append("OEM Mixer Overrides       : car=").append(oemCarOverride)
+                            .append(", bat=").append(oemBatteryOverride)
+                            .append(", brand=").append(oemBrandOverride).append("\n");
                     sb.append("Launcher Currently Themed : ").append(isLauncherCurrentlyThemed() ? "YES (Custom Theme Active)" : "NO (Factory Stock)").append("\n");
                     sb.append("Launcher in /proc/mounts  : ").append(isLauncherBindMounted() ? "YES" : "NO").append("\n");
                     sb.append("SystemUI in /proc/mounts  : ").append(isTargetBindMounted(TARGET_SYSUI) ? "YES" : "NO").append("\n");

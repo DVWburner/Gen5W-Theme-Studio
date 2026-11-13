@@ -61,11 +61,11 @@
     display: flex; flex-direction: column; overflow: hidden;
   }
   .tabs {
-    display: flex; border-bottom: 1px solid var(--border); background: #0d1017;
+    display: flex; flex-wrap: wrap; border-bottom: 1px solid var(--border); background: #0d1017;
   }
   .tab {
-    flex: 1; text-align: center; padding: 10px 4px; font-size: 12px; font-weight: 700;
-    color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent;
+    flex: 1 1 25%; text-align: center; padding: 8px 4px; font-size: 11.2px; font-weight: 700;
+    color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap;
   }
   .tab.active { color: var(--text); border-bottom-color: var(--accent); background: var(--panel); }
   .tab-content { flex: 1; overflow-y: auto; padding: 14px; display: none; }
@@ -179,6 +179,7 @@
 
 <header>
   <span class="brand-pill">GEN5W THEME STUDIO</span>
+  <a id="githubUpdateBtn" href="https://github.com/DVWburner/Gen5W-Theme-Studio/releases/latest" target="_blank" rel="noopener" style="display:none;background:rgba(56,189,248,0.16);color:#38bdf8;border:1px solid #38bdf8;padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap;" title="A newer version of Gen5W Theme Studio is available on GitHub">⬆ Update</a>
 
   <!-- MULTI-THEME SWITCHER & SAVED THEMES MANAGER -->
   <div class="theme-bar">
@@ -198,9 +199,12 @@
   <div class="spacer"></div>
 
   <div class="toolbar-group">
-    <button id="btnViewApps1" class="active-mode" onclick="setScreenMode('apps1')">All-Apps (Page 1)</button>
-    <button id="btnViewApps2" onclick="setScreenMode('apps2')">All-Apps (Page 2)</button>
-    <button id="btnViewHome" onclick="setScreenMode('home')">Home Split-Screen</button>
+    <button id="btnViewApps1" class="active-mode" onclick="setScreenMode('apps1')">All-Apps (1)</button>
+    <button id="btnViewApps2" onclick="setScreenMode('apps2')">All-Apps (2)</button>
+    <button id="btnViewHome" onclick="setScreenMode('home')">Home Split</button>
+    <button id="btnViewEv" onclick="setScreenMode('ev')">⚡ EV Screen</button>
+    <button id="btnViewClimate" onclick="setScreenMode('climate')">❄️ Climate</button>
+    <button id="btnViewWarmer" onclick="setScreenMode('warmer')">🔥 Seat Warmer</button>
     <select id="selDayNight" onchange="render()">
       <option value="night">Night Mode</option>
       <option value="day">Day Mode</option>
@@ -238,36 +242,31 @@
 
 <!-- HELP / INSTRUCTIONS MODAL -->
 <div id="helpModal" style="display:none;position:fixed;inset:0;background:rgba(5,8,17,0.82);z-index:9999;align-items:center;justify-content:center;padding:24px;">
-  <div style="background:#151a24;border:1px solid #283246;border-radius:12px;max-width:740px;width:100%;max-height:86vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.75);color:#eef2f8;line-height:1.55;">
+  <div style="background:#151a24;border:1px solid #283246;border-radius:12px;max-width:780px;width:100%;max-height:86vh;overflow-y:auto;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,0.75);color:#eef2f8;line-height:1.55;">
     <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #283246;padding-bottom:12px;margin-bottom:16px;">
-      <h2 style="margin:0;font-size:18px;color:#38bdf8;">Gen5W Theme Studio — User Guide &amp; Car Installation Instructions</h2>
+      <h2 style="margin:0;font-size:18px;color:#38bdf8;">Gen5W Theme Studio — User Guide, Auto-Boot &amp; Failsafe Documentation</h2>
       <button onclick="closeHelpModal()" style="font-size:13px;padding:5px 12px;">Close ✕</button>
     </div>
 
     <h3 style="color:#60a5fa;font-size:14px;margin:14px 0 6px 0;">1. Creating &amp; Switching Themes</h3>
     <ul style="margin:0 0 12px 18px;padding:0;font-size:13px;color:#cbd5e1;">
       <li><b>Factory Stock OEM</b> is the built-in baseline showing your car's unmodified dark theme.</li>
-      <li>Click <b>+ New Blank (Stock)</b> to start a brand-new theme from Factory Stock, or <b>+ Save As New...</b> to clone your current theme under a new name.</li>
+      <li>Click <b>+ New Blank</b> to start a brand-new theme from Factory Stock, or <b>+ Save As New...</b> to clone your current theme under a new name.</li>
       <li>Use the <b>Theme</b> dropdown at the top-left to switch between your saved themes at any time. Each theme keeps its own separate uploaded images and settings inside <code>studio/themes/&lt;theme-name&gt;/</code>.</li>
     </ul>
 
-    <h3 style="color:#60a5fa;font-size:14px;margin:14px 0 6px 0;">2. Customizing Wallpapers, Tiles, Icons &amp; Text</h3>
+    <h3 style="color:#60a5fa;font-size:14px;margin:14px 0 6px 0;">2. Customizing Wallpapers, Tiles, Sub-Menus &amp; Fonts</h3>
     <ul style="margin:0 0 12px 18px;padding:0;font-size:13px;color:#cbd5e1;">
-      <li><b>1. Wallpapers Tab:</b> Upload custom <code>1920×720</code> wallpapers for the All-Apps screen and the Home Split-Screen. On the Home Split-Screen, a transparent window is automatically cut out on the right side so your live Navigation Map shows through.</li>
-      <li><b>2. Icons, Text &amp; Tiles Tab:</b> Click any icon on the right-hand preview canvas (or in the left-hand grid) to select it:
-        <ul>
-          <li><b>Custom Text Label:</b> Rename any icon (use <code>|</code> for a 2-line wrap), change its font size/color/position, or check <b>Hide Text Label on This Tile</b> for an icon-only look.</li>
-          <li><b>Independent Tile Background:</b> Give any single icon its own uploaded tile background image, custom card fill/border, or transparent tile, or let it use the Global Tile Card style.</li>
-          <li><b>Custom Icon Graphic:</b> Upload a replacement PNG/JPG/WebP icon or drag-and-drop an image file directly onto the <code>1920×720</code> canvas.</li>
-        </ul>
-      </li>
-      <li><b>3. Home EV Widget Tab:</b> Keep the Factory Stock EV battery graphic, upload your own custom battery graphic, or use a vector gauge.</li>
+      <li><b>1. Wallpapers Tab:</b> Upload custom <code>1920×720</code> wallpapers for All-Apps and Home Split-Screen (with automatic right-side Map cutout), shift the Split-Screen Clock/Date and Media displays, and choose a custom Home Screen Font Family or upload your own <code>.ttf</code>/<code>.otf</code> font.</li>
+      <li><b>2. Icons, Text &amp; Tiles Tab:</b> Click any icon on the canvas to customize its label, font size/color, per-tile background, or upload/drag-and-drop a replacement icon graphic.</li>
+      <li><b>3. Home EV &amp; 5. EV Screen Tabs:</b> Choose between Factory Stock, Wireframe EV Car, <b>Star Trek Shuttlecraft Galileo (NCC-1701/7)</b>, 3D Battery Slab, Vector Gauge, or a custom uploaded vehicle graphic.</li>
+      <li><b>4. Top Bar &amp; 6. Climate/Seats Tabs:</b> Customize the global top status bar (`SystemUI`), Climate screen, Floating Seat Warmer/Ventilation popup (`HKMC_Climate`), warmer/ventilation icons &amp; 3-stage LED bars, and 3D seat graphic (including the <b>Star Trek Captain's Chair</b>).</li>
     </ul>
 
     <h3 style="color:#10b981;font-size:14px;margin:14px 0 6px 0;">3. Building &amp; Putting the Theme on a USB Drive</h3>
     <ol style="margin:0 0 12px 18px;padding:0;font-size:13px;color:#cbd5e1;">
-      <li>Click the green <b>Build &amp; Download USB ZIP</b> button at the top-right.</li>
-      <li>Wait ~10–15 seconds while the Studio renders all 330 WebP assets and builds your signed package. Your browser will download <b><code>Gen5W-Theme-&lt;name&gt;-USB.zip</code></b> (also saved in the <code>dist/</code> folder).</li>
+      <li>Click the green <b>Build &amp; Download USB ZIP...</b> button at the top-right and select which themes to bundle into the car APK.</li>
+      <li>Wait ~10–15 seconds while the Studio renders all WebP assets and builds your signed package. Your browser will download <b><code>Gen5W-Theme-&lt;name&gt;-USB.zip</code></b> (also saved in the <code>dist/</code> folder).</li>
       <li>Format a USB flash drive as <b>FAT32</b> or <b>exFAT</b> and <b>extract the contents of that ZIP file directly to the root of the USB drive</b> so the USB drive contains:
         <pre style="background:#0b0e16;border:1px solid #283246;padding:8px 12px;border-radius:6px;margin:6px 0;color:#38bdf8;font-size:12px;">USB_DRIVE:\
  ├── NEMESIS.data
@@ -276,18 +275,36 @@
       </li>
     </ol>
 
-    <h3 style="color:#f59e0b;font-size:14px;margin:14px 0 6px 0;">4. Installing &amp; Using on the Car (100% Safe RAM Overlay)</h3>
-    <ol style="margin:0 0 8px 18px;padding:0;font-size:13px;color:#cbd5e1;">
-      <li>Requires <b>NEMESIS</b> installed on your Gen5W headunit. Plug the USB drive into the car's data USB port and install/update the package from the NEMESIS package installer.</li>
-      <li>Once installed, you can <b>unplug and remove the USB drive</b> — the theme is stored inside the app on the headunit and does not need the USB drive during everyday driving.</li>
-      <li>Open <b>Gen5W Themer</b> (palette &amp; paintbrush icon) from the NEMESIS Launcher:
+    <h3 style="color:#f59e0b;font-size:14px;margin:14px 0 6px 0;">4. Applying Themes &amp; Enabling Auto-Launch on Boot</h3>
+    <ol style="margin:0 0 12px 18px;padding:0;font-size:13px;color:#cbd5e1;">
+      <li>Requires <b>NEMESIS</b> installed on your Gen5W headunit. Plug the USB drive into the car's data USB port and install/update the package from the NEMESIS package installer. Once installed, you can <b>unplug the USB drive</b>.</li>
+      <li>Open <b>Gen5W Themer</b> from the NEMESIS Launcher:
         <ul>
-          <li>Tap <b>[1. APPLY CUSTOM THEME (45s Safe Test Mode)]</b>. Your theme mounts in volatile RAM (<code>/mnt/asec</code>) and restarts the Home Launcher with a <b>45-second safety countdown</b>.</li>
-          <li>After 15 seconds of previewing your Home screen, Gen5W Themer pops back up automatically so you can tap <b>[2. CONFIRM &amp; KEEP THEME]</b> to cancel the rollback timer.</li>
-          <li><b>Fail-Safe Guarantee:</b> If anything ever goes wrong or you don't confirm within 45 seconds, it automatically reverts to 100% Factory Stock. Furthermore, <b>rebooting the headunit (or pressing the dashboard pinhole reset) ALWAYS boots 100% unmodified Factory Stock</b>.</li>
+          <li><b>Step 1 — Safe Test Mode (45s Rollback Timer):</b> Tap <b>[1. TEST '&lt;THEME&gt;']</b> to mount your theme in RAM (<code>/mnt/asec</code>) with a 45-second deadman countdown. If you don't confirm within 45 seconds, it automatically reverts to 100% Factory Stock.</li>
+          <li><b>Step 2 — Confirm &amp; Keep:</b> Tap <b>[2. APPLY &amp; KEEP]</b> to cancel the 45-second timer (or apply a known-good theme directly).</li>
+          <li><b>Step 3 — Instant OEM Restore:</b> Tap <b>[3. REVERT TO STOCK NOW]</b> at any time to immediately unmount all overlays, disarm Auto-Boot, and restore 100% Factory Stock.</li>
+          <li><b>Step 4 — Auto-Boot on Reboot (Optional):</b> Once a theme is active and confirmed, tap <b>[4. AUTO-BOOT: OFF &rarr; ON ✓]</b> to cache your confirmed theme so it launches automatically 15 seconds after every headunit boot! (Note: the <code>/system</code> flash partition is still <b>never</b> modified on disk—Auto-Boot still uses safe RAM bind-mounts.)</li>
         </ul>
       </li>
     </ol>
+
+    <h3 style="color:#f87171;font-size:14px;margin:14px 0 6px 0;">5. Emergency Failsafes (Pinhole Reset &amp; USB Kill-Switch)</h3>
+    <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.35);border-radius:8px;padding:12px 14px;font-size:13px;color:#e2e8f0;">
+      Even when <b>[4. AUTO-BOOT: ON ✓]</b> is enabled, two independent hardware failsafes ensure you can always return to 100% Factory Stock without touching the screen:
+      <ul style="margin:8px 0 0 18px;padding:0;color:#cbd5e1;">
+        <li style="margin-bottom:8px;">
+          <b>📌 Pinhole Reset Escape Hatch (15s Boot Grace Window + 2-Strike Watchdog):</b><br>
+          On every boot with Auto-Boot enabled, the background service records a boot-attempt strike on disk <i>before</i> doing anything, waits a <b>15-second grace window</b> after Android finishes booting, mounts the theme, and then monitors the Home Launcher for <b>60 continuous seconds</b> before resetting the strike counter to <code>0</code>.<br>
+          &rarr; <b>How to trigger:</b> Press the physical <b>dashboard pinhole reset button</b> during startup (or within 60 seconds after the theme loads). If a boot is interrupted or the Launcher crashes twice before passing the 60-second stability check (<code>boot_strikes &ge; 2</code>), the next boot <b>automatically trips the failsafe breaker, disables Auto-Boot, and boots 100% Factory Stock</b>.
+        </li>
+        <li>
+          <b>🔌 USB "Panic / Safe-Mode" Kill-Switch (Zero-Touch Hardware Recovery):</b><br>
+          Create an empty file named <b><code>REVERT_THEME.txt</code></b> (or <code>SAFE_MODE.txt</code> / <code>DISABLE_THEME.txt</code>) at the root of any FAT32/exFAT USB flash drive:<br>
+          <code style="display:inline-block;background:#0b0e16;border:1px solid #283246;padding:3px 8px;border-radius:4px;margin:4px 0;color:#38bdf8;">USB_DRIVE:\REVERT_THEME.txt</code><br>
+          &rarr; <b>How to trigger:</b> Plug that USB stick into the car's USB port (either before turning the car on, or at any time while the headunit is running). Within 1–2 seconds, the root helper service detects the file, <b>immediately unmounts all theme overlays, disables Auto-Boot, and restores 100% Factory Stock</b> without needing any touchscreen input.
+        </li>
+      </ul>
+    </div>
   </div>
 </div>
 
@@ -295,9 +312,12 @@
   <div class="sidebar">
     <div class="tabs">
       <div class="tab active" onclick="switchTab(0)">1. Wallpapers</div>
-      <div class="tab" onclick="switchTab(1)">2. Icons, Text &amp; Tiles</div>
-      <div class="tab" onclick="switchTab(2)">3. Home EV Widget</div>
-      <div class="tab" onclick="switchTab(3)">4. Colors</div>
+      <div class="tab" onclick="switchTab(1)">2. Icons &amp; Tiles</div>
+      <div class="tab" onclick="switchTab(2)">3. Home EV</div>
+      <div class="tab" onclick="switchTab(3)">4. Top Bar</div>
+      <div class="tab" onclick="switchTab(4)">5. EV Screen</div>
+      <div class="tab" onclick="switchTab(5)">6. Climate &amp; Seats</div>
+      <div class="tab" onclick="switchTab(6)">7. Colors</div>
     </div>
 
     <!-- TAB 0: BACKGROUNDS (ALL-APPS & HOME) -->
@@ -386,6 +406,41 @@
         <div class="ctrl"><label>Map Cutout Corner R</label><input type="range" min="0" max="40" data-path="homeScreen.mapCutoutRadius"><input type="number" data-path="homeScreen.mapCutoutRadius"></div>
         <div class="ctrl"><label>Map Border Width</label><input type="range" min="0" max="10" step="0.5" data-path="homeScreen.mapCutoutBorderW"><input type="number" step="0.5" data-path="homeScreen.mapCutoutBorderW"></div>
         <div class="ctrl"><label>Map Border Color</label><input type="color" data-path="homeScreen.mapCutoutBorderColor"></div>
+      </details>
+
+      <details open>
+        <summary>Home Split-Screen Clock, Date, Media &amp; Font</summary>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin:8px 0 6px 0;">
+          <span style="font-size:11px;color:#93c5fd;font-weight:600;">Typography &amp; Widget Layout</span>
+          <button class="danger mini" onclick="clearCustomBg('homeWidgets')">Reset Widgets &amp; Font</button>
+        </div>
+        <div class="ctrl">
+          <label>Home Screen Font Family</label>
+          <select data-path="homeScreen.fontFamily" onchange="setScreenMode('home')">
+            <option value="oem">Stock Hyundai OEM (CubeN)</option>
+            <option value="bahnschrift">Sci-Fi Geometric (Bahnschrift)</option>
+            <option value="consolas">Tactical Tech Mono (Consolas Bold)</option>
+            <option value="trebuchet">Modern Wide Sans (Trebuchet Bold)</option>
+            <option value="impact">LCARS Tall Display (Impact)</option>
+            <option value="custom">Custom Uploaded .TTF / .OTF Font</option>
+          </select>
+        </div>
+        <label class="upload-btn-label blue-btn" style="margin-top:4px;">
+          Upload Custom .TTF / .OTF Font...
+          <input type="file" accept=".ttf,.otf,font/ttf,font/otf" onchange="uploadAssetFile(this, 'custom_font', 'homeFont')">
+        </label>
+        <div class="ctrl">
+          <label>Also Apply Font to Climate &amp; Warmer</label>
+          <input type="checkbox" id="chkApplyFontClimate" onchange="cfg.homeScreen.applyFontToClimate = this.checked; scheduleAutoSave(); render();">
+        </div>
+        <div style="border-top:1px solid #252b3b;margin:8px 0;padding-top:6px;font-size:11px;color:#cbd5e1;font-weight:600;">Clock &amp; Date Position / Scale</div>
+        <div class="ctrl"><label>Clock/Date X Offset (px)</label><input type="range" min="-70" max="180" data-path="homeScreen.clockOffsetX"><input type="number" data-path="homeScreen.clockOffsetX"></div>
+        <div class="ctrl"><label>Clock/Date Y Offset (px)</label><input type="range" min="-40" max="140" data-path="homeScreen.clockOffsetY"><input type="number" data-path="homeScreen.clockOffsetY"></div>
+        <div class="ctrl"><label>Clock/Date Font Scale (%)</label><input type="range" min="50" max="150" data-path="homeScreen.clockFontScale"><input type="number" data-path="homeScreen.clockFontScale"></div>
+        <div style="border-top:1px solid #252b3b;margin:8px 0;padding-top:6px;font-size:11px;color:#cbd5e1;font-weight:600;">Media Display Position / Scale</div>
+        <div class="ctrl"><label>Media X Offset (px)</label><input type="range" min="-80" max="180" data-path="homeScreen.mediaOffsetX"><input type="number" data-path="homeScreen.mediaOffsetX"></div>
+        <div class="ctrl"><label>Media Y Offset (px)</label><input type="range" min="-80" max="140" data-path="homeScreen.mediaOffsetY"><input type="number" data-path="homeScreen.mediaOffsetY"></div>
+        <div class="ctrl"><label>Media Font Scale (%)</label><input type="range" min="50" max="150" data-path="homeScreen.mediaFontScale"><input type="number" data-path="homeScreen.mediaFontScale"></div>
       </details>
 
       <details>
@@ -581,6 +636,8 @@
           <label>EV Graphic Style</label>
           <select data-path="batteryWidget.style" onchange="setScreenMode('home')">
             <option value="oem">Stock Hyundai OEM Battery</option>
+            <option value="galileo">Star Trek Shuttle Galileo (Wireframe / Translucent)</option>
+            <option value="wireframeCar">Wireframe / Translucent EV Car</option>
             <option value="custom">Custom Uploaded Graphic</option>
             <option value="lcars">Vector Schematic</option>
           </select>
@@ -625,8 +682,253 @@
       </details>
     </div>
 
-    <!-- TAB 3: COLORS -->
+    <!-- TAB 3: TOP STATUS BAR (SystemUI.apk) -->
     <div class="tab-content" id="tab3">
+      <div class="upload-card sub-card-accent">
+        <h3>
+          <span>Top Status Bar Background (1920&times;90)</span>
+          <button class="danger" onclick="clearCustomBg('statusBar')">Reset to Stock</button>
+        </h3>
+        <div class="ctrl">
+          <label>Status Bar Style</label>
+          <select data-path="statusBar.bgMode">
+            <option value="oem">Stock Hyundai OEM</option>
+            <option value="lcars">Segmented Accent Bar (LCARS)</option>
+            <option value="solid">Solid Fill + Bottom Border</option>
+            <option value="custom">Custom Uploaded Image (1920x90)</option>
+          </select>
+        </div>
+        <label class="upload-btn-label" style="margin-top:4px;">
+          Upload Custom Status Bar Background (1920&times;90)...
+          <input type="file" accept="image/*" onchange="uploadAssetFile(this, 'statusbar_bg', 'statusBar')">
+        </label>
+        <div class="ctrl">
+          <label>Image Fit Mode</label>
+          <select data-path="statusBar.bgFit">
+            <option value="cover">Cover (Fill 1920x90)</option>
+            <option value="contain">Contain</option>
+            <option value="stretch">Stretch (Exact 1920x90)</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>Zoom / Scale (%)</label><input type="range" min="40" max="250" data-path="statusBar.bgScale"><input type="number" data-path="statusBar.bgScale"></div>
+        <div class="ctrl"><label>Pan X Offset (px)</label><input type="range" min="-400" max="400" data-path="statusBar.bgOffsetX"><input type="number" data-path="statusBar.bgOffsetX"></div>
+        <div class="ctrl"><label>Pan Y Offset (px)</label><input type="range" min="-80" max="80" data-path="statusBar.bgOffsetY"><input type="number" data-path="statusBar.bgOffsetY"></div>
+        <div class="ctrl"><label>Bar Background Color</label><input type="color" data-path="statusBar.bgColor"></div>
+        <div class="ctrl"><label>Primary Accent Color</label><input type="color" data-path="statusBar.accentColor"></div>
+        <div class="ctrl"><label>Secondary Bar Color</label><input type="color" data-path="statusBar.secondaryColor"></div>
+        <div class="ctrl"><label>Bottom Border Height</label><input type="range" min="0" max="16" data-path="statusBar.borderHeight"><input type="number" data-path="statusBar.borderHeight"></div>
+      </div>
+
+      <div class="upload-card sub-card-blue">
+        <h3>
+          <span>Home / Back / Menu Bar Buttons</span>
+          <button class="danger" onclick="clearCustomBg('statusBarButtons')">Reset Buttons</button>
+        </h3>
+        <div class="ctrl">
+          <label>Nav Button Style</label>
+          <select data-path="statusBar.buttonStyle">
+            <option value="oem">Stock Hyundai OEM Icons</option>
+            <option value="lcars">Framed Pill Buttons (LCARS / Tactical)</option>
+            <option value="custom">Custom Uploaded Button Icons</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>Pill Fill Color</label><input type="color" data-path="statusBar.buttonBgColor"></div>
+        <div class="ctrl"><label>Pill Border / Pressed</label><input type="color" data-path="statusBar.buttonAccentColor"></div>
+        <div class="ctrl"><label>Icon Glyph Color</label><input type="color" data-path="statusBar.buttonGlyphColor"></div>
+        <label class="upload-btn-label blue-btn" style="margin-top:6px;">
+          Upload Custom HOME Button (180&times;84)...
+          <input type="file" accept="image/*" onchange="uploadAssetFile(this, 'statusbar_home', 'statusBarHome')">
+        </label>
+        <label class="upload-btn-label blue-btn">
+          Upload Custom BACK Button (180&times;84)...
+          <input type="file" accept="image/*" onchange="uploadAssetFile(this, 'statusbar_back', 'statusBarBack')">
+        </label>
+      </div>
+    </div>
+
+    <!-- TAB 4: EV SCREEN (HKMC_TAppEV3.apk) -->
+    <div class="tab-content" id="tab4">
+      <div class="upload-card sub-card-accent">
+        <h3>
+          <span>EV Screen Background (1920&times;720)</span>
+          <button class="danger" onclick="clearCustomBg('evScreen')">Reset EV Screen</button>
+        </h3>
+        <div class="ctrl">
+          <label>EV Background Mode</label>
+          <select data-path="evScreen.bgMode" onchange="setScreenMode('ev')">
+            <option value="oem">Stock Hyundai OEM</option>
+            <option value="lcars">Console Frame &amp; Grid (LCARS)</option>
+            <option value="solid">Solid Color Fill</option>
+            <option value="custom">Custom Uploaded Image (1920x720)</option>
+          </select>
+        </div>
+        <label class="upload-btn-label" style="margin-top:4px;">
+          Upload Custom EV Screen Background...
+          <input type="file" accept="image/*" onchange="uploadAssetFile(this, 'bg_ev', 'evScreen')">
+        </label>
+        <div class="ctrl">
+          <label>Image Fit Mode</label>
+          <select data-path="evScreen.bgFit">
+            <option value="cover">Cover (Fill 1920x720)</option>
+            <option value="contain">Contain</option>
+            <option value="stretch">Stretch</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>Zoom / Scale (%)</label><input type="range" min="40" max="250" data-path="evScreen.bgScale"><input type="number" data-path="evScreen.bgScale"></div>
+        <div class="ctrl"><label>Pan X Offset (px)</label><input type="range" min="-500" max="500" data-path="evScreen.bgOffsetX"><input type="number" data-path="evScreen.bgOffsetX"></div>
+        <div class="ctrl"><label>Pan Y Offset (px)</label><input type="range" min="-400" max="400" data-path="evScreen.bgOffsetY"><input type="number" data-path="evScreen.bgOffsetY"></div>
+        <div class="ctrl"><label>Darken / Dim (%)</label><input type="range" min="0" max="85" data-path="evScreen.bgDim"><input type="number" data-path="evScreen.bgDim"></div>
+        <div class="ctrl"><label>Background Color</label><input type="color" data-path="evScreen.bgColor"></div>
+        <div class="ctrl"><label>Primary Frame Color</label><input type="color" data-path="evScreen.accentColor"></div>
+        <div class="ctrl"><label>Secondary Frame Color</label><input type="color" data-path="evScreen.secondaryColor"></div>
+        <div class="ctrl">
+          <label>Draw Tactical Frame &amp; Grid</label>
+          <input type="checkbox" id="chkEvLcarsFrame" onchange="cfg.evScreen.showLcarsFrame = this.checked; scheduleAutoSave(); render();">
+        </div>
+        <div class="ctrl">
+          <label>Hide Diagonal Cyan Range Road</label>
+          <input type="checkbox" id="chkEvHideRadar" onchange="cfg.evScreen.hideRangeRadar = this.checked; scheduleAutoSave(); render();">
+        </div>
+      </div>
+
+      <div class="upload-card sub-card-blue">
+        <h3>
+          <span>EV Screen Vehicle Graphic (450&times;255)</span>
+          <button class="danger" onclick="clearCustomBg('evCar')">Reset Car</button>
+        </h3>
+        <div class="ctrl">
+          <label>EV Screen Car Style</label>
+          <select data-path="evScreen.carStyle" onchange="setScreenMode('ev')">
+            <option value="oem">Stock Hyundai OEM EV Car</option>
+            <option value="galileo">Star Trek Shuttle Galileo (Wireframe / Translucent)</option>
+            <option value="sameAsHome">Use Same Graphic as Home EV Widget</option>
+            <option value="custom">Custom Uploaded Vehicle Graphic</option>
+            <option value="lcars">3/4 Wireframe EV Crossover</option>
+          </select>
+        </div>
+        <label class="upload-btn-label blue-btn" style="margin-top:4px;">
+          Upload Custom EV Screen Vehicle Graphic...
+          <input type="file" accept="image/*" onchange="uploadAssetFile(this, 'ev_car_custom', 'evCar')">
+        </label>
+        <div class="ctrl"><label>Vehicle Scale (%)</label><input type="range" min="30" max="200" data-path="evScreen.carScale"><input type="number" data-path="evScreen.carScale"></div>
+        <div class="ctrl"><label>Vehicle Offset X (px)</label><input type="range" min="-200" max="200" data-path="evScreen.carOffsetX"><input type="number" data-path="evScreen.carOffsetX"></div>
+        <div class="ctrl"><label>Vehicle Offset Y (px)</label><input type="range" min="-150" max="150" data-path="evScreen.carOffsetY"><input type="number" data-path="evScreen.carOffsetY"></div>
+        <hr style="border:0;border-top:1px solid var(--border);margin:8px 0;">
+        <div class="ctrl">
+          <label>Bottom Bar &amp; Cards Style</label>
+          <select data-path="evScreen.cardStyle" onchange="setScreenMode('ev')">
+            <option value="oem">Stock Hyundai OEM Bottom Bar</option>
+            <option value="lcars">Framed Spine Bar &amp; Cards (LCARS)</option>
+            <option value="glass">Rounded Glass Bar &amp; Cards</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 5: CLIMATE & SEAT WARMER SCREEN (HKMC_Climate.apk) -->
+    <div class="tab-content" id="tab5">
+      <div class="upload-card sub-card-accent">
+        <h3>
+          <span>Climate Screen &amp; Warmer Popup (1920&times;720)</span>
+          <button class="danger" onclick="clearCustomBg('climateScreen')">Reset Climate</button>
+        </h3>
+        <div class="ctrl">
+          <label>Preview Screen</label>
+          <div style="display:flex;gap:6px;">
+            <button class="mini" onclick="setScreenMode('climate')">❄️ Full Climate Screen</button>
+            <button class="mini" onclick="setScreenMode('warmer')">🔥 Floating Warmer Popup</button>
+          </div>
+        </div>
+        <div class="ctrl">
+          <label>Climate Background</label>
+          <select data-path="climateScreen.bgMode">
+            <option value="oem">Stock Hyundai OEM</option>
+            <option value="lcars">Console Frame &amp; Grid (LCARS)</option>
+            <option value="solid">Solid Color Fill</option>
+            <option value="custom">Custom Uploaded Image (1920x720)</option>
+          </select>
+        </div>
+        <label class="upload-btn-label" style="margin-top:4px;">
+          Upload Custom Climate Background Image...
+          <input type="file" accept="image/*" onchange="uploadAssetFile(this, 'bg_climate', 'climateScreen')">
+        </label>
+        <div class="ctrl">
+          <label>Image Fit Mode</label>
+          <select data-path="climateScreen.bgFit">
+            <option value="cover">Cover (Fill 1920x720)</option>
+            <option value="contain">Contain</option>
+            <option value="stretch">Stretch</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>Zoom / Scale (%)</label><input type="range" min="40" max="250" data-path="climateScreen.bgScale"><input type="number" data-path="climateScreen.bgScale"></div>
+        <div class="ctrl"><label>Pan X Offset (px)</label><input type="range" min="-500" max="500" data-path="climateScreen.bgOffsetX"><input type="number" data-path="climateScreen.bgOffsetX"></div>
+        <div class="ctrl"><label>Pan Y Offset (px)</label><input type="range" min="-400" max="400" data-path="climateScreen.bgOffsetY"><input type="number" data-path="climateScreen.bgOffsetY"></div>
+        <div class="ctrl"><label>Darken / Dim (%)</label><input type="range" min="0" max="85" data-path="climateScreen.bgDim"><input type="number" data-path="climateScreen.bgDim"></div>
+        <div class="ctrl"><label>Background / Popup Color</label><input type="color" data-path="climateScreen.bgColor"></div>
+        <div class="ctrl"><label>Primary Frame / Border Color</label><input type="color" data-path="climateScreen.accentColor"></div>
+        <div class="ctrl"><label>Secondary Accent Color</label><input type="color" data-path="climateScreen.secondaryColor"></div>
+        <div class="ctrl">
+          <label>Draw Tactical Frame &amp; Grid</label>
+          <input type="checkbox" id="chkClimateLcarsFrame" onchange="cfg.climateScreen.showLcarsFrame = this.checked; scheduleAutoSave(); render();">
+        </div>
+        <div class="ctrl">
+          <label>Buttons, Fan Pill &amp; Warmer Popup</label>
+          <select data-path="climateScreen.bottomBarMode">
+            <option value="oem">Stock Hyundai OEM Buttons &amp; Popup</option>
+            <option value="lcars">Themed Buttons, Fan Pill &amp; Warmer Popup</option>
+          </select>
+        </div>
+        <div class="ctrl">
+          <label>Warmer/Vent Icons &amp; LED Bars</label>
+          <select data-path="climateScreen.warmerIconStyle">
+            <option value="oem">Stock Hyundai OEM Icons &amp; LEDs</option>
+            <option value="themed">Custom Sci-Fi Icons &amp; Colored LEDs</option>
+          </select>
+        </div>
+        <div class="ctrl"><label>Warmer Heat / LED Color</label><input type="color" data-path="climateScreen.heatColor"></div>
+        <div class="ctrl"><label>Ventilation Cool / LED Color</label><input type="color" data-path="climateScreen.ventColor"></div>
+      </div>
+
+      <div class="upload-card sub-card-purple">
+        <h3>
+          <span>Climate Center 3D Seat Graphic (309&times;351)</span>
+          <button class="danger" onclick="clearCustomBg('climateSeats')">Reset Seat</button>
+        </h3>
+        <div class="ctrl">
+          <label>Center Seat Style</label>
+          <select data-path="climateScreen.seatStyle" onchange="setScreenMode('climate')">
+            <option value="oem">Stock Hyundai OEM 3D Seat</option>
+            <option value="captainsChair">Star Trek Captain's Chair</option>
+            <option value="lcars">Vector Wireframe Bucket Seat</option>
+            <option value="custom">Custom Uploaded Seat Graphic</option>
+          </select>
+        </div>
+        <div class="ctrl">
+          <label>Preview Warmer/Cool LED State</label>
+          <select id="selSimSeatState" onchange="render();">
+            <option value="heat3">🔥 Level 3 — High Heat (3 LEDs)</option>
+            <option value="heat2">🔥 Level 2 — Medium Heat (2 LEDs)</option>
+            <option value="heat1">🔥 Level 1 — Low Heat (1 LED)</option>
+            <option value="off">⚪ Off (Neutral)</option>
+            <option value="vent3">❄️ Level 3 — High Cool (3 LEDs)</option>
+            <option value="vent2">❄️ Level 2 — Medium Cool (2 LEDs)</option>
+            <option value="vent1">❄️ Level 1 — Low Cool (1 LED)</option>
+          </select>
+        </div>
+        <label class="upload-btn-label" style="margin-top:4px;">
+          Upload Custom Climate Seat Graphic (309&times;351)...
+          <input type="file" accept="image/*" onchange="uploadAssetFile(this, 'seat_driver', 'climateDriverSeat')">
+        </label>
+        <div class="ctrl"><label>Seat Wireframe Color</label><input type="color" data-path="climateScreen.seatColor"></div>
+        <div class="ctrl"><label>Seat Headrest/Rail Accent</label><input type="color" data-path="climateScreen.seatAccentColor"></div>
+        <div class="ctrl"><label>Seat Scale (%)</label><input type="range" min="40" max="180" data-path="climateScreen.seatScale"><input type="number" data-path="climateScreen.seatScale"></div>
+        <div class="ctrl"><label>Seat Offset X (px)</label><input type="range" min="-150" max="150" data-path="climateScreen.seatOffsetX"><input type="number" data-path="climateScreen.seatOffsetX"></div>
+        <div class="ctrl"><label>Seat Offset Y (px)</label><input type="range" min="-150" max="150" data-path="climateScreen.seatOffsetY"><input type="number" data-path="climateScreen.seatOffsetY"></div>
+      </div>
+    </div>
+
+    <!-- TAB 6: COLORS -->
+    <div class="tab-content" id="tab6">
       <div class="section-title">Theme &amp; Card Palette</div>
       <div class="ctrl"><label>Tile Card Fill (Normal)</label><input type="color" data-path="colors.tileBgNor"></div>
       <div class="ctrl"><label>Tile Card Fill (Pressed)</label><input type="color" data-path="colors.tileBgPush"></div>
@@ -815,16 +1117,28 @@ async function deleteCurrentTheme() {
   }
 }
 
-function switchTab(idx) {
+function switchTab(idx, skipScreenSync) {
   document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === idx));
   document.querySelectorAll('.tab-content').forEach((c, i) => c.classList.toggle('active', i === idx));
+  if (!skipScreenSync) {
+    if (idx === 4 && screenMode !== 'ev') setScreenMode('ev', true);
+    else if (idx === 5 && screenMode !== 'climate' && screenMode !== 'warmer') setScreenMode('climate', true);
+    else if (idx === 2 && screenMode !== 'home') setScreenMode('home', true);
+  }
 }
 
-function setScreenMode(m) {
+function setScreenMode(m, skipTabSync) {
   screenMode = m;
   document.getElementById('btnViewApps1').classList.toggle('active-mode', m === 'apps1');
   document.getElementById('btnViewApps2').classList.toggle('active-mode', m === 'apps2');
   document.getElementById('btnViewHome').classList.toggle('active-mode', m === 'home');
+  document.getElementById('btnViewEv').classList.toggle('active-mode', m === 'ev');
+  document.getElementById('btnViewClimate').classList.toggle('active-mode', m === 'climate');
+  document.getElementById('btnViewWarmer').classList.toggle('active-mode', m === 'warmer');
+  if (!skipTabSync) {
+    if (m === 'ev') switchTab(4, true);
+    else if (m === 'climate' || m === 'warmer') switchTab(5, true);
+  }
   render();
 }
 
@@ -835,20 +1149,109 @@ function getByPath(obj, path) {
 function setByPath(obj, path, val) {
   const parts = path.split('.');
   let cur = obj;
-  for (let i = 0; i < parts.length - 1; i++) cur = cur[parts[i]];
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!cur[parts[i]]) cur[parts[i]] = {};
+    cur = cur[parts[i]];
+  }
   cur[parts[parts.length - 1]] = val;
 }
 
-let controlsBoundOnce = false;
-function bindControls() {
+function ensureConfigDefaults() {
+  if (!cfg) return;
+  if (!cfg.homeScreen) cfg.homeScreen = {};
   if (!cfg.homeScreen.bgFit) cfg.homeScreen.bgFit = 'cover';
   if (!cfg.homeScreen.mapFadeMode) cfg.homeScreen.mapFadeMode = 'feather';
   if (cfg.homeScreen.mapFadeWidth === undefined) cfg.homeScreen.mapFadeWidth = 75;
   if (cfg.homeScreen.mapCenterOpacity === undefined) cfg.homeScreen.mapCenterOpacity = 0;
+  if (!cfg.homeScreen.fontFamily) cfg.homeScreen.fontFamily = 'oem';
+  if (cfg.homeScreen.customFontFile === undefined) cfg.homeScreen.customFontFile = '';
+  if (cfg.homeScreen.applyFontToClimate === undefined) cfg.homeScreen.applyFontToClimate = false;
+  if (cfg.homeScreen.clockOffsetX === undefined) cfg.homeScreen.clockOffsetX = 0;
+  if (cfg.homeScreen.clockOffsetY === undefined) cfg.homeScreen.clockOffsetY = 0;
+  if (cfg.homeScreen.clockFontScale === undefined) cfg.homeScreen.clockFontScale = 100;
+  if (cfg.homeScreen.mediaOffsetX === undefined) cfg.homeScreen.mediaOffsetX = 0;
+  if (cfg.homeScreen.mediaOffsetY === undefined) cfg.homeScreen.mediaOffsetY = 0;
+  if (cfg.homeScreen.mediaFontScale === undefined) cfg.homeScreen.mediaFontScale = 100;
+
+  if (!cfg.batteryWidget) cfg.batteryWidget = {};
   if (cfg.batteryWidget.rangeOffsetX === undefined) cfg.batteryWidget.rangeOffsetX = 0;
   if (cfg.batteryWidget.rangeOffsetY === undefined) cfg.batteryWidget.rangeOffsetY = 0;
   if (cfg.batteryWidget.battTextOffsetX === undefined) cfg.batteryWidget.battTextOffsetX = 0;
   if (cfg.batteryWidget.battTextOffsetY === undefined) cfg.batteryWidget.battTextOffsetY = 0;
+
+  const pCol = (cfg.colors && cfg.colors.primary) ? cfg.colors.primary : '#3B82F6';
+  const sCol = (cfg.colors && cfg.colors.accentBlue) ? cfg.colors.accentBlue : '#38BDF8';
+
+  cfg.statusBar = Object.assign({
+    bgMode: 'oem',
+    customBgFile: '',
+    bgFit: 'cover',
+    bgScale: 100,
+    bgOffsetX: 0,
+    bgOffsetY: 0,
+    bgColor: '#060810',
+    accentColor: pCol,
+    secondaryColor: sCol,
+    borderHeight: 4,
+    buttonStyle: 'oem',
+    buttonBgColor: '#141C2B',
+    buttonAccentColor: pCol,
+    buttonGlyphColor: '#FFCC66',
+    customHomeFile: '',
+    customBackFile: ''
+  }, cfg.statusBar || {});
+
+  cfg.climateScreen = Object.assign({
+    bgMode: 'oem',
+    customBgFile: '',
+    bgFit: 'cover',
+    bgScale: 100,
+    bgOffsetX: 0,
+    bgOffsetY: 0,
+    bgDim: 0,
+    bgColor: '#070A12',
+    accentColor: pCol,
+    secondaryColor: sCol,
+    showLcarsFrame: false,
+    bottomBarMode: 'oem',
+    warmerIconStyle: 'oem',
+    heatColor: '#FB923C',
+    ventColor: '#38BDF8',
+    seatStyle: 'oem',
+    seatColor: sCol,
+    seatAccentColor: pCol,
+    seatScale: 100,
+    seatOffsetX: 0,
+    seatOffsetY: 0,
+    customDriverSeatFile: '',
+    customPassengerSeatFile: ''
+  }, cfg.climateScreen || {});
+
+  cfg.evScreen = Object.assign({
+    bgMode: 'oem',
+    customBgFile: '',
+    bgFit: 'cover',
+    bgScale: 100,
+    bgOffsetX: 0,
+    bgOffsetY: 0,
+    bgDim: 0,
+    bgColor: '#060911',
+    accentColor: pCol,
+    secondaryColor: sCol,
+    showLcarsFrame: false,
+    carStyle: 'oem',
+    customCarFile: '',
+    carScale: 100,
+    carOffsetX: 0,
+    carOffsetY: 0,
+    cardStyle: 'oem',
+    hideRangeRadar: false
+  }, cfg.evScreen || {});
+}
+
+let controlsBoundOnce = false;
+function bindControls() {
+  ensureConfigDefaults();
 
   document.querySelectorAll('[data-path]').forEach(el => {
     const p = el.getAttribute('data-path');
@@ -861,12 +1264,10 @@ function bindControls() {
         document.querySelectorAll(`[data-path="${p}"]`).forEach(peer => {
           if (peer !== el) peer.value = nv;
         });
-        // If user adjusts "Battery %" Box sliders, automatically turn on showCalloutBox so it is immediately visible!
         if (p.startsWith('batteryWidget.callout')) {
           cfg.batteryWidget.showCalloutBox = true;
           document.getElementById('chkBatBox').checked = true;
         }
-        // If user adjusts Charge Bar sliders, automatically turn on showDynamicBar so it is immediately visible!
         if (p.startsWith('batteryWidget.hull')) {
           cfg.batteryWidget.showDynamicBar = true;
           document.getElementById('chkBatBar').checked = true;
@@ -884,6 +1285,15 @@ function bindControls() {
   document.getElementById('chkBatBox').checked = cfg.batteryWidget.showCalloutBox === true;
   const chkRange = document.getElementById('chkHideRangeBox');
   if (chkRange) chkRange.checked = cfg.batteryWidget.hideRangeBox === true;
+  const chkEvFrame = document.getElementById('chkEvLcarsFrame');
+  if (chkEvFrame) chkEvFrame.checked = cfg.evScreen.showLcarsFrame === true;
+  const chkEvRadar = document.getElementById('chkEvHideRadar');
+  if (chkEvRadar) chkEvRadar.checked = cfg.evScreen.hideRangeRadar === true;
+  const chkClmFrame = document.getElementById('chkClimateLcarsFrame');
+  if (chkClmFrame) chkClmFrame.checked = cfg.climateScreen.showLcarsFrame === true;
+  const chkFontClm = document.getElementById('chkApplyFontClimate');
+  if (chkFontClm) chkFontClm.checked = cfg.homeScreen.applyFontToClimate === true;
+  loadCustomFontIfNeeded();
 
   const sel = document.getElementById('selIconKey');
   sel.innerHTML = '';
@@ -905,6 +1315,34 @@ function getEffectiveIconMode(key) {
   const ov = cfg.icons.overrides[key];
   if (ov && ov.mode && ov.mode !== 'default') return ov.mode;
   return cfg.icons.defaultMode || 'oem';
+}
+
+let _loadedCustomFontUrl = '';
+async function loadCustomFontIfNeeded(forceReload) {
+  try {
+    if (!cfg || !cfg.homeScreen || !cfg.homeScreen.customFontFile) return;
+    const url = customAssetUrl(cfg.homeScreen.customFontFile);
+    if (!forceReload && _loadedCustomFontUrl === url) return;
+    _loadedCustomFontUrl = url;
+    const ff = new FontFace('Gen5WCustomUserFont', `url("${url}")`);
+    const loaded = await ff.load();
+    document.fonts.add(loaded);
+    render();
+  } catch (e) {
+    // Fail silently if custom font preview fails to parse in browser
+  }
+}
+
+function getHomePreviewFontFamily(forClimate) {
+  if (!cfg || !cfg.homeScreen) return '"Segoe UI", sans-serif';
+  if (forClimate && !cfg.homeScreen.applyFontToClimate) return '"Segoe UI", sans-serif';
+  const fam = cfg.homeScreen.fontFamily || 'oem';
+  if (fam === 'bahnschrift') return '"Bahnschrift", "DIN Alternate", "Segoe UI", sans-serif';
+  if (fam === 'consolas') return '"Consolas", "Courier New", monospace';
+  if (fam === 'trebuchet') return '"Trebuchet MS", "Segoe UI", sans-serif';
+  if (fam === 'impact') return '"Impact", "Arial Black", sans-serif';
+  if (fam === 'custom' && cfg.homeScreen.customFontFile) return '"Gen5WCustomUserFont", "Segoe UI", sans-serif';
+  return '"Segoe UI", sans-serif';
 }
 
 function refreshIconGrid() {
@@ -1106,7 +1544,7 @@ async function uploadAssetFile(input, slotName, section) {
         cfg.allApps.customBgFile = savedFile;
         cfg.allApps.bgMode = 'custom';
         document.querySelector('[data-path="allApps.bgMode"]').value = 'custom';
-        if (screenMode === 'home') setScreenMode('apps1');
+        if (screenMode !== 'apps1' && screenMode !== 'apps2') setScreenMode('apps1');
       } else if (section === 'homeScreen') {
         cfg.homeScreen.customBgFile = savedFile;
         cfg.homeScreen.bgMode = 'custom';
@@ -1121,7 +1559,51 @@ async function uploadAssetFile(input, slotName, section) {
         cfg.batteryWidget.style = 'custom';
         document.querySelector('[data-path="batteryWidget.style"]').value = 'custom';
         setScreenMode('home');
+      } else if (section === 'statusBar') {
+        cfg.statusBar.customBgFile = savedFile;
+        cfg.statusBar.bgMode = 'custom';
+        document.querySelector('[data-path="statusBar.bgMode"]').value = 'custom';
+      } else if (section === 'statusBarHome') {
+        cfg.statusBar.customHomeFile = savedFile;
+        cfg.statusBar.buttonStyle = 'custom';
+        document.querySelector('[data-path="statusBar.buttonStyle"]').value = 'custom';
+      } else if (section === 'statusBarBack') {
+        cfg.statusBar.customBackFile = savedFile;
+        cfg.statusBar.buttonStyle = 'custom';
+        document.querySelector('[data-path="statusBar.buttonStyle"]').value = 'custom';
+      } else if (section === 'evScreen') {
+        cfg.evScreen.customBgFile = savedFile;
+        cfg.evScreen.bgMode = 'custom';
+        document.querySelector('[data-path="evScreen.bgMode"]').value = 'custom';
+        setScreenMode('ev');
+      } else if (section === 'evCar') {
+        cfg.evScreen.customCarFile = savedFile;
+        cfg.evScreen.carStyle = 'custom';
+        document.querySelector('[data-path="evScreen.carStyle"]').value = 'custom';
+        setScreenMode('ev');
+      } else if (section === 'climateScreen') {
+        cfg.climateScreen.customBgFile = savedFile;
+        cfg.climateScreen.bgMode = 'custom';
+        document.querySelector('[data-path="climateScreen.bgMode"]').value = 'custom';
+        if (screenMode !== 'climate' && screenMode !== 'warmer') setScreenMode('climate');
+      } else if (section === 'homeFont') {
+        cfg.homeScreen.customFontFile = savedFile;
+        cfg.homeScreen.fontFamily = 'custom';
+        document.querySelector('[data-path="homeScreen.fontFamily"]').value = 'custom';
+        await loadCustomFontIfNeeded(true);
+        setScreenMode('home');
+      } else if (section === 'climateDriverSeat') {
+        cfg.climateScreen.customDriverSeatFile = savedFile;
+        cfg.climateScreen.seatStyle = 'custom';
+        document.querySelector('[data-path="climateScreen.seatStyle"]').value = 'custom';
+        setScreenMode('climate');
+      } else if (section === 'climatePassengerSeat') {
+        cfg.climateScreen.customPassengerSeatFile = savedFile;
+        cfg.climateScreen.seatStyle = 'custom';
+        document.querySelector('[data-path="climateScreen.seatStyle"]').value = 'custom';
+        setScreenMode('climate');
       }
+      scheduleAutoSave();
       render();
       setToast('Uploaded ' + savedFile + ' into theme "' + (cfg.themeName || activeThemeId) + '"!');
     } catch (err) {
@@ -1138,10 +1620,37 @@ function clearCustomBg(section) {
   } else if (section === 'homeScreen') {
     cfg.homeScreen.bgMode = 'oem';
     cfg.homeScreen.bgScale = 100; cfg.homeScreen.bgOffsetX = 0; cfg.homeScreen.bgOffsetY = 0; cfg.homeScreen.bgDim = 0;
+  } else if (section === 'homeWidgets') {
+    cfg.homeScreen.fontFamily = 'oem';
+    cfg.homeScreen.applyFontToClimate = false;
+    cfg.homeScreen.clockOffsetX = 0; cfg.homeScreen.clockOffsetY = 0; cfg.homeScreen.clockFontScale = 100;
+    cfg.homeScreen.mediaOffsetX = 0; cfg.homeScreen.mediaOffsetY = 0; cfg.homeScreen.mediaFontScale = 100;
   } else if (section === 'batteryWidget') {
     cfg.batteryWidget.style = 'oem';
     cfg.batteryWidget.customScale = 100; cfg.batteryWidget.customOffsetX = 0; cfg.batteryWidget.customOffsetY = 0;
+  } else if (section === 'statusBar') {
+    cfg.statusBar.bgMode = 'oem';
+    cfg.statusBar.bgScale = 100; cfg.statusBar.bgOffsetX = 0; cfg.statusBar.bgOffsetY = 0;
+  } else if (section === 'statusBarButtons') {
+    cfg.statusBar.buttonStyle = 'oem';
+    cfg.statusBar.customHomeFile = ''; cfg.statusBar.customBackFile = '';
+  } else if (section === 'evScreen') {
+    cfg.evScreen.bgMode = 'oem';
+    cfg.evScreen.bgScale = 100; cfg.evScreen.bgOffsetX = 0; cfg.evScreen.bgOffsetY = 0; cfg.evScreen.bgDim = 0;
+    cfg.evScreen.showLcarsFrame = false; cfg.evScreen.hideRangeRadar = false;
+  } else if (section === 'evCar') {
+    cfg.evScreen.carStyle = 'oem';
+    cfg.evScreen.carScale = 100; cfg.evScreen.carOffsetX = 0; cfg.evScreen.carOffsetY = 0;
+  } else if (section === 'climateScreen') {
+    cfg.climateScreen.bgMode = 'oem';
+    cfg.climateScreen.bgScale = 100; cfg.climateScreen.bgOffsetX = 0; cfg.climateScreen.bgOffsetY = 0; cfg.climateScreen.bgDim = 0;
+    cfg.climateScreen.showLcarsFrame = false; cfg.climateScreen.bottomBarMode = 'oem';
+    cfg.climateScreen.warmerIconStyle = 'oem'; cfg.climateScreen.heatColor = '#FB923C'; cfg.climateScreen.ventColor = '#38BDF8';
+  } else if (section === 'climateSeats') {
+    cfg.climateScreen.seatStyle = 'oem';
+    cfg.climateScreen.seatScale = 100; cfg.climateScreen.seatOffsetX = 0; cfg.climateScreen.seatOffsetY = 0;
   }
+  scheduleAutoSave();
   bindControls();
   render();
 }
@@ -1164,6 +1673,7 @@ async function handleIconFileUpload(iconKey, file) {
       selectedIconKey = iconKey;
       document.getElementById('selIconKey').value = iconKey;
       loadSelectedIconUI();
+      scheduleAutoSave();
       render();
       setToast('Uploaded custom icon graphic for ' + iconKey + '!');
     } catch (err) {
@@ -1192,6 +1702,7 @@ async function handleTileBgFileUpload(iconKey, file) {
       selectedIconKey = iconKey;
       document.getElementById('selIconKey').value = iconKey;
       loadSelectedIconUI();
+      scheduleAutoSave();
       render();
       setToast('Uploaded independent tile background for ' + iconKey + '!');
     } catch (err) {
@@ -1217,6 +1728,12 @@ dropZone.addEventListener('drop', (ev) => {
   const x = (ev.clientX - rect.left) * (1920 / rect.width);
   const y = (ev.clientY - rect.top) * (720 / rect.height);
 
+  if (y <= 90) {
+    switchTab(3, true);
+    uploadAssetFile({ files: [file] }, 'statusbar_bg', 'statusBar');
+    return;
+  }
+
   if (screenMode === 'apps1' || screenMode === 'apps2') {
     const items = screenMode === 'apps1' ? PAGE1_ITEMS : PAGE2_ITEMS;
     let hitItem = null;
@@ -1238,7 +1755,7 @@ dropZone.addEventListener('drop', (ev) => {
     }
     switchTab(0);
     uploadAssetFile({ files: [file] }, 'bg_allapps', 'allApps');
-  } else {
+  } else if (screenMode === 'home') {
     if (x >= 548 && x <= 1090 && y >= 350 && y <= 572) {
       switchTab(2);
       uploadAssetFile({ files: [file] }, 'battery_custom', 'batteryWidget');
@@ -1246,6 +1763,24 @@ dropZone.addEventListener('drop', (ev) => {
       switchTab(0);
       uploadAssetFile({ files: [file] }, 'bg_home', 'homeScreen');
     }
+  } else if (screenMode === 'ev') {
+    if (x >= 20 && x <= 500 && y >= 310 && y <= 585) {
+      switchTab(4, true);
+      uploadAssetFile({ files: [file] }, 'ev_car_custom', 'evCar');
+    } else {
+      switchTab(4, true);
+      uploadAssetFile({ files: [file] }, 'bg_ev', 'evScreen');
+    }
+  } else if (screenMode === 'climate') {
+    switchTab(5, true);
+    if (x >= 880 && x <= 1270 && y >= 215 && y <= 580) {
+      uploadAssetFile({ files: [file] }, 'seat_driver', 'climateDriverSeat');
+    } else {
+      uploadAssetFile({ files: [file] }, 'bg_climate', 'climateScreen');
+    }
+  } else if (screenMode === 'warmer') {
+    switchTab(5, true);
+    uploadAssetFile({ files: [file] }, 'bg_climate', 'climateScreen');
   }
 });
 
@@ -1253,9 +1788,34 @@ document.getElementById('stageCanvas').addEventListener('click', (ev) => {
   const rect = ev.target.getBoundingClientRect();
   const x = (ev.clientX - rect.left) * (1920 / rect.width);
   const y = (ev.clientY - rect.top) * (720 / rect.height);
+  if (y <= 86) {
+    switchTab(3, true);
+    setToast('Selected Top Status Bar — customize the 1920x90 bar or Home/Back/Menu buttons!');
+    return;
+  }
   if (screenMode === 'home') {
     if (x >= 548 && x <= 1090 && y >= 350 && y <= 572) switchTab(2);
     else switchTab(0);
+    return;
+  }
+  if (screenMode === 'ev') {
+    switchTab(4, true);
+    return;
+  }
+  if (screenMode === 'climate') {
+    switchTab(5, true);
+    if (x >= 1235 && x <= 1350 && y >= 445 && y <= 560) {
+      setScreenMode('warmer', true);
+      setToast('Opened Warmer/Ventilation floating popup window!');
+    }
+    return;
+  }
+  if (screenMode === 'warmer') {
+    switchTab(5, true);
+    if (x >= 618 && x <= 1382 && y >= 600 && y <= 676) {
+      setScreenMode('climate', true);
+      setToast('Closed Warmer/Ventilation popup — back to full Climate screen.');
+    }
     return;
   }
   const items = screenMode === 'apps1' ? PAGE1_ITEMS : PAGE2_ITEMS;
@@ -1530,7 +2090,7 @@ function drawTileAndIcon(ctx, tx, ty, item) {
     const lineHeight = txtSize * 1.15;
     const baseY = (lines.length > 1 ? 172 : 184) + txtOffY;
 
-    ctx.font = `bold ${txtSize}px "Segoe UI", Arial`;
+    ctx.font = `bold ${txtSize}px ${getHomePreviewFontFamily(false)}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
 
@@ -1986,6 +2546,461 @@ function drawSimulatedOemEvCar(ctx, pct, bScale, bOffX, bOffY) {
   ctx.restore();
 }
 
+function drawShuttleGalileo(ctx, pct, scalePct, offX, offY) {
+  ctx.save();
+  const s = (scalePct > 0 ? scalePct : 100) / 100.0;
+  ctx.translate(317.5 + (offX || 0), 159.0 + (offY || 0));
+  ctx.scale(s, s);
+  ctx.translate(-317.5, -159.0);
+
+  // 1. Soft 3D Ground Shadow under the Class F Shuttlecraft Galileo
+  ctx.save();
+  ctx.translate(332, 198);
+  ctx.rotate(-0.105);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 248, 44, 0, 0, Math.PI * 2);
+  const shGrad = ctx.createRadialGradient(0, 0, 25, 0, 0, 248);
+  shGrad.addColorStop(0, 'rgba(0, 0, 0, 0.72)');
+  shGrad.addColorStop(0.65, 'rgba(0, 0, 0, 0.36)');
+  shGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = shGrad;
+  ctx.fill();
+  ctx.restore();
+
+  // 2. Far-Side (Port / Left) Warp Nacelle & Support Pylon (behind main fuselage)
+  ctx.save();
+  // Port swept pylon
+  ctx.beginPath();
+  ctx.moveTo(158, 124);
+  ctx.lineTo(138, 92);
+  ctx.lineTo(205, 84);
+  ctx.lineTo(222, 116);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(82, 102, 118, 0.45)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(186, 208, 224, 0.65)';
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+
+  // Port cylindrical warp nacelle body (tilted -0.115 rad matching 3/4 perspective)
+  ctx.save();
+  ctx.translate(215, 80);
+  ctx.rotate(-0.115);
+  // Nacelle tube (-125..+115, height 24)
+  ctx.beginPath();
+  ctx.moveTo(-128, 12);
+  ctx.lineTo(-116, -12);
+  ctx.lineTo(112, -12);
+  ctx.lineTo(112, 12);
+  ctx.closePath();
+  const portNacGrad = ctx.createLinearGradient(0, -12, 0, 12);
+  portNacGrad.addColorStop(0, 'rgba(140, 164, 182, 0.48)');
+  portNacGrad.addColorStop(0.5, 'rgba(88, 110, 128, 0.42)');
+  portNacGrad.addColorStop(1, 'rgba(52, 68, 82, 0.55)');
+  ctx.fillStyle = portNacGrad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(198, 218, 232, 0.72)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Port nacelle wireframe warp-field rings
+  ctx.strokeStyle = 'rgba(180, 205, 222, 0.42)';
+  ctx.lineWidth = 1.1;
+  for (let rx = -90; rx <= 85; rx += 35) {
+    ctx.beginPath();
+    ctx.moveTo(rx, -12);
+    ctx.quadraticCurveTo(rx + 5, 0, rx, 12);
+    ctx.stroke();
+  }
+
+  // Port Bussard collector dome at front tip (+112, 0)
+  ctx.beginPath();
+  ctx.arc(112, 0, 12, -Math.PI / 2, Math.PI / 2);
+  ctx.closePath();
+  const portBusGrad = ctx.createRadialGradient(116, -2, 2, 112, 0, 13);
+  portBusGrad.addColorStop(0, 'rgba(253, 224, 71, 0.88)');
+  portBusGrad.addColorStop(0.55, 'rgba(249, 115, 22, 0.72)');
+  portBusGrad.addColorStop(1, 'rgba(180, 83, 9, 0.55)');
+  ctx.fillStyle = portBusGrad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(254, 215, 170, 0.85)';
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+  ctx.restore();
+  ctx.restore();
+
+  // 3. Under-Chassis Landing Skids (Aft & Forward Ski Pads)
+  [
+    { x: 232, y: 215, w: 66, h: 10 },
+    { x: 472, y: 184, w: 62, h: 10 }
+  ].forEach(sk => {
+    ctx.save();
+    ctx.translate(sk.x, sk.y);
+    ctx.rotate(-0.115);
+    // Strut legs
+    ctx.fillStyle = 'rgba(100, 116, 139, 0.72)';
+    ctx.strokeStyle = 'rgba(203, 213, 225, 0.75)';
+    ctx.lineWidth = 1.4;
+    ctx.fillRect(-sk.w * 0.28, -16, 8, 16);
+    ctx.fillRect(sk.w * 0.16, -16, 8, 16);
+    // Ski pad
+    ctx.beginPath();
+    ctx.moveTo(-sk.w / 2, 2);
+    ctx.lineTo(sk.w / 2 - 6, 2);
+    ctx.lineTo(sk.w / 2 + 6, -4);
+    ctx.lineTo(sk.w / 2 - 4, -6);
+    ctx.lineTo(-sk.w / 2, -6);
+    ctx.closePath();
+    ctx.fillStyle = '#334155';
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  });
+
+  // 4. 3D Skateboard Battery / Warp-Power Core Slab inside the Shuttle Floor (fills rear-to-front)
+  const FL = [172, 158]; // Rear-left (far)
+  const FR = [395, 133]; // Front-left (far)
+  const NR = [480, 173]; // Front-right (near)
+  const NL = [250, 202]; // Rear-right (near)
+  const clampPct = Math.max(0.0, Math.min(1.0, pct));
+  const splitFar  = [FL[0] + (FR[0] - FL[0]) * clampPct, FL[1] + (FR[1] - FL[1]) * clampPct];
+  const splitNear = [NL[0] + (NR[0] - NL[0]) * clampPct, NL[1] + (NR[1] - NL[1]) * clampPct];
+  const slabH = 10;
+
+  if (clampPct < 0.999) {
+    ctx.beginPath();
+    ctx.moveTo(splitFar[0], splitFar[1]);
+    ctx.lineTo(FR[0], FR[1]);
+    ctx.lineTo(NR[0], NR[1]);
+    ctx.lineTo(splitNear[0], splitNear[1]);
+    ctx.closePath();
+    ctx.fillStyle = '#d8e3ea';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(splitNear[0], splitNear[1]);
+    ctx.lineTo(NR[0], NR[1]);
+    ctx.lineTo(NR[0], NR[1] + slabH);
+    ctx.lineTo(splitNear[0], splitNear[1] + slabH);
+    ctx.closePath();
+    ctx.fillStyle = '#9aa8b4';
+    ctx.fill();
+  }
+
+  if (clampPct > 0.001) {
+    const topCol  = clampPct <= 0.20 ? '#ff5252' : '#43f3b0';
+    const sideCol = clampPct <= 0.20 ? '#c62828' : '#1ec788';
+    const rearCol = clampPct <= 0.20 ? '#b71c1c' : '#25b88a';
+
+    ctx.beginPath();
+    ctx.moveTo(FL[0], FL[1]);
+    ctx.lineTo(splitFar[0], splitFar[1]);
+    ctx.lineTo(splitNear[0], splitNear[1]);
+    ctx.lineTo(NL[0], NL[1]);
+    ctx.closePath();
+    ctx.fillStyle = topCol;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(FL[0], FL[1]);
+    ctx.lineTo(NL[0], NL[1]);
+    ctx.lineTo(NL[0], NL[1] + slabH);
+    ctx.lineTo(FL[0], FL[1] + slabH);
+    ctx.closePath();
+    ctx.fillStyle = rearCol;
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(NL[0], NL[1]);
+    ctx.lineTo(splitNear[0], splitNear[1]);
+    ctx.lineTo(splitNear[0], splitNear[1] + slabH);
+    ctx.lineTo(NL[0], NL[1] + slabH);
+    ctx.closePath();
+    ctx.fillStyle = sideCol;
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+  ctx.lineWidth = 1;
+  for (let i = 1; i <= 5; i++) {
+    const u = i / 6.0;
+    const x1 = FL[0] + (FR[0] - FL[0]) * u;
+    const y1 = FL[1] + (FR[1] - FL[1]) * u;
+    const x2 = NL[0] + (NR[0] - NL[0]) * u;
+    const y2 = NL[1] + (NR[1] - NL[1]) * u;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+
+  // 5. Translucent 3D Class F Shuttlecraft Galileo Main Hull (Boxy Wedge Fuselage)
+  ctx.beginPath();
+  ctx.moveTo(182, 216); // Rear-right (starboard aft) lower corner
+  ctx.lineTo(106, 178); // Rear-left (port aft) lower corner
+  ctx.lineTo(86, 124);  // Port aft mid-transom crease
+  ctx.lineTo(118, 56);  // Port aft roof crown
+  ctx.quadraticCurveTo(285, 34, 448, 36); // Gently arched dorsal roof spine to forward brow
+  ctx.lineTo(484, 46);  // Starboard forward brow corner
+  ctx.lineTo(564, 102); // Flat-sloped cockpit viewport nose crease
+  ctx.lineTo(594, 128); // Forward wedge nose tip
+  ctx.lineTo(570, 164); // Forward lower chin
+  ctx.lineTo(488, 184); // Starboard forward lower chine
+  ctx.closePath();
+
+  const hullGrad = ctx.createLinearGradient(110, 34, 560, 216);
+  hullGrad.addColorStop(0, 'rgba(135, 160, 178, 0.36)');
+  hullGrad.addColorStop(0.55, 'rgba(92, 116, 134, 0.30)');
+  hullGrad.addColorStop(1, 'rgba(115, 142, 160, 0.40)');
+  ctx.fillStyle = hullGrad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(212, 228, 240, 0.84)';
+  ctx.lineWidth = 1.9;
+  ctx.stroke();
+
+  // 6. Recessed Aft Impulse Engine Grille (Left Transom)
+  ctx.beginPath();
+  ctx.moveTo(98, 126);
+  ctx.lineTo(154, 152);
+  ctx.lineTo(164, 188);
+  ctx.lineTo(108, 162);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(20, 30, 44, 0.68)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(190, 212, 228, 0.72)';
+  ctx.lineWidth = 1.3;
+  ctx.stroke();
+  // Impulse grille glowing horizontal vents
+  ctx.strokeStyle = 'rgba(56, 189, 248, 0.58)';
+  ctx.lineWidth = 1.2;
+  for (let iv = 1; iv <= 4; iv++) {
+    const f = iv / 5.0;
+    ctx.beginPath();
+    ctx.moveTo(98 + f * 10, 126 + f * 36);
+    ctx.lineTo(154 + f * 10, 152 + f * 36);
+    ctx.stroke();
+  }
+
+  // 7. X-Ray Wireframe Roof Keel, Tumblehome Crease & Internal Structural Bulkheads
+  ctx.strokeStyle = 'rgba(202, 220, 234, 0.54)';
+  ctx.lineWidth = 1.3;
+
+  // Starboard upper roof shoulder crease (from aft transom to forward cockpit brow)
+  ctx.beginPath();
+  ctx.moveTo(118, 56);
+  ctx.lineTo(168, 76);
+  ctx.quadraticCurveTo(328, 54, 484, 46);
+  ctx.stroke();
+
+  // Aft transom vertical edge (starboard rear corner)
+  ctx.beginPath();
+  ctx.moveTo(168, 76);
+  ctx.lineTo(154, 152);
+  ctx.lineTo(182, 216);
+  ctx.stroke();
+
+  // Starboard mid-body chine crease (from aft impulse corner to nose crease)
+  ctx.beginPath();
+  ctx.moveTo(154, 152);
+  ctx.lineTo(564, 102);
+  ctx.lineTo(594, 128);
+  ctx.stroke();
+
+  // 3 Internal X-Ray Structural Bulkhead Frames (arch across roof + down starboard wall)
+  [230, 312, 392].forEach(bx => {
+    const t = (bx - 168) / (484 - 168);
+    const topX = 118 + t * (448 - 118);
+    const topY = 48 - Math.sin(t * Math.PI) * 10;
+    const shX  = 168 + t * (484 - 168);
+    const shY  = 74 - t * 26;
+    const midX = 154 + t * (470 - 154);
+    const midY = 152 - t * 38;
+    const botX = 182 + t * (488 - 182);
+    const botY = 216 - t * 32;
+    ctx.beginPath();
+    ctx.moveTo(topX, topY);
+    ctx.quadraticCurveTo((topX + shX) * 0.5, topY + 4, shX, shY);
+    ctx.lineTo(midX, midY);
+    ctx.lineTo(botX, botY);
+    ctx.stroke();
+  });
+
+  // Starboard Side Access Hatch Door (X-Ray outline between bulkheads)
+  ctx.beginPath();
+  ctx.moveTo(278, 76);
+  ctx.lineTo(342, 69);
+  ctx.lineTo(336, 178);
+  ctx.lineTo(272, 186);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(148, 172, 190, 0.14)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(218, 232, 244, 0.68)';
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+
+  // 8. Iconic Galileo Flat-Paned Cockpit Viewport Windows (Port, Starboard & Side Quarter-Glass)
+  ctx.fillStyle = 'rgba(20, 34, 48, 0.55)';
+  ctx.strokeStyle = 'rgba(224, 238, 248, 0.86)';
+  ctx.lineWidth = 1.6;
+
+  // Port (far-right) front windshield pane
+  ctx.beginPath();
+  ctx.moveTo(454, 43);
+  ctx.lineTo(482, 47);
+  ctx.lineTo(552, 97);
+  ctx.lineTo(516, 102);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Starboard (near-center) front windshield pane
+  ctx.beginPath();
+  ctx.moveTo(416, 52);
+  ctx.lineTo(448, 44);
+  ctx.lineTo(510, 103);
+  ctx.lineTo(468, 110);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Starboard triangular side cockpit window
+  ctx.beginPath();
+  ctx.moveTo(376, 62);
+  ctx.lineTo(410, 54);
+  ctx.lineTo(460, 111);
+  ctx.lineTo(392, 118);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Forward Nose Sensor / Deflector Dish on nose bevel
+  ctx.save();
+  ctx.translate(566, 134);
+  ctx.rotate(0.18);
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 11, 16, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(34, 211, 238, 0.32)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(226, 242, 252, 0.85)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(2, 0, 4, 7, 0, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(251, 191, 36, 0.78)';
+  ctx.fill();
+  ctx.restore();
+
+  // Starfleet Hull Pennant Stripe & Delta Flash + "NCC-1701/7"
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(176, 146);
+  ctx.lineTo(456, 114);
+  ctx.lineTo(432, 122);
+  ctx.lineTo(176, 152);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(251, 191, 36, 0.55)';
+  ctx.fill();
+
+  ctx.translate(320, 152);
+  ctx.rotate(-0.112);
+  ctx.font = 'bold 11px "Segoe UI", Arial';
+  ctx.fillStyle = 'rgba(226, 238, 248, 0.78)';
+  ctx.textAlign = 'center';
+  ctx.fillText('NCC-1701/7   GALILEO', 0, 0);
+  ctx.restore();
+
+  // 9. Near-Side (Starboard / Right) Swept Pylon & Cylindrical Warp Nacelle (Foreground)
+  // Swept Pylon connecting lower starboard hull to near warp nacelle
+  ctx.beginPath();
+  ctx.moveTo(212, 188);
+  ctx.lineTo(298, 178);
+  ctx.lineTo(282, 208);
+  ctx.lineTo(196, 218);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(110, 134, 152, 0.58)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(212, 228, 240, 0.82)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Starboard Cylindrical Warp Nacelle (centered at 292, 204, rotated -0.115 rad)
+  ctx.save();
+  ctx.translate(292, 204);
+  ctx.rotate(-0.115);
+
+  // Aft spherical exhaust dome protruding at (-152, 2)
+  ctx.beginPath();
+  ctx.arc(-146, 2, 10, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(71, 85, 105, 0.85)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(203, 213, 225, 0.8)';
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+
+  // Main cylindrical nacelle tube (-148..+142, height 30)
+  ctx.beginPath();
+  ctx.moveTo(-150, 15);
+  ctx.lineTo(-134, -15);
+  ctx.lineTo(138, -15);
+  ctx.lineTo(138, 15);
+  ctx.closePath();
+  const stbdNacGrad = ctx.createLinearGradient(0, -15, 0, 15);
+  stbdNacGrad.addColorStop(0, 'rgba(190, 210, 226, 0.72)');
+  stbdNacGrad.addColorStop(0.35, 'rgba(125, 148, 168, 0.58)');
+  stbdNacGrad.addColorStop(0.8, 'rgba(64, 82, 98, 0.68)');
+  stbdNacGrad.addColorStop(1, 'rgba(40, 54, 68, 0.82)');
+  ctx.fillStyle = stbdNacGrad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(226, 238, 248, 0.90)';
+  ctx.lineWidth = 1.8;
+  ctx.stroke();
+
+  // Circumferential wireframe warp-field coil rings along the nacelle
+  ctx.strokeStyle = 'rgba(206, 224, 238, 0.52)';
+  ctx.lineWidth = 1.2;
+  for (let rx = -110; rx <= 110; rx += 32) {
+    ctx.beginPath();
+    ctx.moveTo(rx, -15);
+    ctx.quadraticCurveTo(rx + 6, 0, rx, 15);
+    ctx.stroke();
+  }
+
+  // Side detail strip & "NCC-1701/7" registry on the nacelle
+  ctx.fillStyle = 'rgba(226, 238, 248, 0.75)';
+  ctx.font = 'bold 9.5px "Segoe UI", Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('NCC-1701/7', -4, 4);
+
+  // Forward Bussard Ramscoop Collector Collar & Glowing Dome (+138, 0)
+  ctx.fillStyle = 'rgba(148, 163, 184, 0.85)';
+  ctx.fillRect(134, -15, 6, 30);
+  ctx.beginPath();
+  ctx.arc(140, 0, 15, -Math.PI / 2, Math.PI / 2);
+  ctx.closePath();
+  const stbdBusGrad = ctx.createRadialGradient(145, -3, 2, 140, 0, 16);
+  stbdBusGrad.addColorStop(0, '#fef08a');
+  stbdBusGrad.addColorStop(0.45, '#f97316');
+  stbdBusGrad.addColorStop(0.85, '#dc2626');
+  stbdBusGrad.addColorStop(1, 'rgba(153, 27, 27, 0.75)');
+  ctx.fillStyle = stbdBusGrad;
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(254, 226, 226, 0.92)';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  // Internal Bussard rotor vanes
+  ctx.strokeStyle = 'rgba(254, 249, 195, 0.65)';
+  ctx.lineWidth = 1.1;
+  ctx.beginPath();
+  ctx.moveTo(140, -10); ctx.lineTo(151, -4);
+  ctx.moveTo(140, 0);   ctx.lineTo(154, 0);
+  ctx.moveTo(140, 10);  ctx.lineTo(151, 4);
+  ctx.stroke();
+
+  ctx.restore();
+  ctx.restore();
+}
+
 function render() {
   if (!cfg) return;
   const canvas = document.getElementById('stageCanvas');
@@ -2095,20 +3110,14 @@ function render() {
     });
 
     if (showHud) {
-      ctx.fillStyle = 'rgba(0,0,0,0.65)';
-      ctx.fillRect(0, 0, 1920, 72);
-      ctx.fillStyle = '#FFF';
-      ctx.font = 'bold 34px "Segoe UI"';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'alphabetic';
-      ctx.fillText('12:00 PM    Thu, Nov. 12', 1100, 48);
       ctx.fillStyle = '#556677';
       roundRect(ctx, 902, 686, 36, 9, 4); ctx.fill();
       roundRect(ctx, 944, 686, 36, 9, 4); ctx.fill();
       ctx.fillStyle = '#38BDF8';
       roundRect(ctx, 986, 686, 36, 9, 4); ctx.fill();
     }
-  } else {
+    drawTopStatusBar(ctx, showHud, true);
+  } else if (screenMode === 'home') {
     // HOME SPLIT-SCREEN SIMULATION (1:1 On-Car Proportions)
     // On the car, MapTextureView starts at X=1125 (left of 1125 is dark #070a10)
     ctx.fillStyle = '#070a10';
@@ -2285,11 +3294,13 @@ function render() {
     ctx.save();
     ctx.translate(596, 335);
 
-    if (bw.style === 'oem') {
+    if (bw.style === 'oem' || bw.style === 'wireframeCar') {
       drawSimulatedOemEvCar(ctx, pct, bScale, bOffX, bOffY);
+    } else if (bw.style === 'galileo') {
+      drawShuttleGalileo(ctx, pct, bScale, bOffX, bOffY);
     } else if (bw.style === 'custom' && bw.customFile) {
       const cBat = getCachedImage(customAssetUrl(bw.customFile));
-      if (cBat) drawFittedImgInBoxOnCanvas(ctx, cBat, 0, 0, 620, 280, 'contain', bScale, bOffX, bOffY, 1.0);
+      if (cBat) drawFittedImgInBox(ctx, cBat, 0, 0, 620, 280, 'contain', bScale, bOffX, bOffY);
     } else {
       ctx.fillStyle = 'rgba(40,80,140,0.32)';
       ctx.strokeStyle = 'rgba(153,204,255,0.8)';
@@ -2338,48 +3349,1635 @@ function render() {
 
     if (showHud) {
       // Exact widget_ev_main_v2.xml text positions relative to (596, 335) + user offsets
+      const hFont = getHomePreviewFontFamily(false);
       ctx.fillStyle = '#e2e8f0';
-      ctx.font = 'bold 21px "Segoe UI"';
+      ctx.font = `bold 21px ${hFont}`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
       ctx.fillText('Battery', 274 + bTxtOffX, 56 + bTxtOffY);
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 62px "Segoe UI"';
+      ctx.font = `bold 62px ${hFont}`;
       ctx.fillText(Math.round(pct * 100) + '%', 274 + bTxtOffX, 118 + bTxtOffY);
 
       // Range / 81 mi text inside the Range box (marginStart=589.5, marginTop=204, width=171) + user offsets
       ctx.fillStyle = '#cbd5e1';
-      ctx.font = '500 23px "Segoe UI"';
+      ctx.font = `500 23px ${hFont}`;
       ctx.fillText('Range', 676 + rangeOffX, 232 + rangeOffY);
       ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 35px "Segoe UI"';
+      ctx.font = `bold 35px ${hFont}`;
       ctx.fillText('81 mi', 676 + rangeOffX, 274 + rangeOffY);
     }
     ctx.restore();
 
     if (showHud) {
-      // Exact on-car Clock, Date, Media & Progress Bar positions (X=82)
+      // Exact on-car Clock, Date, Media & Progress Bar positions (X=82) + user offsets & font scaling
+      const hFont = getHomePreviewFontFamily(false);
+      const clkOffX = hs.clockOffsetX || 0;
+      const clkOffY = hs.clockOffsetY || 0;
+      const clkScale = (hs.clockFontScale !== undefined && hs.clockFontScale > 0) ? (hs.clockFontScale / 100.0) : 1.0;
+      const medOffX = hs.mediaOffsetX || 0;
+      const medOffY = hs.mediaOffsetY || 0;
+      const medScale = (hs.mediaFontScale !== undefined && hs.mediaFontScale > 0) ? (hs.mediaFontScale / 100.0) : 1.0;
+
+      const datePx = Math.round(33 * clkScale);
+      const timePx = Math.round(124 * clkScale);
+      const ampmPx = Math.round(32 * clkScale);
+      const dateY  = 335 + clkOffY;
+      const timeY  = dateY + Math.round(133 * clkScale);
+      const ampmY  = timeY - Math.round(70 * clkScale);
+
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.font = '500 33px "Segoe UI"';
-      ctx.fillText('Thu, Nov. 12', 82, 335);
-      ctx.font = 'bold 124px "Segoe UI"';
-      ctx.fillText('12:45', 76, 468);
-      ctx.font = 'bold 32px "Segoe UI"';
-      ctx.fillText('PM', 416, 398);
-      ctx.font = '500 32px "Segoe UI"';
-      ctx.fillText('SiriusXM CH2', 82, 556);
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fillText('Hits 1', 82, 612);
+      ctx.font = `500 ${datePx}px ${hFont}`;
+      ctx.fillText('Thu, Nov. 12', 82 + clkOffX, dateY);
 
-      // Dotted cyan progress bar at Y=644, X=82..620
-      for (let px = 82; px < 620; px += 9) {
-        ctx.fillStyle = px < 420 ? '#38bdf8' : 'rgba(148, 163, 184, 0.45)';
-        ctx.fillRect(px, 643, 6, 7);
+      ctx.font = `bold ${timePx}px ${hFont}`;
+      const timeStr = '12:45';
+      ctx.fillText(timeStr, 76 + clkOffX, timeY);
+      const timeW = ctx.measureText(timeStr).width;
+
+      ctx.font = `bold ${ampmPx}px ${hFont}`;
+      ctx.fillText('PM', 76 + clkOffX + timeW + Math.round(16 * clkScale), ampmY);
+
+      const med1Px = Math.round(32 * medScale);
+      const med2Px = Math.round(32 * medScale);
+      ctx.font = `500 ${med1Px}px ${hFont}`;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('SiriusXM CH2', 82 + medOffX, 556 + medOffY);
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = `500 ${med2Px}px ${hFont}`;
+      ctx.fillText('Hits 1', 82 + medOffX, 556 + medOffY + Math.round(56 * medScale));
+
+      // Dotted cyan progress bar at Y=644, X=82..620 (shifts with Media widget)
+      const barY = 556 + medOffY + Math.round(87 * medScale);
+      for (let px = 82 + medOffX; px < 620 + medOffX; px += 9) {
+        ctx.fillStyle = px < (420 + medOffX) ? '#38bdf8' : 'rgba(148, 163, 184, 0.45)';
+        ctx.fillRect(px, barY, 6, 7);
       }
     }
+    drawTopStatusBar(ctx, showHud, false);
+  } else if (screenMode === 'ev') {
+    drawEvScreen(ctx, isNight, showHud);
+    drawTopStatusBar(ctx, showHud, true);
+  } else if (screenMode === 'climate') {
+    drawClimateAndWarmerScreen(ctx, isNight, showHud, false);
+    drawTopStatusBar(ctx, showHud, true);
+  } else if (screenMode === 'warmer') {
+    drawClimateAndWarmerScreen(ctx, isNight, showHud, true);
+    drawTopStatusBar(ctx, showHud, false);
   }
+}
+
+function drawTopStatusBar(ctx, showHud, showBackBtn) {
+  const sb = cfg.statusBar || {};
+  const bgMode = sb.bgMode || 'oem';
+  const btnStyle = sb.buttonStyle || 'oem';
+  if (!showHud && bgMode === 'oem' && btnStyle === 'oem') return;
+
+  ctx.save();
+  if (bgMode === 'oem') {
+    ctx.fillStyle = 'rgba(11, 14, 20, 0.90)';
+    ctx.fillRect(0, 0, 1920, 84);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.fillRect(0, 83, 1920, 1);
+  } else {
+    ctx.fillStyle = sb.bgColor || '#060810';
+    ctx.fillRect(0, 0, 1920, 86);
+    if (bgMode === 'custom' && sb.customBgFile) {
+      const sbImg = getCachedImage(customAssetUrl(sb.customBgFile));
+      if (sbImg) {
+        drawFittedImgInBox(ctx, sbImg, 0, 0, 1920, 86, sb.bgFit || 'cover', sb.bgScale || 100, sb.bgOffsetX || 0, sb.bgOffsetY || 0);
+      }
+    }
+    const bh = Math.max(0, Math.min(16, sb.borderHeight !== undefined ? sb.borderHeight : 4));
+    const acc = sb.accentColor || cfg.colors.primary || '#3B82F6';
+    const sec = sb.secondaryColor || cfg.colors.accentBlue || '#38BDF8';
+    const ter = cfg.colors.tertiary || '#818CF8';
+    if (bgMode === 'lcars') {
+      const h = Math.max(2, bh || 4);
+      const by = 86 - h;
+      ctx.fillStyle = acc; ctx.fillRect(0, by, 390, h);
+      ctx.fillStyle = sec; ctx.fillRect(398, by, 260, h);
+      ctx.fillStyle = ter; ctx.fillRect(666, by, 180, h);
+      ctx.fillStyle = acc; ctx.fillRect(854, by, 620, h);
+      ctx.fillStyle = sec; ctx.fillRect(1482, by, 438, h);
+    } else if (bh > 0) {
+      ctx.fillStyle = acc;
+      ctx.fillRect(0, 86 - bh, 1920, bh);
+    }
+  }
+
+  function drawNavBtn(bx, by, bw, bh, kind) {
+    ctx.save();
+    ctx.translate(bx, by);
+    let drewCustom = false;
+    if (btnStyle === 'custom') {
+      const cf = kind === 'home' ? sb.customHomeFile : (kind === 'back' ? sb.customBackFile : '');
+      if (cf) {
+        const bImg = getCachedImage(customAssetUrl(cf));
+        if (bImg) drewCustom = drawFittedImgInBox(ctx, bImg, 0, 0, bw, bh, 'contain', 100, 0, 0);
+      }
+    }
+    if (!drewCustom) {
+      if (btnStyle !== 'oem') {
+        roundRect(ctx, 8, 10, bw - 16, bh - 20, 24);
+        ctx.fillStyle = hexWithAlpha(sb.buttonBgColor || '#141C2B', 225);
+        ctx.fill();
+        ctx.strokeStyle = sb.buttonAccentColor || cfg.colors.primary || '#3B82F6';
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+      }
+      ctx.strokeStyle = btnStyle === 'oem' ? '#e2e8f0' : (sb.buttonGlyphColor || '#FFCC66');
+      ctx.lineWidth = 3.2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      const cx = bw / 2, cy = bh / 2;
+      if (kind === 'home') {
+        ctx.beginPath();
+        ctx.moveTo(cx - 15, cy - 1);
+        ctx.lineTo(cx, cy - 14);
+        ctx.lineTo(cx + 15, cy - 1);
+        ctx.lineTo(cx + 15, cy + 13);
+        ctx.lineTo(cx - 15, cy + 13);
+        ctx.closePath();
+        ctx.stroke();
+      } else if (kind === 'back') {
+        ctx.beginPath();
+        ctx.moveTo(cx + 7, cy - 13);
+        ctx.lineTo(cx - 8, cy);
+        ctx.lineTo(cx + 7, cy + 13);
+        ctx.stroke();
+      } else if (kind === 'menu') {
+        ctx.beginPath();
+        ctx.moveTo(cx - 15, cy - 9); ctx.lineTo(cx + 15, cy - 9);
+        ctx.moveTo(cx - 15, cy);     ctx.lineTo(cx + 15, cy);
+        ctx.moveTo(cx - 15, cy + 9); ctx.lineTo(cx + 15, cy + 9);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  // Exact Gen5W Top Status Bar Left Layout: [< Back (x=15)]  [Home (x=190)]  [≡ Menu (x=365)]
+  if (showBackBtn) {
+    drawNavBtn(12, 1, 165, 82, 'back');
+  } else if (showHud) {
+    // Profile badge on Home / All Apps when Back button is not present
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(38, 42, 24, 0, Math.PI * 2);
+    ctx.fillStyle = '#064e3b';
+    ctx.fill();
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.fillStyle = '#a3e635';
+    ctx.beginPath();
+    ctx.arc(38, 42, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  drawNavBtn(185, 1, 165, 82, 'home');
+  if (btnStyle !== 'oem' || showHud) {
+    drawNavBtn(358, 1, 165, 82, 'menu');
+  }
+
+  if (showHud) {
+    // Centered Clock & Date matching car photos (6:59 PM   Thu, Nov. 12)
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 42px "Segoe UI"';
+    ctx.textAlign = 'right';
+    ctx.fillText('6:59', 975, 44);
+    ctx.font = 'bold 23px "Segoe UI"';
+    ctx.textAlign = 'left';
+    ctx.fillText('PM', 984, 50);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '500 35px "Segoe UI"';
+    ctx.fillText('Thu, Nov. 12', 1095, 44);
+
+    // Far-right Bluelink & Signal Bars (x=1838)
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px "Segoe UI"';
+    ctx.fillText('B', 1838, 42);
+    for (let b = 0; b < 4; b++) {
+      const bh = 7 + b * 4;
+      ctx.fillRect(1862 + b * 6, 52 - bh, 4, bh);
+    }
+  }
+  ctx.restore();
+}
+
+function drawEvScreen(ctx, isNight, showHud) {
+  const ev = cfg.evScreen || {};
+  const bw = cfg.batteryWidget || {};
+  const pct = parseInt(document.getElementById('simBatteryPct').value, 10) / 100.0;
+  const acc = ev.accentColor || cfg.colors.primary || '#3B82F6';
+  const sec = ev.secondaryColor || cfg.colors.accentBlue || '#38BDF8';
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, 1920, 720);
+  ctx.clip();
+
+  // 1. Full-Width 1920x720 EV Screen Background & Title Bar
+  if (ev.bgMode === 'oem') {
+    const bgGrad = ctx.createLinearGradient(0, 84, 0, 720);
+    bgGrad.addColorStop(0, '#1e242d');
+    bgGrad.addColorStop(0.5, '#252c37');
+    bgGrad.addColorStop(1, '#1a2028');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, 1920, 720);
+    ctx.fillStyle = 'rgba(255,255,255,0.09)';
+    ctx.fillRect(0, 166, 1920, 1);
+  } else {
+    ctx.fillStyle = ev.bgColor || '#060911';
+    ctx.fillRect(0, 0, 1920, 720);
+    if (ev.bgMode === 'custom' && ev.customBgFile) {
+      const bgImg = getCachedImage(customAssetUrl(ev.customBgFile));
+      if (bgImg) {
+        drawFittedImgInBox(ctx, bgImg, 0, 0, 1920, 720, ev.bgFit || 'cover', ev.bgScale || 100, ev.bgOffsetX || 0, ev.bgOffsetY || 0);
+        if (ev.bgDim > 0) {
+          ctx.fillStyle = `rgba(0,0,0,${(ev.bgDim / 100).toFixed(2)})`;
+          ctx.fillRect(0, 0, 1920, 720);
+        }
+      }
+    }
+    ctx.fillStyle = hexWithAlpha(ev.bgColor || '#060911', 235);
+    ctx.fillRect(0, 84, 1920, 82);
+    ctx.fillStyle = acc;
+    ctx.fillRect(0, 164, 1920, 3);
+
+    if (ev.bgMode === 'lcars' || ev.showLcarsFrame === true) {
+      ctx.strokeStyle = hexWithAlpha(sec, 28);
+      ctx.lineWidth = 1;
+      for (let x = 80; x < 1880; x += 90) { ctx.beginPath(); ctx.moveTo(x, 172); ctx.lineTo(x, 570); ctx.stroke(); }
+      for (let y = 185; y < 570; y += 80) { ctx.beginPath(); ctx.moveTo(35, y); ctx.lineTo(1885, y); ctx.stroke(); }
+      ctx.fillStyle = acc; ctx.fillRect(10, 172, 16, 160);
+      ctx.fillStyle = sec; ctx.fillRect(10, 340, 16, 130);
+      ctx.fillStyle = cfg.colors.secondary || '#60A5FA'; ctx.fillRect(10, 478, 16, 85);
+    }
+  }
+
+  // Title Bar Left Range/Map Button (x=22, y=94, w=122, h=66) & Centered "Electric Vehicle" Title
+  const cardStyle = ev.cardStyle || 'oem';
+  roundRect(ctx, 22, 94, 122, 66, 12);
+  if (cardStyle === 'oem') {
+    const btnGrad = ctx.createLinearGradient(22, 94, 22, 160);
+    btnGrad.addColorStop(0, '#475261');
+    btnGrad.addColorStop(1, '#2d3540');
+    ctx.fillStyle = btnGrad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = 'rgba(16, 24, 39, 0.92)';
+    ctx.fill();
+    ctx.strokeStyle = sec;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  // Glowing cyan circle + mini gear inside top-left button
+  ctx.beginPath();
+  ctx.arc(80, 127, 17, 0, Math.PI * 2);
+  ctx.strokeStyle = '#22d3ee';
+  ctx.lineWidth = 3.5;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(95, 140, 6, 0, Math.PI * 2);
+  ctx.fillStyle = '#22d3ee';
+  ctx.fill();
+
+  if (showHud) {
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 36px "Segoe UI"';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Electric Vehicle', 960, 127);
+  }
+
+  // 2. Diagonal Glowing Cyan Perspective Range Road/Strip (ev_etc_main_case*, unless hidden)
+  if (!ev.hideRangeRadar) {
+    ctx.save();
+    // Perspective strip polygon from bottom-left (under car) up-right to x=1650
+    const roadPts = [
+      { x: 0,    y: 472 },
+      { x: 1525, y: 268 },
+      { x: 1650, y: 294 },
+      { x: 0,    y: 562 }
+    ];
+
+    // Soft cyan ambient underglow
+    const glowGrad = ctx.createLinearGradient(0, 520, 1650, 280);
+    glowGrad.addColorStop(0, 'rgba(6, 182, 212, 0.45)');
+    glowGrad.addColorStop(0.55, 'rgba(34, 211, 238, 0.65)');
+    glowGrad.addColorStop(1, 'rgba(34, 211, 238, 0.35)');
+
+    ctx.beginPath();
+    ctx.moveTo(roadPts[0].x, roadPts[0].y);
+    roadPts.slice(1).forEach(p => ctx.lineTo(p.x, p.y));
+    ctx.closePath();
+    ctx.shadowColor = '#22d3ee';
+    ctx.shadowBlur = 28;
+    ctx.fillStyle = glowGrad;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Perspective grid lines & glowing cyan dots inside the strip
+    ctx.save();
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(207, 250, 254, 0.55)';
+    ctx.lineWidth = 1.3;
+    for (let l = 0; l <= 7; l++) {
+      const f = l / 7.0;
+      const yStart = 472 + f * (562 - 472);
+      const yEnd   = 268 + f * (294 - 268);
+      const xEnd   = 1525 + f * (1650 - 1525);
+      ctx.beginPath();
+      ctx.moveTo(0, yStart);
+      ctx.lineTo(xEnd, yEnd);
+      ctx.stroke();
+    }
+    for (let s = 0; s < 58; s++) {
+      const u = s / 58.0;
+      const xTop = u * 1525;
+      const yTop = 472 + u * (268 - 472);
+      const xBot = u * 1650;
+      const yBot = 562 + u * (294 - 562);
+      ctx.strokeStyle = s % 5 === 0 ? 'rgba(255, 255, 255, 0.55)' : 'rgba(165, 243, 252, 0.28)';
+      ctx.lineWidth = s % 5 === 0 ? 1.8 : 1.0;
+      ctx.beginPath();
+      ctx.moveTo(xTop, yTop);
+      ctx.lineTo(xBot, yBot);
+      ctx.stroke();
+    }
+    ctx.restore();
+    ctx.restore();
+  }
+
+  // 3. EV Vehicle Graphic (450x255 at x=25, y=322) + overlaid "Battery 68%"
+  let effStyle = ev.carStyle || 'oem';
+  let effFile = ev.customCarFile || '';
+  let effScale = (ev.carScale !== undefined && ev.carScale > 0) ? ev.carScale : 100;
+  let effOffX = ev.carOffsetX || 0;
+  let effOffY = ev.carOffsetY || 0;
+  if (effStyle === 'sameAsHome') {
+    effStyle = bw.style || 'oem';
+    effFile = bw.customFile || '';
+    effScale = (bw.customScale !== undefined && bw.customScale > 0) ? bw.customScale : 100;
+    effOffX = bw.customOffsetX || 0;
+    effOffY = bw.customOffsetY || 0;
+  }
+
+  ctx.save();
+  ctx.translate(25, 315);
+  if (effStyle === 'oem' || effStyle === 'wireframeCar') {
+    ctx.save();
+    ctx.scale(430 / 635.0, 235 / 318.0);
+    drawSimulatedOemEvCar(ctx, pct, effScale, effOffX, effOffY);
+    ctx.restore();
+  } else if (effStyle === 'galileo') {
+    ctx.save();
+    ctx.scale(430 / 635.0, 235 / 318.0);
+    drawShuttleGalileo(ctx, pct, effScale, effOffX, effOffY);
+    ctx.restore();
+  } else if (effStyle === 'custom' && effFile) {
+    const cCar = getCachedImage(customAssetUrl(effFile));
+    if (cCar) drawFittedImgInBox(ctx, cCar, 0, 0, 430, 235, 'contain', effScale, effOffX, effOffY);
+  } else {
+    // 3/4 Front-Right Wireframe EV Crossover matching Photo 1 angle
+    ctx.save();
+    ctx.translate(215 + effOffX, 118 + effOffY);
+    ctx.scale(effScale / 100.0, effScale / 100.0);
+    ctx.translate(-215, -118);
+    ctx.fillStyle = hexWithAlpha(sec, 48);
+    ctx.strokeStyle = sec;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(32, 165); ctx.lineTo(38, 108); ctx.lineTo(108, 52); ctx.lineTo(248, 46);
+    ctx.lineTo(342, 92); ctx.lineTo(412, 118); ctx.lineTo(416, 168); ctx.lineTo(368, 186);
+    ctx.lineTo(108, 206); ctx.lineTo(42, 192); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = acc;
+    ctx.lineWidth = 2.2;
+    ctx.beginPath(); ctx.arc(115, 185, 32, 0, Math.PI * 2); ctx.fillStyle = '#111827'; ctx.fill(); ctx.stroke();
+    ctx.beginPath(); ctx.arc(352, 165, 30, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  // "Battery" & "68%" overlaid directly on the car's side windows (matching Photo 1!)
+  if (showHud) {
+    const pctInt = Math.round(pct * 100);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.shadowColor = 'rgba(0,0,0,0.85)';
+    ctx.shadowBlur = 6;
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '500 22px "Segoe UI"';
+    ctx.fillText('Battery', 182, 88);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 54px "Segoe UI"';
+    ctx.fillText(String(pctInt), 170, 140);
+    ctx.font = 'bold 26px "Segoe UI"';
+    ctx.fillText('%', 222, 140);
+    ctx.shadowBlur = 0;
+  }
+  ctx.restore();
+
+  // 4. Charging Station Pin & Climate On/Off Range Callouts along the Diagonal Strip
+  if (showHud) {
+    const mi = Math.round(pct * 190);
+    // Charging station callout above car (➡ 0.3 mi ChargePoint)
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 34px "Segoe UI"';
+    ctx.textAlign = 'left';
+    ctx.fillText('➡', 318, 272);
+    ctx.font = 'bold 52px "Segoe UI"';
+    ctx.fillText('0.3', 376, 276);
+    ctx.font = 'bold 26px "Segoe UI"';
+    ctx.fillText('mi', 462, 276);
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '500 25px "Segoe UI"';
+    ctx.fillText('DC Fast Charger (CENTRAL', 512, 250);
+    ctx.fillText('PLAZA STATION)', 512, 280);
+
+    // Map Pin with charging plug at (472, 358)
+    ctx.save();
+    ctx.translate(472, 358);
+    ctx.beginPath();
+    ctx.ellipse(0, 62, 36, 9, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = '#67e8f9';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, 58);
+    ctx.bezierCurveTo(-28, 24, -34, -18, 0, -24);
+    ctx.bezierCurveTo(34, -18, 28, 24, 0, 58);
+    ctx.fillStyle = 'rgba(226, 232, 240, 0.92)';
+    ctx.fill();
+    ctx.fillStyle = '#475569';
+    ctx.fillRect(-8, -6, 16, 14);
+    ctx.restore();
+
+    // Climate ON Range (in glowing cyan below the strip at x=1265, y=392)
+    ctx.fillStyle = '#22d3ee';
+    ctx.font = 'bold 24px "Segoe UI"';
+    ctx.fillText('❈ On', 1265, 392);
+    ctx.font = 'bold 56px "Segoe UI"';
+    ctx.fillText(String(mi), 1260, 450);
+    ctx.font = 'bold 28px "Segoe UI"';
+    ctx.fillText('mi', 1368, 450);
+
+    // Climate OFF Range (in white at the right tip of the strip at x=1672, y=306)
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = 'bold 20px "Segoe UI"';
+    ctx.fillText('❈ Off', 1672, 306);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 42px "Segoe UI"';
+    ctx.fillText(String(mi), 1668, 352);
+    ctx.font = 'bold 22px "Segoe UI"';
+    ctx.fillText('mi', 1748, 352);
+
+    // Right-edge collapsible split-screen pull tab (<)
+    ctx.beginPath();
+    ctx.arc(1925, 356, 48, Math.PI * 0.5, Math.PI * 1.5);
+    ctx.fillStyle = 'rgba(203, 213, 225, 0.72)';
+    ctx.fill();
+    ctx.fillStyle = '#1e293b';
+    ctx.font = 'bold 22px "Segoe UI"';
+    ctx.textAlign = 'center';
+    ctx.fillText('◀', 1898, 364);
+  }
+
+  // 5. Bottom Wide Container (x=24..1745, y=582..700) + Far-Right Circular Gear Button (cx=1830, cy=641)
+  roundRect(ctx, 24, 582, 1721, 116, 22);
+  if (cardStyle === 'oem') {
+    ctx.fillStyle = 'rgba(34, 41, 52, 0.92)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = hexWithAlpha(ev.bgColor || '#060911', 238);
+    ctx.fill();
+    ctx.strokeStyle = acc;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+
+  // Inner 2-section rounded box (x=576, y=595, w=1154, h=90)
+  roundRect(ctx, 576, 595, 1154, 90, 16);
+  if (cardStyle === 'oem') {
+    const inGrad = ctx.createLinearGradient(576, 595, 576, 685);
+    inGrad.addColorStop(0, 'rgba(90, 100, 114, 0.85)');
+    inGrad.addColorStop(1, 'rgba(62, 70, 82, 0.85)');
+    ctx.fillStyle = inGrad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = 'rgba(16, 24, 39, 0.92)';
+    ctx.fill();
+    if (cardStyle === 'lcars') {
+      ctx.save();
+      ctx.clip();
+      ctx.fillStyle = acc;
+      ctx.fillRect(576, 595, 12, 90);
+      ctx.fillRect(1192, 595, 10, 90);
+      ctx.restore();
+    }
+    ctx.strokeStyle = sec;
+    ctx.lineWidth = 2.2;
+    ctx.stroke();
+  }
+  // Vertical divider between Scheduled Charging and V2L
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(1192, 608);
+  ctx.lineTo(1192, 672);
+  ctx.stroke();
+
+  // Far-Right Circular Gear Button (cx=1830, cy=641, r=46)
+  ctx.beginPath();
+  ctx.arc(1830, 641, 46, 0, Math.PI * 2);
+  if (cardStyle === 'oem') {
+    ctx.fillStyle = 'rgba(58, 66, 78, 0.92)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.lineWidth = 1.8;
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = 'rgba(16, 24, 39, 0.92)';
+    ctx.fill();
+    ctx.strokeStyle = acc;
+    ctx.lineWidth = 2.4;
+    ctx.stroke();
+  }
+
+  if (showHud) {
+    // Left section: Next Departure
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 24px "Segoe UI"';
+    ctx.fillText('Next Departure', 300, 622);
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '500 19px "Segoe UI"';
+    ctx.fillText('Departure Time must be set first to use Scheduled', 300, 650);
+    ctx.fillText('Charging / Climate Control.', 300, 674);
+
+    // Middle section: Scheduled Charging and Climate
+    ctx.beginPath();
+    ctx.arc(638, 640, 22, 0, Math.PI * 2);
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(638, 627); ctx.lineTo(638, 640); ctx.lineTo(648, 640);
+    ctx.stroke();
+
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = '500 24px "Segoe UI"';
+    ctx.fillText('Scheduled Charging and Climate', 915, 624);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 23px "Segoe UI"';
+    ctx.fillText('🔌 : Off           ❈ : Off', 905, 664);
+
+    // Right section: Electricity Use Settings (V2L)
+    ctx.beginPath();
+    ctx.arc(1262, 640, 22, 0, Math.PI * 2);
+    ctx.strokeStyle = '#e2e8f0';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px "Segoe UI"';
+    ctx.fillText('⚡', 1262, 648);
+    ctx.font = 'bold 23px "Segoe UI"';
+    ctx.fillText('Electricity Use Settings (V2L)', 1495, 625);
+
+    roundRect(ctx, 1465, 644, 62, 26, 5);
+    ctx.fillStyle = '#cbd5e1';
+    ctx.fill();
+    ctx.fillStyle = '#1e293b';
+    ctx.font = 'bold 18px "Segoe UI"';
+    ctx.fillText('V2L', 1496, 663);
+
+    // Gear icon inside far-right button
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 38px "Segoe UI"';
+    ctx.fillText('⚙', 1830, 654);
+  }
+
+  ctx.restore();
+}
+
+function drawCaptainsChair(ctx, sCol, sAcc) {
+  // 3/4 Front-Left Star Trek Command / Captain's Chair (309x351 coordinate space)
+  // Matches the uploaded reference model: 3-block angled trapezoidal pedestal base,
+  // cylindrical swivel collar, wide flared angular command shell with dual flat-topped
+  // armrests + control panels/buttons, deep seat cushion, and 3-tier segmented backrest/headrest.
+  const shellDark = '#525862';
+  const shellMid  = '#737b86';
+  const shellLite = '#98a1ad';
+  const padFill   = '#adb5c0';
+  const padTop    = '#c6cdd6';
+
+  ctx.save();
+  ctx.lineJoin = 'round';
+  ctx.lineCap  = 'round';
+
+  // 1. Ambient Floor Shadow under Pedestal
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(148, 326, 92, 18, -0.08, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.38)';
+  ctx.fill();
+  ctx.restore();
+
+  // 2. Three-Block Angled Trapezoidal Pedestal Base (Left-Rear, Center-Mid, Right-Front)
+  // Left-rear pedestal block
+  ctx.beginPath();
+  ctx.moveTo(96, 268);
+  ctx.lineTo(132, 250);
+  ctx.lineTo(148, 256);
+  ctx.lineTo(116, 308);
+  ctx.lineTo(90, 294);
+  ctx.closePath();
+  ctx.fillStyle = '#5d646f';
+  ctx.fill();
+  ctx.strokeStyle = '#3d434b';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  // Center-mid pedestal block (stepped forward-left with angled front face)
+  ctx.beginPath();
+  ctx.moveTo(106, 278);
+  ctx.lineTo(148, 256);
+  ctx.lineTo(166, 264);
+  ctx.lineTo(146, 324);
+  ctx.lineTo(126, 314);
+  ctx.closePath();
+  ctx.fillStyle = '#6c7480';
+  ctx.fill();
+  ctx.stroke();
+  // Front beveled face of center block
+  ctx.beginPath();
+  ctx.moveTo(106, 278);
+  ctx.lineTo(126, 288);
+  ctx.lineTo(146, 324);
+  ctx.lineTo(126, 314);
+  ctx.closePath();
+  ctx.fillStyle = '#535a64';
+  ctx.fill();
+  ctx.stroke();
+
+  // Right-foreground main trapezoidal pedestal block (largest, closest to viewer)
+  // Top-right sloped face
+  ctx.beginPath();
+  ctx.moveTo(134, 286);
+  ctx.lineTo(182, 260);
+  ctx.lineTo(222, 278);
+  ctx.lineTo(176, 308);
+  ctx.closePath();
+  ctx.fillStyle = '#8b939f';
+  ctx.fill();
+  ctx.stroke();
+  // Right-side lower face
+  ctx.beginPath();
+  ctx.moveTo(176, 308);
+  ctx.lineTo(222, 278);
+  ctx.lineTo(180, 338);
+  ctx.closePath();
+  ctx.fillStyle = '#737b86';
+  ctx.fill();
+  ctx.stroke();
+  // Front-left dark sloped bevel face
+  ctx.beginPath();
+  ctx.moveTo(134, 286);
+  ctx.lineTo(176, 308);
+  ctx.lineTo(180, 338);
+  ctx.lineTo(150, 320);
+  ctx.closePath();
+  ctx.fillStyle = '#565d67';
+  ctx.fill();
+  ctx.stroke();
+
+  // 3. Cylindrical Swivel Collar Ring atop Pedestal
+  ctx.beginPath();
+  ctx.ellipse(148, 257, 25, 9, 0.08, 0, Math.PI * 2);
+  ctx.fillStyle = '#5e6570';
+  ctx.fill();
+  ctx.strokeStyle = sAcc || '#3B82F6';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(148, 252, 23, 7.5, 0.08, 0, Math.PI * 2);
+  ctx.fillStyle = '#88909c';
+  ctx.fill();
+  ctx.strokeStyle = '#474e57';
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+
+  // 4. Far-Left Wing & Left Armrest Console
+  // Under-wing angled side cheek (sloping up-left from seat pan to left armrest)
+  ctx.beginPath();
+  ctx.moveTo(92, 236);
+  ctx.lineTo(30, 174);
+  ctx.lineTo(118, 138);
+  ctx.lineTo(154, 174);
+  ctx.lineTo(136, 224);
+  ctx.closePath();
+  const gLeftWing = ctx.createLinearGradient(30, 145, 148, 225);
+  gLeftWing.addColorStop(0, '#6a727d');
+  gLeftWing.addColorStop(1, '#545b65');
+  ctx.fillStyle = gLeftWing;
+  ctx.fill();
+  ctx.strokeStyle = '#3f454e';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  // Left Armrest Top Deck (flat trapezoidal command surface)
+  ctx.beginPath();
+  ctx.moveTo(16, 158);
+  ctx.lineTo(104, 128);
+  ctx.lineTo(124, 134);
+  ctx.lineTo(38, 166);
+  ctx.closePath();
+  ctx.fillStyle = '#aab2bd';
+  ctx.fill();
+  ctx.stroke();
+
+  // Left Armrest Inner Cheek & Front Fascia Bevel
+  ctx.beginPath();
+  ctx.moveTo(38, 166);
+  ctx.lineTo(124, 134);
+  ctx.lineTo(120, 146);
+  ctx.lineTo(36, 178);
+  ctx.closePath();
+  ctx.fillStyle = '#737b86';
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(16, 158);
+  ctx.lineTo(38, 166);
+  ctx.lineTo(36, 178);
+  ctx.lineTo(18, 170);
+  ctx.closePath();
+  ctx.fillStyle = '#8d95a1';
+  ctx.fill();
+  ctx.stroke();
+
+  // Left Armrest Inset Control Pad & LCARS Accent Indicators
+  ctx.beginPath();
+  ctx.moveTo(36, 154);
+  ctx.lineTo(86, 136);
+  ctx.lineTo(96, 139);
+  ctx.lineTo(46, 157);
+  ctx.closePath();
+  ctx.fillStyle = '#bac2cc';
+  ctx.fill();
+  ctx.strokeStyle = sCol || '#38BDF8';
+  ctx.lineWidth = 1.3;
+  ctx.stroke();
+
+  // 5. Rear Vertical Spine Post (supporting the 3-tier segmented backrest)
+  ctx.fillStyle = '#484f58';
+  ctx.strokeStyle = '#32373e';
+  ctx.lineWidth = 1.5;
+  ctx.fillRect(194, 42, 16, 148);
+  ctx.strokeRect(194, 42, 16, 148);
+
+  // 6. Three-Tier Segmented Backrest Cushions (Lower Lumbar, Mid Torso, Upper Headrest)
+  const gPad = ctx.createLinearGradient(145, 22, 240, 190);
+  gPad.addColorStop(0, padTop);
+  gPad.addColorStop(0.6, padFill);
+  gPad.addColorStop(1, '#8c94a0');
+
+  // 6a. Lower Lumbar Bolster Pad
+  ctx.beginPath();
+  roundRect(ctx, 148, 146, 86, 28, 7);
+  ctx.fillStyle = gPad;
+  ctx.fill();
+  ctx.strokeStyle = '#4e555f';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  // 6b. Middle Main Backrest Pad (tallest trapezoidal cushion)
+  ctx.beginPath();
+  ctx.moveTo(156, 78);
+  ctx.lineTo(240, 82);
+  ctx.quadraticCurveTo(246, 84, 244, 92);
+  ctx.lineTo(240, 136);
+  ctx.quadraticCurveTo(238, 142, 230, 142);
+  ctx.lineTo(148, 135);
+  ctx.quadraticCurveTo(142, 134, 144, 126);
+  ctx.lineTo(150, 84);
+  ctx.quadraticCurveTo(152, 78, 156, 78);
+  ctx.closePath();
+  ctx.fillStyle = gPad;
+  ctx.fill();
+  ctx.stroke();
+
+  // 6c. Upper Headrest Pad
+  ctx.beginPath();
+  ctx.moveTo(162, 30);
+  ctx.lineTo(242, 28);
+  ctx.quadraticCurveTo(248, 28, 248, 36);
+  ctx.lineTo(246, 64);
+  ctx.quadraticCurveTo(246, 70, 238, 70);
+  ctx.lineTo(158, 68);
+  ctx.quadraticCurveTo(152, 68, 154, 60);
+  ctx.lineTo(156, 36);
+  ctx.quadraticCurveTo(157, 30, 162, 30);
+  ctx.closePath();
+  ctx.fillStyle = gPad;
+  ctx.fill();
+  ctx.stroke();
+
+  // Subtle accent trim along headrest & backrest edges
+  ctx.strokeStyle = hexWithAlpha(sCol || '#38BDF8', 150);
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(160, 65); ctx.lineTo(240, 67);
+  ctx.moveTo(150, 132); ctx.lineTo(234, 139);
+  ctx.stroke();
+
+  // 7. Deep Contoured Seat Bottom Cushion + Lower Front Lip of Bucket Shell
+  // Seat pan outer lip connecting left wing to right wing under the cushion
+  ctx.beginPath();
+  ctx.moveTo(90, 234);
+  ctx.lineTo(176, 262);
+  ctx.lineTo(194, 248);
+  ctx.lineTo(96, 220);
+  ctx.closePath();
+  ctx.fillStyle = '#5a626d';
+  ctx.fill();
+  ctx.strokeStyle = '#3d434b';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  // Padded Seat Cushion sitting inside the shell
+  ctx.beginPath();
+  ctx.moveTo(94, 206);
+  ctx.lineTo(152, 178);
+  ctx.lineTo(208, 194);
+  ctx.lineTo(172, 242);
+  ctx.quadraticCurveTo(162, 248, 146, 242);
+  ctx.lineTo(94, 222);
+  ctx.quadraticCurveTo(86, 214, 94, 206);
+  ctx.closePath();
+  const gCush = ctx.createLinearGradient(90, 180, 195, 245);
+  gCush.addColorStop(0, '#c2c9d2');
+  gCush.addColorStop(0.65, '#a8b0bc');
+  gCush.addColorStop(1, '#838b97');
+  ctx.fillStyle = gCush;
+  ctx.fill();
+  ctx.strokeStyle = '#4e555f';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+  // Seat cushion front bolster seam
+  ctx.beginPath();
+  ctx.moveTo(92, 211);
+  ctx.quadraticCurveTo(132, 226, 166, 232);
+  ctx.strokeStyle = 'rgba(65, 72, 82, 0.55)';
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+
+  // 8. Foreground Right Wing & Prominent Right Armrest Command Console
+  // Outer angled side wall of right wing (sweeping down from rear right armrest to seat base)
+  ctx.beginPath();
+  ctx.moveTo(154, 204);
+  ctx.lineTo(278, 148);
+  ctx.lineTo(290, 158);
+  ctx.lineTo(230, 234);
+  ctx.lineTo(176, 262);
+  ctx.closePath();
+  const gRightSide = ctx.createLinearGradient(160, 150, 275, 255);
+  gRightSide.addColorStop(0, '#7c8591');
+  gRightSide.addColorStop(1, '#58606b');
+  ctx.fillStyle = gRightSide;
+  ctx.fill();
+  ctx.strokeStyle = '#3d434b';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  // Inner dark recessed frame below right armrest front overhang
+  ctx.beginPath();
+  ctx.moveTo(142, 196);
+  ctx.lineTo(192, 214);
+  ctx.lineTo(176, 262);
+  ctx.lineTo(164, 256);
+  ctx.lineTo(176, 216);
+  ctx.lineTo(142, 204);
+  ctx.closePath();
+  ctx.fillStyle = '#495059';
+  ctx.fill();
+  ctx.stroke();
+
+  // Right Armrest Top Wide Command Console Deck (sloping forward-left)
+  ctx.beginPath();
+  ctx.moveTo(140, 180);
+  ctx.lineTo(236, 138);
+  ctx.quadraticCurveTo(268, 138, 286, 146);
+  ctx.lineTo(194, 200);
+  ctx.closePath();
+  const gRightTop = ctx.createLinearGradient(140, 140, 280, 200);
+  gRightTop.addColorStop(0, '#c8cfd8');
+  gRightTop.addColorStop(1, '#9fa7b3');
+  ctx.fillStyle = gRightTop;
+  ctx.fill();
+  ctx.strokeStyle = '#4e555f';
+  ctx.lineWidth = 1.6;
+  ctx.stroke();
+
+  // Right Armrest Outer Side Rim (below top deck)
+  ctx.beginPath();
+  ctx.moveTo(194, 200);
+  ctx.lineTo(286, 146);
+  ctx.lineTo(290, 158);
+  ctx.lineTo(192, 214);
+  ctx.closePath();
+  ctx.fillStyle = '#8b939f';
+  ctx.fill();
+  ctx.stroke();
+
+  // Right Armrest Front Rectangular Bezel & Recessed Slot (facing viewer at front-left of right armrest)
+  ctx.beginPath();
+  ctx.moveTo(138, 180);
+  ctx.lineTo(194, 200);
+  ctx.lineTo(192, 214);
+  ctx.lineTo(140, 195);
+  ctx.closePath();
+  ctx.fillStyle = '#9ea6b2';
+  ctx.fill();
+  ctx.stroke();
+
+  // Inset bevel inside front of right armrest
+  ctx.beginPath();
+  ctx.moveTo(145, 185);
+  ctx.lineTo(186, 200);
+  ctx.lineTo(185, 208);
+  ctx.lineTo(146, 193);
+  ctx.closePath();
+  ctx.fillStyle = '#6d7580';
+  ctx.fill();
+  ctx.strokeStyle = sCol || '#38BDF8';
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+
+  // Right Armrest Top Rectangular Control Panel Pad & 3 Command Buttons (matching reference photo!)
+  ctx.beginPath();
+  ctx.moveTo(158, 178);
+  ctx.lineTo(214, 152);
+  ctx.lineTo(248, 162);
+  ctx.lineTo(192, 190);
+  ctx.closePath();
+  ctx.fillStyle = '#bac2cc';
+  ctx.fill();
+  ctx.strokeStyle = sAcc || '#3B82F6';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // 3 Raised Starfleet Command Buttons at rear of right armrest
+  const btnCols = [sCol || '#38BDF8', '#fbbf24', '#ef4444'];
+  [
+    { x: 222, y: 148 },
+    { x: 233, y: 151 },
+    { x: 230, y: 144 }
+  ].forEach((b, idx) => {
+    ctx.beginPath();
+    ctx.ellipse(b.x, b.y, 4.2, 2.5, -0.25, 0, Math.PI * 2);
+    ctx.fillStyle = btnCols[idx % btnCols.length];
+    ctx.fill();
+    ctx.strokeStyle = '#334155';
+    ctx.lineWidth = 0.9;
+    ctx.stroke();
+  });
+
+  ctx.restore();
+}
+
+function drawClimateAndWarmerScreen(ctx, isNight, showHud, isWarmer) {
+  const clm = cfg.climateScreen || {};
+  const acc = clm.accentColor || cfg.colors.primary || '#3B82F6';
+  const sec = clm.secondaryColor || cfg.colors.accentBlue || '#38BDF8';
+  const barMode = clm.bottomBarMode || 'oem';
+  const iconStyle = clm.warmerIconStyle || 'oem';
+  const heatCol = (iconStyle === 'themed' && clm.heatColor) ? clm.heatColor : '#fb923c';
+  const ventCol = (iconStyle === 'themed' && clm.ventColor) ? clm.ventColor : '#38bdf8';
+  const cFont = getHomePreviewFontFamily(true);
+  const simState = (document.getElementById('selSimSeatState') && document.getElementById('selSimSeatState').value) || 'heat3';
+  const isVent = simState.startsWith('vent');
+  const waveLvl = simState === 'off' ? 0 : parseInt(simState.slice(-1), 10) || 3;
+
+  // Helper to draw a Seat Warmer / Ventilation button (with 3 horizontal LED bars + seat icon)
+  function drawSeatHeatVentBtn(bx, by, bw, bh, isHeatBtn, activeLeds) {
+    roundRect(ctx, bx, by, bw, bh, 14);
+    if (barMode === 'oem') {
+      const gBtn = ctx.createLinearGradient(bx, by, bx, by + bh);
+      gBtn.addColorStop(0, '#6e7785');
+      gBtn.addColorStop(1, '#4c5460');
+      ctx.fillStyle = gBtn;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = 'rgba(20, 29, 46, 0.92)';
+      ctx.fill();
+      ctx.save();
+      ctx.clip();
+      ctx.fillStyle = acc;
+      ctx.fillRect(bx, by, 10, bh);
+      ctx.restore();
+      ctx.strokeStyle = sec;
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+    }
+
+    // 3 horizontal LED indicator bars on the left (clm_btn_led_02_*)
+    for (let i = 0; i < 3; i++) {
+      const ledNum = 3 - i; // top is 3, bottom is 1
+      const isLit = activeLeds >= ledNum;
+      const lx = bx + 22, ly = by + 16 + i * 19;
+      if (iconStyle === 'themed') {
+        roundRect(ctx, lx - 2, ly - 1, 28, 11, 2);
+        ctx.fillStyle = isLit ? (isHeatBtn ? heatCol : ventCol) : 'rgba(148, 163, 184, 0.28)';
+        ctx.fill();
+        ctx.strokeStyle = isLit ? '#ffffff' : 'rgba(148, 163, 184, 0.5)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      } else {
+        roundRect(ctx, lx, ly, 24, 9, 4);
+        ctx.fillStyle = isLit ? (isHeatBtn ? heatCol : ventCol) : 'rgba(226, 232, 240, 0.65)';
+        ctx.fill();
+      }
+    }
+
+    // Seat outline + heat waves (clm_ic_heat_s.webp) or fan (clm_ic_fan_s.webp) on the right
+    const sx = bx + bw - 56, sy = by + 18;
+    ctx.strokeStyle = iconStyle === 'themed' ? (isHeatBtn ? heatCol : ventCol) : '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(sx + 24, sy + 4);
+    ctx.lineTo(sx + 16, sy + 36);
+    ctx.lineTo(sx - 12, sy + 36);
+    ctx.lineTo(sx - 12, sy + 44);
+    ctx.lineTo(sx + 22, sy + 44);
+    ctx.lineTo(sx + 32, sy + 6);
+    ctx.closePath();
+    if (iconStyle === 'themed') {
+      ctx.fillStyle = hexWithAlpha(isHeatBtn ? heatCol : ventCol, 45);
+      ctx.fill();
+    }
+    ctx.stroke();
+
+    if (isHeatBtn) {
+      ctx.strokeStyle = (activeLeds > 0 || iconStyle === 'themed') ? heatCol : '#ffffff';
+      ctx.lineWidth = 2.4;
+      for (let w = 0; w < 3; w++) {
+        const wx = sx - 6 + w * 9;
+        ctx.beginPath();
+        ctx.moveTo(wx, sy + 30);
+        ctx.bezierCurveTo(wx - 4, sy + 20, wx + 4, sy + 14, wx, sy + 4);
+        ctx.stroke();
+      }
+    } else {
+      ctx.fillStyle = (activeLeds > 0 || iconStyle === 'themed') ? ventCol : '#ffffff';
+      ctx.font = `bold 22px ${cFont}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('❈', sx + 2, sy + 20);
+    }
+  }
+
+  // Helper to draw circular button (Steering wheel warmer, Seat shortcut, Temp Up/Down)
+  function drawClimateCircleBtn(cx, cy, r) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    if (barMode === 'oem') {
+      const gC = ctx.createLinearGradient(cx, cy - r, cx, cy + r);
+      gC.addColorStop(0, '#6e7785');
+      gC.addColorStop(1, '#48505c');
+      ctx.fillStyle = gC;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = 'rgba(20, 29, 46, 0.92)';
+      ctx.fill();
+      ctx.strokeStyle = acc;
+      ctx.lineWidth = 2.4;
+      ctx.stroke();
+    }
+  }
+
+  if (isWarmer) {
+    // =========================================================================
+    // PHOTO 3: FLOATING "WARMER/VENTILATION" MODAL POPUP OVER ALL-APPS SCREEN
+    // =========================================================================
+    ctx.save();
+    // 1. Render All-Apps Page 1 in background
+    const aa = cfg.allApps;
+    const gBg = ctx.createLinearGradient(0, 0, 0, 720);
+    gBg.addColorStop(0, isNight ? cfg.colors.bgNightTop : cfg.colors.bgDayTop);
+    gBg.addColorStop(1, isNight ? cfg.colors.bgNightBot : cfg.colors.bgDayBot);
+    ctx.fillStyle = gBg;
+    ctx.fillRect(0, 0, 1920, 720);
+    if (aa.bgMode === 'custom' && aa.customBgFile) {
+      const aImg = getCachedImage(customAssetUrl(aa.customBgFile));
+      if (aImg) drawFittedImgOnCanvas(ctx, aImg, 1920, 720, aa.bgFit || 'cover', aa.bgScale, aa.bgOffsetX, aa.bgOffsetY);
+    }
+    PAGE1_ITEMS.forEach((item, idx) => {
+      const col = idx % 6;
+      const row = Math.floor(idx / 6);
+      drawTileAndIcon(ctx, 82 + col * 296, 142 + row * 268, item);
+    });
+
+    // Dimmed modal backdrop below status bar
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+    ctx.fillRect(0, 84, 1920, 636);
+
+    // 2. Floating Dialog Container (x=592, y=96, w=816, h=595)
+    const px = 592, py = 96, pw = 816, ph = 595;
+    ctx.save();
+    roundRect(ctx, px, py, pw, ph, 16);
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+    ctx.shadowBlur = 32;
+    if (clm.bgMode === 'oem' && barMode === 'oem') {
+      const popGrad = ctx.createLinearGradient(px, py, px, py + ph);
+      popGrad.addColorStop(0, '#363f4b');
+      popGrad.addColorStop(1, '#2b333d');
+      ctx.fillStyle = popGrad;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+      ctx.lineWidth = 1.8;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = clm.bgColor || '#070A12';
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      if (clm.bgMode === 'custom' && clm.customBgFile) {
+        ctx.save();
+        ctx.clip();
+        const bgImg = getCachedImage(customAssetUrl(clm.customBgFile));
+        if (bgImg) drawFittedImgInBox(ctx, bgImg, px, py, pw, ph, clm.bgFit || 'cover', clm.bgScale || 100, clm.bgOffsetX || 0, clm.bgOffsetY || 0);
+        ctx.restore();
+      }
+      ctx.strokeStyle = acc;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+
+    // Header divider line
+    ctx.strokeStyle = barMode === 'oem' ? 'rgba(0, 0, 0, 0.35)' : hexWithAlpha(sec, 180);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(px + 28, py + 92);
+    ctx.lineTo(px + pw - 28, py + 92);
+    ctx.stroke();
+
+    // Title & Subtitle
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold 40px ${cFont}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Warmer/Ventilation', px + pw / 2, py + 48);
+
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = `500 30px ${cFont}`;
+    ctx.fillText('Driver/Passenger', px + pw / 2, py + 138);
+
+    // 4 Seat Warmer / Ventilation Buttons inside popup
+    const heatLv = (!isVent && waveLvl > 0) ? waveLvl : 0;
+    const ventLv = (isVent && waveLvl > 0) ? waveLvl : 0;
+    drawSeatHeatVentBtn(726, 272, 192, 86, true,  heatLv); // Driver Heat
+    drawSeatHeatVentBtn(1082, 272, 192, 86, true,  heatLv); // Passenger Heat
+    drawSeatHeatVentBtn(726, 474, 192, 86, false, ventLv); // Driver Vent
+    drawSeatHeatVentBtn(1082, 474, 192, 86, false, ventLv); // Passenger Vent
+
+    // Center Circular Steering Wheel Warmer Button (cx=1000, cy=402, r=56)
+    drawClimateCircleBtn(1000, 402, 56);
+    roundRect(ctx, 982, 360, 36, 8, 4);
+    ctx.fillStyle = heatLv > 0 ? heatCol : 'rgba(226, 232, 240, 0.7)';
+    ctx.fill();
+    ctx.strokeStyle = iconStyle === 'themed' ? heatCol : '#ffffff';
+    ctx.lineWidth = 3.2;
+    ctx.beginPath();
+    ctx.arc(996, 416, 18, 0, Math.PI * 2);
+    ctx.stroke();
+    for (let w = 0; w < 3; w++) {
+      const wx = 996 + w * 7;
+      ctx.beginPath();
+      ctx.moveTo(wx, 398);
+      ctx.lineTo(wx, 378);
+      ctx.stroke();
+    }
+
+    // Bottom Full-Width "OK" Button (x=618, y=602, w=764, h=72)
+    roundRect(ctx, 618, 602, 764, 72, 14);
+    if (barMode === 'oem') {
+      const okGrad = ctx.createLinearGradient(618, 602, 618, 674);
+      okGrad.addColorStop(0, '#6e7785');
+      okGrad.addColorStop(1, '#4c5460');
+      ctx.fillStyle = okGrad;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = 'rgba(20, 29, 46, 0.95)';
+      ctx.fill();
+      ctx.strokeStyle = acc;
+      ctx.lineWidth = 2.4;
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold 34px ${cFont}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('OK', 1000, 639);
+
+    ctx.restore();
+    ctx.restore();
+    return;
+  }
+
+  // =========================================================================
+  // PHOTO 2: FULL-WIDTH 1920x720 CLIMATE SCREEN (NewClimateControl)
+  // =========================================================================
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, 1920, 720);
+  ctx.clip();
+
+  // 1. Full-Width 1920x720 Climate Background (co_bg_full.png)
+  if (clm.bgMode === 'oem') {
+    const g = ctx.createLinearGradient(0, 84, 0, 720);
+    g.addColorStop(0, '#1e242c');
+    g.addColorStop(0.55, '#2b333d');
+    g.addColorStop(1, '#181d24');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 1920, 720);
+  } else {
+    ctx.fillStyle = clm.bgColor || '#070A12';
+    ctx.fillRect(0, 0, 1920, 720);
+    if (clm.bgMode === 'custom' && clm.customBgFile) {
+      const bgImg = getCachedImage(customAssetUrl(clm.customBgFile));
+      if (bgImg) {
+        drawFittedImgInBox(ctx, bgImg, 0, 0, 1920, 720, clm.bgFit || 'cover', clm.bgScale || 100, clm.bgOffsetX || 0, clm.bgOffsetY || 0);
+        if (clm.bgDim > 0) {
+          ctx.fillStyle = `rgba(0,0,0,${(clm.bgDim / 100).toFixed(2)})`;
+          ctx.fillRect(0, 0, 1920, 720);
+        }
+      }
+    }
+    if (clm.bgMode === 'lcars' || clm.showLcarsFrame === true) {
+      ctx.strokeStyle = hexWithAlpha(sec, 28);
+      ctx.lineWidth = 1;
+      for (let x = 80; x < 1880; x += 90) { ctx.beginPath(); ctx.moveTo(x, 100); ctx.lineTo(x, 595); ctx.stroke(); }
+      for (let y = 120; y < 595; y += 80) { ctx.beginPath(); ctx.moveTo(35, y); ctx.lineTo(1885, y); ctx.stroke(); }
+      ctx.fillStyle = acc; ctx.fillRect(10, 96, 16, 200);
+      ctx.fillStyle = sec; ctx.fillRect(10, 304, 16, 160);
+      ctx.fillStyle = cfg.colors.secondary || '#60A5FA'; ctx.fillRect(10, 472, 16, 115);
+      ctx.fillStyle = acc; ctx.fillRect(34, 92, 520, 8);
+      ctx.fillStyle = sec; ctx.fillRect(564, 92, 790, 8);
+      ctx.fillStyle = cfg.colors.secondary || '#60A5FA'; ctx.fillRect(1364, 92, 536, 8);
+    }
+  }
+
+  // Left & Right Vertical Divider Lines (clm_bg_line.png at x=485 and x=1435)
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(485, 190); ctx.lineTo(485, 565);
+  ctx.moveTo(1435, 190); ctx.lineTo(1435, 565);
+  ctx.stroke();
+
+  if (showHud) {
+    // Top-Left OUTSIDE 44°F
+    ctx.fillStyle = '#e2e8f0';
+    ctx.font = 'bold 26px "Segoe UI"';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillText('OUTSIDE', 46, 146);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 36px "Segoe UI"';
+    ctx.fillText('44°F', 166, 146);
+  }
+
+  // 2. Top-Center Pill Fan Speed Housing (clm_bg_fan.png 480x116 at x=710, y=102)
+  roundRect(ctx, 710, 102, 480, 116, 58);
+  if (barMode === 'oem') {
+    const fanGrad = ctx.createLinearGradient(710, 102, 710, 218);
+    fanGrad.addColorStop(0, '#9ba3ad');
+    fanGrad.addColorStop(1, '#858d97');
+    ctx.fillStyle = fanGrad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+  } else {
+    ctx.fillStyle = 'rgba(18, 26, 42, 0.92)';
+    ctx.fill();
+    ctx.strokeStyle = sec;
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+  }
+  if (showHud) {
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 21px "Segoe UI"';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('LOW', 950, 124);
+    ctx.font = 'bold 30px "Segoe UI"';
+    ctx.fillText('❈', 762, 166);
+    ctx.font = 'bold 48px "Segoe UI"';
+    ctx.fillText('❈', 1128, 164);
+  }
+
+  // 3. Left Driver & Right Passenger Seat Warmer / Ventilation Buttons
+  const heatLv = (!isVent && waveLvl > 0) ? waveLvl : 0;
+  const ventLv = (isVent && waveLvl > 0) ? waveLvl : 0;
+  drawSeatHeatVentBtn(96, 232, 154, 82, true,  heatLv);
+  drawSeatHeatVentBtn(96, 430, 154, 82, false, ventLv);
+  drawSeatHeatVentBtn(1670, 232, 154, 82, true,  heatLv);
+  drawSeatHeatVentBtn(1670, 430, 154, 82, false, ventLv);
+
+  // 4. Left Driver (cx=360) & Right Passenger (cx=1560) Vertical Temperature Sliders
+  [360, 1560].forEach(cx => {
+    // Orange upper vertical bar & Cyan lower vertical bar (clm_bg_gauge_v_02.png)
+    ctx.fillStyle = '#f97316';
+    ctx.fillRect(cx - 4, 244, 8, 70);
+    ctx.fillStyle = '#06b6d4';
+    ctx.fillRect(cx - 4, 422, 8, 70);
+
+    // Top Up button (cx, 206, r=38) with orange ^
+    drawClimateCircleBtn(cx, 206, 38);
+    ctx.strokeStyle = '#f97316';
+    ctx.lineWidth = 4.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx - 13, 212); ctx.lineTo(cx, 198); ctx.lineTo(cx + 13, 212);
+    ctx.stroke();
+
+    // Bottom Down button (cx, 530, r=38) with cyan v
+    drawClimateCircleBtn(cx, 530, 38);
+    ctx.strokeStyle = '#06b6d4';
+    ctx.beginPath();
+    ctx.moveTo(cx - 13, 524); ctx.lineTo(cx, 538); ctx.lineTo(cx + 13, 524);
+    ctx.stroke();
+
+    // Center Temperature Knob (cx, 368, r=54) with glowing ring + "74°F"
+    drawClimateCircleBtn(cx, 368, 54);
+    ctx.beginPath();
+    ctx.arc(cx, 368, 46, 0, Math.PI * 2);
+    ctx.strokeStyle = '#f8fafc';
+    ctx.lineWidth = 3.2;
+    ctx.stroke();
+
+    if (showHud) {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 34px "Segoe UI"';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('74°F', cx, 369);
+    }
+  });
+
+  // 5. Center 3D Seat Graphic (clm_bg_seat.png 309x351 at x=942, y=225)
+  const seatStyle = clm.seatStyle || 'oem';
+  const sScale = (clm.seatScale !== undefined && clm.seatScale > 0) ? clm.seatScale : 100;
+  const sOffX = clm.seatOffsetX || 0;
+  const sOffY = clm.seatOffsetY || 0;
+  const sCol = clm.seatColor || '#38BDF8';
+  const sAcc = clm.seatAccentColor || '#3B82F6';
+
+  ctx.save();
+  ctx.translate(942, 225);
+  let drewCustomSeat = false;
+  if (seatStyle === 'custom' && clm.customDriverSeatFile) {
+    const sImg = getCachedImage(customAssetUrl(clm.customDriverSeatFile));
+    if (sImg) {
+      drewCustomSeat = drawFittedImgInBox(ctx, sImg, 0, 0, 309, 351, 'contain', sScale, sOffX, sOffY);
+    }
+  }
+  if (!drewCustomSeat) {
+    ctx.save();
+    ctx.translate(154.5 + sOffX, 175.5 + sOffY);
+    ctx.scale(sScale / 100.0, sScale / 100.0);
+    ctx.translate(-154.5, -175.5);
+
+    if (seatStyle === 'oem') {
+      // 3D Contoured Ivory/Grey Automotive Seat facing 3/4 Left (matching Photo 2!)
+      const gSeat = ctx.createLinearGradient(40, 15, 270, 330);
+      gSeat.addColorStop(0, '#d6dadf');
+      gSeat.addColorStop(0.55, '#b8bec6');
+      gSeat.addColorStop(1, '#8c949e');
+      ctx.fillStyle = gSeat;
+      ctx.strokeStyle = '#646d78';
+      ctx.lineWidth = 2.2;
+
+      // Headrest (angled 3/4 left)
+      roundRect(ctx, 162, 16, 78, 54, 16);
+      ctx.fill(); ctx.stroke();
+
+      // Bolstered backrest (tilted slightly right)
+      ctx.beginPath();
+      ctx.moveTo(156, 74);
+      ctx.quadraticCurveTo(255, 74, 260, 105);
+      ctx.lineTo(240, 268);
+      ctx.quadraticCurveTo(185, 282, 134, 252);
+      ctx.quadraticCurveTo(126, 165, 156, 74);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+
+      // Seat bottom cushion extending forward-left
+      ctx.beginPath();
+      ctx.moveTo(134, 242);
+      ctx.lineTo(238, 262);
+      ctx.quadraticCurveTo(242, 305, 162, 334);
+      ctx.quadraticCurveTo(88, 326, 40, 294);
+      ctx.quadraticCurveTo(34, 252, 76, 240);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+
+      // Subtle upholstery seam lines
+      ctx.strokeStyle = 'rgba(71, 85, 105, 0.38)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(160, 122); ctx.lineTo(244, 128);
+      ctx.moveTo(152, 178); ctx.lineTo(238, 186);
+      ctx.moveTo(85, 256);  ctx.lineTo(175, 285);
+      ctx.stroke();
+    } else if (seatStyle === 'captainsChair') {
+      drawCaptainsChair(ctx, sCol, sAcc);
+    } else {
+      // LCARS 3/4 Left Wireframe Bucket Seat
+      ctx.fillStyle = hexWithAlpha(sCol, 48);
+      ctx.strokeStyle = sAcc;
+      ctx.lineWidth = 2.4;
+      roundRect(ctx, 162, 16, 78, 54, 16);
+      ctx.fill(); ctx.stroke();
+
+      ctx.strokeStyle = sCol;
+      ctx.lineWidth = 2.8;
+      roundRect(ctx, 138, 76, 126, 184, 26);
+      ctx.fill(); ctx.stroke();
+      roundRect(ctx, 38, 242, 216, 74, 24);
+      ctx.fill(); ctx.stroke();
+
+      ctx.strokeStyle = sAcc;
+      ctx.lineWidth = 2.2;
+      roundRect(ctx, 64, 318, 182, 18, 7);
+      ctx.stroke();
+
+      ctx.strokeStyle = hexWithAlpha(sCol, 115);
+      ctx.lineWidth = 1.6;
+      [122, 166, 210].forEach(ry => { ctx.beginPath(); ctx.moveTo(150, ry); ctx.lineTo(248, ry); ctx.stroke(); });
+      [92, 148].forEach(rx => { ctx.beginPath(); ctx.moveTo(rx, 252); ctx.lineTo(rx, 306); ctx.stroke(); });
+    }
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // 6. Center Circular Buttons: Steering Wheel Warmer (cx=604, cy=502) & Seat Shortcut (cx=1292, cy=502)
+  drawClimateCircleBtn(604, 502, 52);
+  roundRect(ctx, 588, 464, 32, 7, 3.5);
+  ctx.fillStyle = heatLv > 0 ? heatCol : 'rgba(226, 232, 240, 0.7)';
+  ctx.fill();
+  ctx.strokeStyle = iconStyle === 'themed' ? heatCol : '#ffffff';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(600, 516, 16, 0, Math.PI * 2);
+  ctx.stroke();
+  for (let w = 0; w < 3; w++) {
+    const wx = 600 + w * 6;
+    ctx.beginPath();
+    ctx.moveTo(wx, 498); ctx.lineTo(wx, 480);
+    ctx.stroke();
+  }
+
+  drawClimateCircleBtn(1292, 502, 52);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(1308, 484); ctx.lineTo(1302, 514); ctx.lineTo(1276, 514); ctx.lineTo(1276, 522); ctx.lineTo(1308, 522); ctx.lineTo(1314, 486); ctx.closePath();
+  ctx.stroke();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 18px "Segoe UI"';
+  ctx.textAlign = 'center';
+  ctx.fillText('❈', 1290, 502);
+
+  // 7. Bottom Row 6 Buttons + Bottom-Center Circular Airflow Mode Dial (cx=950, cy=655, r=102)
+  const botBtns = [
+    { x: 64,   w: 204, label: 'AUTO',        type: 'auto' },
+    { x: 278,  w: 204, label: 'OFF',         type: 'norm' },
+    { x: 492,  w: 204, label: 'DRIVER ONLY', type: 'drv'  },
+    { x: 1180, w: 204, label: 'A/C',         type: 'norm' },
+    { x: 1394, w: 204, label: 'HEAT',        type: 'heat' },
+    { x: 1608, w: 204, label: 'SYNC',        type: 'sync' }
+  ];
+  botBtns.forEach(b => {
+    const by = 618, bh = 76;
+    roundRect(ctx, b.x, by, b.w, bh, 14);
+    if (barMode === 'oem') {
+      const gB = ctx.createLinearGradient(b.x, by, b.x, by + bh);
+      gB.addColorStop(0, '#6e7785');
+      gB.addColorStop(1, '#4c5460');
+      ctx.fillStyle = gB;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+    } else {
+      ctx.fillStyle = 'rgba(20, 29, 46, 0.92)';
+      ctx.fill();
+      ctx.save();
+      ctx.clip();
+      ctx.fillStyle = acc;
+      ctx.fillRect(b.x, by, 10, bh);
+      ctx.restore();
+      ctx.strokeStyle = sec;
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
+    }
+
+    if (showHud) {
+      ctx.textBaseline = 'middle';
+      if (b.type === 'auto') {
+        for (let i = 0; i < 3; i++) {
+          roundRect(ctx, b.x + 22, by + 16 + i * 18, 22, 8, 4);
+          ctx.fillStyle = i === 2 ? '#38bdf8' : 'rgba(226, 232, 240, 0.65)';
+          ctx.fill();
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 28px "Segoe UI"';
+        ctx.textAlign = 'center';
+        ctx.fillText('AUTO', b.x + 122, by + bh / 2);
+      } else if (b.type === 'drv') {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 26px "Segoe UI"';
+        ctx.textAlign = 'center';
+        ctx.fillText('❈', b.x + 48, by + bh / 2);
+        ctx.font = 'bold 22px "Segoe UI"';
+        ctx.fillText('DRIVER', b.x + 124, by + 26);
+        ctx.fillText('ONLY', b.x + 124, by + 52);
+      } else if (b.type === 'heat') {
+        ctx.fillStyle = '#fb923c';
+        ctx.font = 'bold 28px "Segoe UI"';
+        ctx.textAlign = 'center';
+        ctx.fillText('♨ HEAT', b.x + b.w / 2, by + bh / 2);
+      } else if (b.type === 'sync') {
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 28px "Segoe UI"';
+        ctx.textAlign = 'center';
+        ctx.fillText('SYNC', b.x + b.w / 2, by + bh / 2);
+      } else {
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 28px "Segoe UI"';
+        ctx.textAlign = 'center';
+        ctx.fillText(b.label, b.x + b.w / 2, by + bh / 2);
+      }
+    }
+  });
+
+  // Bottom-Center Large Circular Airflow Mode Dial (cx=950, cy=655, r=102)
+  drawClimateCircleBtn(950, 655, 102);
+  ctx.beginPath();
+  ctx.arc(950, 655, 86, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  if (showHud) {
+    // Seated person icon inside center dial
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(976, 618, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 10;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(972, 634);
+    ctx.lineTo(958, 662);
+    ctx.lineTo(934, 662);
+    ctx.lineTo(918, 686);
+    ctx.stroke();
+  }
+
+  ctx.restore();
 }
 
 function smoothStepJS(u) {
@@ -2504,11 +5102,11 @@ async function exportCurrentThemeZip() {
     const url = '/api/themes/export?id=' + encodeURIComponent(activeThemeId) + '&t=' + Date.now();
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${activeThemeId}-v1.5.0.gen5wtheme`;
+    a.download = `${activeThemeId}-v1.6.0.gen5wtheme`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    setToast('Exported shareable theme file: ' + activeThemeId + '-v1.5.0.gen5wtheme');
+    setToast('Exported shareable theme file: ' + activeThemeId + '-v1.6.0.gen5wtheme');
   } catch (e) {
     setToast('Export error: ' + e.message);
   }
@@ -2631,7 +5229,49 @@ async function buildAndDeploySelected() {
   }
 }
 
+const STUDIO_CURRENT_VERSION = '1.1.0';
+function isRemoteVersionNewer(remoteVer, localVer) {
+  const clean = v => String(v || '').replace(/^[^0-9]*/, '').split('-')[0].split('.').map(n => parseInt(n, 10) || 0);
+  const r = clean(remoteVer);
+  const l = clean(localVer);
+  const len = Math.max(r.length, l.length);
+  for (let i = 0; i < len; i++) {
+    const rv = r[i] || 0;
+    const lv = l[i] || 0;
+    if (rv > lv) return true;
+    if (rv < lv) return false;
+  }
+  return false;
+}
+
+async function checkForGithubUpdateSilently() {
+  try {
+    const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const tid = ctrl ? setTimeout(() => ctrl.abort(), 5000) : null;
+    const resp = await fetch('https://api.github.com/repos/DVWburner/Gen5W-Theme-Studio/releases/latest', {
+      headers: { 'Accept': 'application/vnd.github+json' },
+      signal: ctrl ? ctrl.signal : undefined
+    });
+    if (tid) clearTimeout(tid);
+    if (!resp || !resp.ok) return;
+    const data = await resp.json();
+    const latestTag = (data && (data.tag_name || data.name)) ? String(data.tag_name || data.name) : '';
+    if (latestTag && isRemoteVersionNewer(latestTag, STUDIO_CURRENT_VERSION)) {
+      const btn = document.getElementById('githubUpdateBtn');
+      if (btn) {
+        btn.href = data.html_url || 'https://github.com/DVWburner/Gen5W-Theme-Studio/releases/latest';
+        btn.textContent = '⬆ Update (' + latestTag + ')';
+        btn.title = 'New version ' + latestTag + ' is available on GitHub (current: v' + STUDIO_CURRENT_VERSION + ')';
+        btn.style.display = 'inline-flex';
+      }
+    }
+  } catch (e) {
+    // Fail completely silently if offline or rate-limited
+  }
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
+  checkForGithubUpdateSilently();
   const tRes = await fetch('/api/themes');
   const tData = await tRes.json();
   activeThemeId = tData.activeTheme || 'stock-oem';

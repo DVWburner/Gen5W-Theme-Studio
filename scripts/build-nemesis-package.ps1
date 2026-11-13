@@ -176,7 +176,7 @@ if ($JavacExe -and (Test-Path $AndroidJar)) {
     & $JavaExe -jar $DxJar --dex --min-sdk-version=19 --output=$DexFile $ClassesDir
     if ($LASTEXITCODE -ne 0) { throw "dx dexing failed" }
 
-    & $AaptExe package -f -M $ManifestPath -S $ResDir -A $AssetsDir -I $AndroidJar -F $UnsignedApk
+    & $AaptExe package -f -0 ttf -0 otf -M $ManifestPath -S $ResDir -A $AssetsDir -I $AndroidJar -F $UnsignedApk
     if ($LASTEXITCODE -ne 0) { throw "aapt APK packaging failed" }
 
     $Archive = [System.IO.Compression.ZipFile]::Open($UnsignedApk, [System.IO.Compression.ZipArchiveMode]::Update)
@@ -210,7 +210,7 @@ if ($JavacExe -and (Test-Path $AndroidJar)) {
         $AssetFiles = Get-ChildItem -Path $AssetsDir -Recurse -File
         foreach ($af in $AssetFiles) {
             $rel = "assets/" + $af.FullName.Substring($AssetsDir.Length + 1).Replace('\', '/')
-            $lvl = if ($af.Extension -match "^\.(webp|png|jpg)$") {
+            $lvl = if ($af.Extension -match "^\.(webp|png|jpg|ttf|otf)$") {
                 [System.IO.Compression.CompressionLevel]::NoCompression
             } else {
                 [System.IO.Compression.CompressionLevel]::Optimal

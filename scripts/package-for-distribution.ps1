@@ -24,7 +24,7 @@ New-Item -ItemType Directory -Force -Path $StageDir | Out-Null
 Write-Host "==> Staging clean redistributable package in $StageDir..." -ForegroundColor Cyan
 
 # 1. Root files
-foreach ($rootFile in @("Start-ThemeStudio.bat", "README-INSTRUCTIONS.txt", "README.md", "THIRD_PARTY_LICENSES.txt")) {
+foreach ($rootFile in @("Start-ThemeStudio.bat", "README-INSTRUCTIONS.txt", "README.md", "CHANGELOG.md", "THIRD_PARTY_LICENSES.txt")) {
     $rPath = Join-Path $ProjectRoot $rootFile
     if (Test-Path $rPath) {
         Copy-Item $rPath (Join-Path $StageDir $rootFile) -Force

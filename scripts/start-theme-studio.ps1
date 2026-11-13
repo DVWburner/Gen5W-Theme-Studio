@@ -9,8 +9,62 @@ Add-Type -AssemblyName System.Drawing
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
-$StudioVersion = "1.5.0"
-$SchemaVersion = 2
+$StudioVersion = "1.1.0"
+$SchemaVersion = 3
+
+function Ensure-ThemeConfigDefaults($CfgObj) {
+    if ($null -eq $CfgObj) { return }
+    if ($null -ne $CfgObj.homeScreen) {
+        if (-not $CfgObj.homeScreen.PSObject.Properties["bgFit"])              { $CfgObj.homeScreen | Add-Member -NotePropertyName "bgFit"              -NotePropertyValue "cover" }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["mapFadeMode"])        { $CfgObj.homeScreen | Add-Member -NotePropertyName "mapFadeMode"        -NotePropertyValue "feather" }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["mapFadeWidth"])       { $CfgObj.homeScreen | Add-Member -NotePropertyName "mapFadeWidth"       -NotePropertyValue 75 }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["mapCenterOpacity"])   { $CfgObj.homeScreen | Add-Member -NotePropertyName "mapCenterOpacity"   -NotePropertyValue 0 }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["fontFamily"])         { $CfgObj.homeScreen | Add-Member -NotePropertyName "fontFamily"         -NotePropertyValue "oem" }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["customFontFile"])     { $CfgObj.homeScreen | Add-Member -NotePropertyName "customFontFile"     -NotePropertyValue "" }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["applyFontToClimate"]) { $CfgObj.homeScreen | Add-Member -NotePropertyName "applyFontToClimate" -NotePropertyValue $false }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["clockOffsetX"])       { $CfgObj.homeScreen | Add-Member -NotePropertyName "clockOffsetX"       -NotePropertyValue 0 }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["clockOffsetY"])       { $CfgObj.homeScreen | Add-Member -NotePropertyName "clockOffsetY"       -NotePropertyValue 0 }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["clockFontScale"])     { $CfgObj.homeScreen | Add-Member -NotePropertyName "clockFontScale"     -NotePropertyValue 100 }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["mediaOffsetX"])       { $CfgObj.homeScreen | Add-Member -NotePropertyName "mediaOffsetX"       -NotePropertyValue 0 }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["mediaOffsetY"])       { $CfgObj.homeScreen | Add-Member -NotePropertyName "mediaOffsetY"       -NotePropertyValue 0 }
+        if (-not $CfgObj.homeScreen.PSObject.Properties["mediaFontScale"])     { $CfgObj.homeScreen | Add-Member -NotePropertyName "mediaFontScale"     -NotePropertyValue 100 }
+    }
+    if ($null -ne $CfgObj.batteryWidget) {
+        if (-not $CfgObj.batteryWidget.PSObject.Properties["rangeOffsetX"])    { $CfgObj.batteryWidget | Add-Member -NotePropertyName "rangeOffsetX"    -NotePropertyValue 0 }
+        if (-not $CfgObj.batteryWidget.PSObject.Properties["rangeOffsetY"])    { $CfgObj.batteryWidget | Add-Member -NotePropertyName "rangeOffsetY"    -NotePropertyValue 0 }
+        if (-not $CfgObj.batteryWidget.PSObject.Properties["battTextOffsetX"]) { $CfgObj.batteryWidget | Add-Member -NotePropertyName "battTextOffsetX" -NotePropertyValue 0 }
+        if (-not $CfgObj.batteryWidget.PSObject.Properties["battTextOffsetY"]) { $CfgObj.batteryWidget | Add-Member -NotePropertyName "battTextOffsetY" -NotePropertyValue 0 }
+    }
+    if (-not $CfgObj.PSObject.Properties["statusBar"] -or $null -eq $CfgObj.statusBar) {
+        $CfgObj | Add-Member -Force -NotePropertyName "statusBar" -NotePropertyValue ([PSCustomObject]@{
+            bgMode = "oem"; customBgFile = ""; bgFit = "cover"; bgScale = 100; bgOffsetX = 0; bgOffsetY = 0;
+            bgColor = "#060810"; accentColor = "#3B82F6"; secondaryColor = "#38BDF8"; borderHeight = 4;
+            buttonStyle = "oem"; buttonBgColor = "#141C2B"; buttonAccentColor = "#3B82F6"; buttonGlyphColor = "#FFCC66";
+            customHomeFile = ""; customBackFile = ""
+        })
+    }
+    if (-not $CfgObj.PSObject.Properties["climateScreen"] -or $null -eq $CfgObj.climateScreen) {
+        $CfgObj | Add-Member -Force -NotePropertyName "climateScreen" -NotePropertyValue ([PSCustomObject]@{
+            bgMode = "oem"; customBgFile = ""; bgFit = "cover"; bgScale = 100; bgOffsetX = 0; bgOffsetY = 0; bgDim = 0;
+            bgColor = "#070A12"; accentColor = "#3B82F6"; secondaryColor = "#38BDF8"; showLcarsFrame = $false;
+            bottomBarMode = "oem"; warmerIconStyle = "oem"; heatColor = "#FB923C"; ventColor = "#38BDF8";
+            seatStyle = "oem"; seatColor = "#38BDF8"; seatAccentColor = "#3B82F6";
+            seatScale = 100; seatOffsetX = 0; seatOffsetY = 0; customDriverSeatFile = ""; customPassengerSeatFile = ""
+        })
+    } else {
+        if (-not $CfgObj.climateScreen.PSObject.Properties["warmerIconStyle"]) { $CfgObj.climateScreen | Add-Member -NotePropertyName "warmerIconStyle" -NotePropertyValue "oem" }
+        if (-not $CfgObj.climateScreen.PSObject.Properties["heatColor"])       { $CfgObj.climateScreen | Add-Member -NotePropertyName "heatColor"       -NotePropertyValue "#FB923C" }
+        if (-not $CfgObj.climateScreen.PSObject.Properties["ventColor"])       { $CfgObj.climateScreen | Add-Member -NotePropertyName "ventColor"       -NotePropertyValue "#38BDF8" }
+    }
+    if (-not $CfgObj.PSObject.Properties["evScreen"] -or $null -eq $CfgObj.evScreen) {
+        $CfgObj | Add-Member -Force -NotePropertyName "evScreen" -NotePropertyValue ([PSCustomObject]@{
+            bgMode = "oem"; customBgFile = ""; bgFit = "cover"; bgScale = 100; bgOffsetX = 0; bgOffsetY = 0; bgDim = 0;
+            bgColor = "#060911"; accentColor = "#3B82F6"; secondaryColor = "#38BDF8"; showLcarsFrame = $false;
+            carStyle = "oem"; customCarFile = ""; carScale = 100; carOffsetX = 0; carOffsetY = 0;
+            cardStyle = "oem"; hideRangeRadar = $false
+        })
+    }
+}
 
 $ProjectRoot = Split-Path -Parent $PSScriptRoot
 if (-not $ProjectRoot) {
@@ -90,13 +144,238 @@ function Get-ThemesList {
 $initId = Get-ActiveThemeId
 Sync-ActiveThemeToWorking $initId
 
+Add-Type -ReferencedAssemblies "System.dll", "System.Web.dll" -TypeDefinition @"
+using System;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+
+public class StudioResponseStream : MemoryStream {
+    private StudioHttpResponse _resp;
+    private bool _sent = false;
+    public StudioResponseStream(StudioHttpResponse resp) { _resp = resp; }
+    public override void Close() {
+        if (!_sent) {
+            _sent = true;
+            _resp.SendToClient(this.ToArray());
+        }
+        base.Close();
+    }
+}
+
+public class StudioHttpRequest {
+    public string HttpMethod;
+    public Uri Url;
+    public NameValueCollection QueryString;
+    public Stream InputStream;
+}
+
+public class StudioHttpResponse {
+    private TcpClient _client;
+    private NetworkStream _netStream;
+    public int StatusCode = 200;
+    public string ContentType = "text/plain; charset=utf-8";
+    public long ContentLength64 = 0;
+    public Dictionary<string, string> Headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    public StudioResponseStream OutputStream;
+
+    public StudioHttpResponse(TcpClient client, NetworkStream netStream) {
+        _client = client;
+        _netStream = netStream;
+        OutputStream = new StudioResponseStream(this);
+    }
+
+    public void AddHeader(string name, string value) {
+        Headers[name] = value;
+    }
+
+    public void SendToClient(byte[] body) {
+        try {
+            string statusText = StatusCode == 200 ? "OK" : (StatusCode == 404 ? "Not Found" : "Internal Server Error");
+            StringBuilder sb = new StringBuilder();
+            sb.AppendFormat("HTTP/1.1 {0} {1}\r\n", StatusCode, statusText);
+            sb.AppendFormat("Content-Type: {0}\r\n", ContentType);
+            sb.AppendFormat("Content-Length: {0}\r\n", body.Length);
+            sb.Append("Access-Control-Allow-Origin: *\r\n");
+            sb.Append("Connection: close\r\n");
+            foreach (KeyValuePair<string, string> kv in Headers) {
+                if (!kv.Key.Equals("Content-Type", StringComparison.OrdinalIgnoreCase) &&
+                    !kv.Key.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)) {
+                    sb.AppendFormat("{0}: {1}\r\n", kv.Key, kv.Value);
+                }
+            }
+            sb.Append("\r\n");
+            byte[] headerBytes = Encoding.UTF8.GetBytes(sb.ToString());
+            _netStream.Write(headerBytes, 0, headerBytes.Length);
+            if (body.Length > 0) {
+                _netStream.Write(body, 0, body.Length);
+            }
+            _netStream.Flush();
+        } catch {
+        } finally {
+            try { _netStream.Close(); } catch {}
+            try { _client.Close(); } catch {}
+        }
+    }
+}
+
+public class StudioHttpContext {
+    public StudioHttpRequest Request;
+    public StudioHttpResponse Response;
+}
+
+public class StudioHttpListener {
+    private TcpListener _listener;
+    private int _port;
+    public bool IsListening = false;
+
+    public StudioHttpListener(int port) {
+        _port = port;
+        _listener = new TcpListener(IPAddress.Any, port);
+    }
+
+    public void Start() {
+        _listener.Start();
+        IsListening = true;
+    }
+
+    public void Stop() {
+        IsListening = false;
+        try { _listener.Stop(); } catch {}
+    }
+
+    public void Close() {
+        Stop();
+    }
+
+    public StudioHttpContext GetContext() {
+        while (IsListening) {
+            TcpClient client = _listener.AcceptTcpClient();
+            client.ReceiveTimeout = 30000;
+            client.SendTimeout = 30000;
+            try {
+                NetworkStream ns = client.GetStream();
+                MemoryStream ms = new MemoryStream();
+                byte[] buf = new byte[8192];
+                int headerEnd = -1;
+                while (headerEnd < 0) {
+                    int r = ns.Read(buf, 0, buf.Length);
+                    if (r <= 0) break;
+                    ms.Write(buf, 0, r);
+                    byte[] cur = ms.ToArray();
+                    for (int i = 0; i <= cur.Length - 4; i++) {
+                        if (cur[i] == 13 && cur[i+1] == 10 && cur[i+2] == 13 && cur[i+3] == 10) {
+                            headerEnd = i + 4;
+                            break;
+                        }
+                    }
+                    if (cur.Length > 65536) break;
+                }
+                if (headerEnd < 0) {
+                    client.Close();
+                    continue;
+                }
+
+                byte[] allRead = ms.ToArray();
+                string headerStr = Encoding.UTF8.GetString(allRead, 0, headerEnd);
+                string[] lines = headerStr.Split(new string[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+                if (lines.Length == 0) {
+                    client.Close();
+                    continue;
+                }
+
+                string[] reqParts = lines[0].Split(' ');
+                string method = reqParts.Length > 0 ? reqParts[0].Trim().ToUpperInvariant() : "GET";
+                string rawTarget = reqParts.Length > 1 ? reqParts[1].Trim() : "/";
+
+                long contentLen = 0;
+                bool expectContinue = false;
+                for (int l = 1; l < lines.Length; l++) {
+                    int colon = lines[l].IndexOf(':');
+                    if (colon > 0) {
+                        string hk = lines[l].Substring(0, colon).Trim();
+                        string hv = lines[l].Substring(colon + 1).Trim();
+                        if (hk.Equals("Content-Length", StringComparison.OrdinalIgnoreCase)) {
+                            long.TryParse(hv, out contentLen);
+                        } else if (hk.Equals("Expect", StringComparison.OrdinalIgnoreCase) && hv.IndexOf("100-continue", StringComparison.OrdinalIgnoreCase) >= 0) {
+                            expectContinue = true;
+                        }
+                    }
+                }
+
+                if (expectContinue) {
+                    byte[] cont = Encoding.ASCII.GetBytes("HTTP/1.1 100 Continue\r\n\r\n");
+                    ns.Write(cont, 0, cont.Length);
+                    ns.Flush();
+                }
+
+                MemoryStream bodyStream = new MemoryStream();
+                int alreadyBody = allRead.Length - headerEnd;
+                if (alreadyBody > 0) {
+                    bodyStream.Write(allRead, headerEnd, alreadyBody);
+                }
+                while (bodyStream.Length < contentLen) {
+                    int toRead = (int)Math.Min((long)buf.Length, contentLen - bodyStream.Length);
+                    int r = ns.Read(buf, 0, toRead);
+                    if (r <= 0) break;
+                    bodyStream.Write(buf, 0, r);
+                }
+                bodyStream.Position = 0;
+
+                Uri uri = new Uri("http://localhost:" + _port + (rawTarget.StartsWith("/") ? rawTarget : "/" + rawTarget));
+                NameValueCollection qs = new NameValueCollection();
+                string q = uri.Query;
+                if (!string.IsNullOrEmpty(q) && q.StartsWith("?")) {
+                    string[] pairs = q.Substring(1).Split('&');
+                    foreach (string p in pairs) {
+                        if (string.IsNullOrEmpty(p)) continue;
+                        int eq = p.IndexOf('=');
+                        if (eq >= 0) {
+                            qs[Uri.UnescapeDataString(p.Substring(0, eq))] = Uri.UnescapeDataString(p.Substring(eq + 1));
+                        } else {
+                            qs[Uri.UnescapeDataString(p)] = "";
+                        }
+                    }
+                }
+
+                StudioHttpRequest req = new StudioHttpRequest();
+                req.HttpMethod = method;
+                req.Url = uri;
+                req.QueryString = qs;
+                req.InputStream = bodyStream;
+
+                StudioHttpResponse resp = new StudioHttpResponse(client, ns);
+                StudioHttpContext ctx = new StudioHttpContext();
+                ctx.Request = req;
+                ctx.Response = resp;
+                return ctx;
+            } catch {
+                try { client.Close(); } catch {}
+            }
+        }
+        throw new InvalidOperationException("Listener stopped");
+    }
+}
+"@
+
 $Url = "http://localhost:$Port/"
-$Listener = New-Object System.Net.HttpListener
-$Listener.Prefixes.Add($Url)
+$Listener = New-Object StudioHttpListener($Port)
 $Listener.Start()
+
+$LanIps = @(
+    [System.Net.Dns]::GetHostAddresses([System.Net.Dns]::GetHostName()) |
+    Where-Object { $_.AddressFamily -eq [System.Net.Sockets.AddressFamily]::InterNetwork -and -not $_.IPAddressToString.StartsWith("127.") } |
+    ForEach-Object { "http://$($_.IPAddressToString):$Port/" }
+)
 
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "  Gen5W Theme Studio running at: $Url" -ForegroundColor Green
+if ($LanIps.Count -gt 0) {
+    Write-Host "  Network / LAN URLs           : $($LanIps -join ', ')" -ForegroundColor Green
+}
 Write-Host "  Saved Themes : $ThemesDir" -ForegroundColor Gray
 Write-Host "  Press Ctrl+C in this window to stop the server." -ForegroundColor Yellow
 Write-Host "============================================================" -ForegroundColor Cyan
@@ -148,16 +427,19 @@ try {
             elseif ($Req.HttpMethod -eq "GET" -and $Path -eq "/api/config") {
                 $actId = Get-ActiveThemeId
                 $actCfg = Join-Path $ThemesDir "$actId\theme-config.json"
-                Send-File $Res $actCfg "application/json; charset=utf-8"
+                $cfgObj = Get-Content $actCfg -Raw | ConvertFrom-Json
+                Ensure-ThemeConfigDefaults $cfgObj
+                Send-Json $Res 200 $cfgObj
             }
             elseif ($Req.HttpMethod -eq "GET" -and $Path.StartsWith("/custom-assets/")) {
                 $FileName = [System.IO.Path]::GetFileName($Path)
+                $Mime = if ($FileName -match "\.(ttf|otf)$") { "font/ttf" } else { "image/png" }
                 $actId = Get-ActiveThemeId
                 $ThemeAssetPath = Join-Path $ThemesDir "$actId\assets\$FileName"
                 if (Test-Path $ThemeAssetPath) {
-                    Send-File $Res $ThemeAssetPath "image/png"
+                    Send-File $Res $ThemeAssetPath $Mime
                 } else {
-                    Send-File $Res (Join-Path $CustomDir $FileName) "image/png"
+                    Send-File $Res (Join-Path $CustomDir $FileName) $Mime
                 }
             }
             elseif ($Req.HttpMethod -eq "POST" -and $Path -eq "/api/themes/select") {
@@ -170,6 +452,7 @@ try {
                 Sync-ActiveThemeToWorking $TargetId
                 Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Switched active theme to: $TargetId" -ForegroundColor Cyan
                 $cfgObj = Get-Content $TargetCfg -Raw | ConvertFrom-Json
+                Ensure-ThemeConfigDefaults $cfgObj
                 Send-Json $Res 200 @{ ok = $true; activeTheme = $TargetId; config = $cfgObj; themes = (Get-ThemesList).themes }
             }
             elseif ($Req.HttpMethod -eq "POST" -and $Path -eq "/api/themes/create") {
@@ -341,19 +624,8 @@ try {
                         $CompatNote = "Migrated legacy v$CreatedVer theme to v$StudioVersion schema."
                     }
 
-                    # Ensure any newly introduced v1.5 fields have safe defaults on older imported themes
-                    if ($null -ne $ImpCfg.homeScreen) {
-                        if (-not $ImpCfg.homeScreen.PSObject.Properties["bgFit"])            { $ImpCfg.homeScreen | Add-Member -NotePropertyName "bgFit"            -NotePropertyValue "cover" }
-                        if (-not $ImpCfg.homeScreen.PSObject.Properties["mapFadeMode"])      { $ImpCfg.homeScreen | Add-Member -NotePropertyName "mapFadeMode"      -NotePropertyValue "feather" }
-                        if (-not $ImpCfg.homeScreen.PSObject.Properties["mapFadeWidth"])     { $ImpCfg.homeScreen | Add-Member -NotePropertyName "mapFadeWidth"     -NotePropertyValue 75 }
-                        if (-not $ImpCfg.homeScreen.PSObject.Properties["mapCenterOpacity"]) { $ImpCfg.homeScreen | Add-Member -NotePropertyName "mapCenterOpacity" -NotePropertyValue 0 }
-                    }
-                    if ($null -ne $ImpCfg.batteryWidget) {
-                        if (-not $ImpCfg.batteryWidget.PSObject.Properties["rangeOffsetX"])    { $ImpCfg.batteryWidget | Add-Member -NotePropertyName "rangeOffsetX"    -NotePropertyValue 0 }
-                        if (-not $ImpCfg.batteryWidget.PSObject.Properties["rangeOffsetY"])    { $ImpCfg.batteryWidget | Add-Member -NotePropertyName "rangeOffsetY"    -NotePropertyValue 0 }
-                        if (-not $ImpCfg.batteryWidget.PSObject.Properties["battTextOffsetX"]) { $ImpCfg.batteryWidget | Add-Member -NotePropertyName "battTextOffsetX" -NotePropertyValue 0 }
-                        if (-not $ImpCfg.batteryWidget.PSObject.Properties["battTextOffsetY"]) { $ImpCfg.batteryWidget | Add-Member -NotePropertyName "battTextOffsetY" -NotePropertyValue 0 }
-                    }
+                    # Ensure any newly introduced fields have safe defaults on older imported themes
+                    Ensure-ThemeConfigDefaults $ImpCfg
 
                     $RawName = if ($ImpCfg.themeName) { [string]$ImpCfg.themeName } elseif ($ImpMeta -and $ImpMeta.themeName) { [string]$ImpMeta.themeName } else { "Imported Theme" }
                     $BaseSlug = ($RawName.ToLower() -replace "[^a-z0-9]+", "-").Trim('-')
@@ -377,7 +649,7 @@ try {
                     $ExtractedCount = 0
                     foreach ($ze in $Zip.Entries) {
                         if ($ze.FullName.EndsWith("/")) { continue }
-                        if ($ze.FullName -match "(^|/)assets/([^/]+\.(png|jpg|jpeg|webp))$") {
+                        if ($ze.FullName -match "(^|/)assets/([^/]+\.(png|jpg|jpeg|webp|ttf|otf))$") {
                             $SafeAssetName = [System.IO.Path]::GetFileName($ze.FullName) -replace "[^a-zA-Z0-9._-]", ""
                             if ($SafeAssetName) {
                                 $DestAssetPath = Join-Path $TargetAssets $SafeAssetName
@@ -445,7 +717,18 @@ try {
                     $Payload = $Body | ConvertFrom-Json
                     $DataUrl = [string]$Payload.dataUrl
                 }
-                if ($DataUrl -match "^data:image/([a-zA-Z0-9+.-]+);base64,(.+)$") {
+                if ($SlotKey -eq "custom_font" -and $DataUrl -match "^data:[^;]*;base64,(.+)$") {
+                    $Base64 = $Matches[1]
+                    $Bytes = [Convert]::FromBase64String($Base64)
+                    $actId = Get-ActiveThemeId
+                    $actAssetsDir = Join-Path $ThemesDir "$actId\assets"
+                    New-Item -ItemType Directory -Force -Path $actAssetsDir | Out-Null
+                    $OutTtf = Join-Path $actAssetsDir "$SlotKey.ttf"
+                    [System.IO.File]::WriteAllBytes($OutTtf, $Bytes)
+                    Copy-Item $OutTtf (Join-Path $CustomDir "$SlotKey.ttf") -Force
+                    Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Uploaded custom font to theme '$actId': $SlotKey.ttf" -ForegroundColor Cyan
+                    Send-Json $Res 200 @{ ok = $true; file = "$SlotKey.ttf" }
+                } elseif ($DataUrl -match "^data:image/([a-zA-Z0-9+.-]+);base64,(.+)$") {
                     $ImgFmt = $Matches[1].ToLower()
                     $Base64 = $Matches[2]
                     $Bytes = [Convert]::FromBase64String($Base64)

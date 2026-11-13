@@ -31,8 +31,16 @@ SAFETY ARCHITECTURE (RAM-ONLY OVERLAY)
 - You can test a theme with the 45-Second Deadman Timer (auto-reverts to stock
   if not confirmed within 45 seconds), or tap Button 2 ("APPLY & KEEP") directly
   to skip the 45-second timer if you already trust the theme.
-- Rebooting the headunit or pressing the dashboard pinhole reset button ALWAYS
-  wipes volatile RAM and boots 100% unmodified Factory Stock.
+- By default, rebooting the headunit boots 100% unmodified Factory Stock.
+- Optional Auto-Boot on Reboot (`[ 4. AUTO-BOOT ]`): Once a theme is confirmed,
+  you can toggle Button 4 to automatically mount your theme 15s after every boot,
+  protected by two hardware failsafes:
+  1. Pinhole Reset Escape Hatch: Pressing the dashboard pinhole reset during boot
+     or within 60s of the theme loading (2-strike watchdog) automatically trips
+     the breaker on the next boot, disables Auto-Boot, and boots Factory Stock.
+  2. USB Kill-Switch: Plugging in any FAT32/exFAT USB stick with an empty file
+     named `REVERT_THEME.txt` (or `SAFE_MODE.txt`) at the root of the USB drive
+     immediately unmounts all overlays, disables Auto-Boot, and restores Stock!
 
 
 ================================================================================

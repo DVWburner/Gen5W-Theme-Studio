@@ -60,10 +60,27 @@ public class MainActivity extends Activity {
     private static final String COUNTDOWN_FILE = WORK_DIR + "/countdown";
     private static final String ACTIVE_FILE = WORK_DIR + "/active_state";
     private static final String ACTIVE_THEME_NAME_FILE = WORK_DIR + "/active_theme_name";
+    private static final String AUTOSTART_STATE_FILE = WORK_DIR + "/autostart_state";
     private static final String LOG_FILE = WORK_DIR + "/helper.log";
+    private static final String PERSIST_DIR = "/data/data/com.gen5w.themer/autostart";
+    private static final String AUTOSTART_ENABLED_FILE = PERSIST_DIR + "/enabled";
+    private static final String AUTOSTART_STRIKES_FILE = PERSIST_DIR + "/boot_strikes";
+    private static final String AUTOSTART_THEME_FILE = PERSIST_DIR + "/theme_name";
     private static final String THEMED_APK = WORK_DIR + "/Launcher_WP3_themed.apk";
     private static final String STOCK_APK = WORK_DIR + "/Launcher_WP3_stock.apk";
     private static final String TARGET_APK = "/system/app/Launcher_WP3.apk";
+
+    private static final String THEMED_SYSUI = WORK_DIR + "/SystemUI_themed.apk";
+    private static final String STOCK_SYSUI = WORK_DIR + "/SystemUI_stock.apk";
+    private static final String TARGET_SYSUI = "/system/priv-app/SystemUI.apk";
+
+    private static final String THEMED_CLIMATE = WORK_DIR + "/HKMC_Climate_themed.apk";
+    private static final String STOCK_CLIMATE = WORK_DIR + "/HKMC_Climate_stock.apk";
+    private static final String TARGET_CLIMATE = "/system/app/HKMC_Climate.apk";
+
+    private static final String THEMED_EV = WORK_DIR + "/HKMC_TAppEV3_themed.apk";
+    private static final String STOCK_EV = WORK_DIR + "/HKMC_TAppEV3_stock.apk";
+    private static final String TARGET_EV = "/system/app/HKMC_TAppEV3.apk";
 
     private TextView statusBanner;
     private TextView countdownBanner;
@@ -73,6 +90,7 @@ public class MainActivity extends Activity {
     private Button applyLcarsBtn;
     private Button confirmKeepBtn;
     private Button revertStockBtn;
+    private Button autoBootBtn;
     private Button scanBtn;
 
     private static class ThemeEntry {
@@ -316,8 +334,18 @@ public class MainActivity extends Activity {
             }
         });
 
+        autoBootBtn = createActionButton(
+                "4. AUTO-BOOT: OFF\n(Tap After Confirming Theme)",
+                "#334155", "#E2E8F0");
+        autoBootBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onAutoBootToggleClicked();
+            }
+        });
+
         scanBtn = createActionButton(
-                "4. DIAGNOSTICS & LOGS\n(Inspect Mounts & Helper)",
+                "5. DIAGNOSTICS & LOGS\n(Inspect Mounts & Helper)",
                 "#6366F1", "#FFFFFF");
         scanBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -327,12 +355,13 @@ public class MainActivity extends Activity {
         });
 
         LinearLayout.LayoutParams btnLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f);
-        btnLp.setMargins(0, 0, 12, 0);
+        btnLp.setMargins(0, 0, 10, 0);
         btnRow.addView(applyLcarsBtn, btnLp);
         btnRow.addView(confirmKeepBtn, btnLp);
         btnRow.addView(revertStockBtn, btnLp);
+        btnRow.addView(autoBootBtn, btnLp);
 
-        LinearLayout.LayoutParams lastBtnLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.9f);
+        LinearLayout.LayoutParams lastBtnLp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 0.85f);
         btnRow.addView(scanBtn, lastBtnLp);
 
         root.addView(btnRow);
@@ -362,11 +391,11 @@ public class MainActivity extends Activity {
         }
 
         appendLog("==========================================================================");
-        appendLog(" GEN5W OEM LAUNCHER THEME MANAGER v1.5 // " + bundledThemes.size() + " THEME(S) IN PACK");
+        appendLog(" GEN5W OEM LAUNCHER THEME MANAGER v1.1.0 // " + bundledThemes.size() + " THEME(S) IN PACK");
         appendLog("==========================================================================");
         appendLog(" - Selected Theme: " + bundledThemeName + " (tap any theme button above to switch)");
         appendLog(" - Theme Storage: Built on-device in RAM (" + WORK_DIR + ") - NO USB stick needed!");
-        appendLog(" - Safety: 45-second auto-rollback deadman timer + 100% factory stock on reboot");
+        appendLog(" - Auto-Boot on Reboot: Optional toggle with 5-Layer Failsafe (Pinhole 2-Strike + USB REVERT_THEME.txt)");
         appendLog("==========================================================================\n");
     }
 
@@ -516,8 +545,89 @@ public class MainActivity extends Activity {
         countdownBanner.setBackground(bg);
     }
 
+    private boolean isAutoBootCurrentlyEnabled() {
+        String state = readFirstLine(new File(AUTOSTART_STATE_FILE));
+        if (state != null && state.startsWith("ENABLED")) {
+            return true;
+        }
+        String en = readFirstLine(new File(AUTOSTART_ENABLED_FILE));
+        return "1".equals(en);
+    }
+
+    private void updateAutoBootButtonStyle(boolean themed, int remaining, String activeThemeOnCar) {
+        if (autoBootBtn == null) return;
+        String autoState = readFirstLine(new File(AUTOSTART_STATE_FILE));
+        boolean enabled = isAutoBootCurrentlyEnabled();
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(18f);
+
+        if (enabled) {
+            String bootTheme = activeThemeOnCar;
+            if (autoState != null && autoState.startsWith("ENABLED|") && autoState.length() > 8) {
+                bootTheme = autoState.substring(8).trim();
+            } else {
+                String persistedTheme = readFirstLine(new File(AUTOSTART_THEME_FILE));
+                if (persistedTheme != null && !persistedTheme.isEmpty()) {
+                    bootTheme = persistedTheme;
+                }
+            }
+            bg.setColor(Color.parseColor("#F59E0B"));
+            bg.setStroke(2, Color.parseColor("#FEF3C7"));
+            autoBootBtn.setTextColor(Color.parseColor("#050811"));
+            autoBootBtn.setText("4. AUTO-BOOT: ON ✓\n('" + bootTheme + "' - Tap to Disable)");
+        } else if (autoState != null && autoState.startsWith("TRIPPED")) {
+            String reason = "Failsafe Tripped";
+            int bar = autoState.indexOf('|');
+            if (bar > 0 && bar + 1 < autoState.length()) {
+                reason = autoState.substring(bar + 1).trim();
+            }
+            bg.setColor(Color.parseColor("#F97316"));
+            bg.setStroke(2, Color.parseColor("#FFEDD5"));
+            autoBootBtn.setTextColor(Color.parseColor("#050811"));
+            autoBootBtn.setText("4. AUTO-BOOT: TRIPPED!\n(" + reason + ")");
+        } else if (themed && remaining == 0) {
+            bg.setColor(Color.parseColor("#1E293B"));
+            bg.setStroke(2, Color.parseColor("#38BDF8"));
+            autoBootBtn.setTextColor(Color.parseColor("#38BDF8"));
+            autoBootBtn.setText("4. AUTO-BOOT: OFF\n(Tap to Auto-Launch '" + activeThemeOnCar + "')");
+        } else {
+            bg.setColor(Color.parseColor("#334155"));
+            bg.setStroke(2, Color.parseColor("#475569"));
+            autoBootBtn.setTextColor(Color.parseColor("#CBD5E1"));
+            autoBootBtn.setText("4. AUTO-BOOT: OFF\n(Confirm Theme First to Enable)");
+        }
+        autoBootBtn.setBackground(bg);
+    }
+
+    private void onAutoBootToggleClicked() {
+        if (isAutoBootCurrentlyEnabled()) {
+            appendLog("Disabling Auto-Boot on Reboot...");
+            executeThemeActionAsync("DISABLE_AUTOSTART", "DIRECT_DISABLE_AUTOSTART");
+            return;
+        }
+        String countText = readFirstLine(new File(COUNTDOWN_FILE));
+        int remaining = 0;
+        if (countText != null) {
+            try {
+                remaining = Integer.parseInt(countText.trim());
+            } catch (Exception ignored) {
+            }
+        }
+        if (!isLauncherCurrentlyThemed() || remaining > 0) {
+            appendLog("SAFEGUARD: Please apply & confirm your theme first ([1. TEST] -> [2. CONFIRM] or [2. APPLY & KEEP]) before enabling Auto-Boot on Reboot.");
+            setBannerStyle(
+                    "CONFIRM THEME FIRST: Apply & Confirm your theme before arming Auto-Boot on Reboot!",
+                    "#F59E0B",
+                    "#050811");
+            return;
+        }
+        appendLog("Arming Auto-Boot on Reboot for confirmed theme (with Pinhole 2-Strike & USB REVERT_THEME.txt failsafes)...");
+        executeThemeActionAsync("ENABLE_AUTOSTART", "DIRECT_ENABLE_AUTOSTART");
+    }
+
     private void updateLiveStatusBanner() {
         boolean themed = isLauncherCurrentlyThemed();
+        boolean autoBootOn = isAutoBootCurrentlyEnabled();
         String statusText = readFirstLine(new File(STATUS_FILE));
         String countText = readFirstLine(new File(COUNTDOWN_FILE));
         String activeThemeOnCar = readFirstLine(new File(ACTIVE_THEME_NAME_FILE));
@@ -533,6 +643,8 @@ public class MainActivity extends Activity {
             }
         }
 
+        updateAutoBootButtonStyle(themed, remaining, activeThemeOnCar);
+
         if (remaining > 0) {
             statusBanner.setText("STATUS: TESTING (" + remaining + "s)");
             statusBanner.setTextColor(Color.parseColor("#FFCC00"));
@@ -541,18 +653,21 @@ public class MainActivity extends Activity {
                     (remaining % 2 == 0) ? "#FFD600" : "#FF9100",
                     "#000000");
         } else if (themed) {
-            statusBanner.setText("STATUS: THEME ACTIVE");
+            statusBanner.setText(autoBootOn ? "STATUS: ACTIVE + AUTO-BOOT ON" : "STATUS: THEME ACTIVE");
             statusBanner.setTextColor(Color.parseColor("#10B981"));
+            String autoMsg = autoBootOn
+                    ? "AUTO-BOOT ON (Failsafes: Pinhole Reset x2 or USB 'REVERT_THEME.txt'). Tap [4. AUTO-BOOT] to disable or [3. REVERT TO STOCK]."
+                    : "Tap [4. AUTO-BOOT: OFF] to auto-launch across reboots, or [3. REVERT TO STOCK].";
             setBannerStyle(
-                    "CUSTOM THEME ACTIVE ('" + activeThemeOnCar + "' confirmed in RAM). Select another theme above + tap [1. APPLY] to switch, or [3. REVERT TO STOCK].",
+                    "CUSTOM THEME ACTIVE ('" + activeThemeOnCar + "' confirmed). " + autoMsg,
                     "#10B981",
                     "#000000");
         } else {
             statusBanner.setText("STATUS: FACTORY STOCK");
             statusBanner.setTextColor(Color.parseColor("#38BDF8"));
             String msg = (statusText != null && !statusText.isEmpty())
-                    ? "CURRENT STATE: " + statusText + "  |  Select a theme below and tap [1. APPLY]."
-                    : "CURRENT STATE: STOCK (Unmodified)  |  Select a theme below and tap [1. APPLY] to test in RAM.";
+                    ? "CURRENT STATE: " + statusText + "  |  Select a theme below and tap [1. TEST] or [2. APPLY & KEEP]."
+                    : "CURRENT STATE: STOCK (Unmodified)  |  Select a theme below and tap [1. TEST] or [2. APPLY & KEEP].";
             setBannerStyle(msg, "#38BDF8", "#050811");
         }
     }
@@ -564,6 +679,10 @@ public class MainActivity extends Activity {
     }
 
     private boolean isLauncherBindMounted() {
+        return isTargetBindMounted(TARGET_APK);
+    }
+
+    private boolean isTargetBindMounted(String targetPath) {
         File mounts = new File("/proc/mounts");
         if (!mounts.exists()) return false;
         BufferedReader br = null;
@@ -571,7 +690,7 @@ public class MainActivity extends Activity {
             br = new BufferedReader(new InputStreamReader(new FileInputStream(mounts)));
             String line;
             while ((line = br.readLine()) != null) {
-                if (line.contains(TARGET_APK)) {
+                if (line.contains(targetPath)) {
                     return true;
                 }
             }
@@ -685,8 +804,13 @@ public class MainActivity extends Activity {
                     }
 
                     long elapsed = System.currentTimeMillis() - t0;
-                    appendLog("SUCCESS: Patched " + replacedCount + " theme resources into "
+                    appendLog("SUCCESS: Patched " + replacedCount + " Launcher resources into "
                             + outApk.getAbsolutePath() + " (" + (outApk.length() / 1024) + " KB) in " + elapsed + " ms.");
+
+                    // Optional Sub-APKs: Status Bar (SystemUI), Climate & Warmer (HKMC_Climate), EV Screen (HKMC_TAppEV3)
+                    stageOptionalSubApk("Status Bar (SystemUI)", TARGET_SYSUI, STOCK_SYSUI, THEMED_SYSUI, "themes/" + targetSlug + "/systemui");
+                    stageOptionalSubApk("Climate & Warmer (HKMC_Climate)", TARGET_CLIMATE, STOCK_CLIMATE, THEMED_CLIMATE, "themes/" + targetSlug + "/climate");
+                    stageOptionalSubApk("EV Screen (HKMC_TAppEV3)", TARGET_EV, STOCK_EV, THEMED_EV, "themes/" + targetSlug + "/ev");
 
                     appendLog(">>> [STEP 2/3] Ensuring Root Helper Service is active...");
                     CmdResult svcRes = execNemesis("service", "start", HELPER_SVC);
@@ -821,6 +945,10 @@ public class MainActivity extends Activity {
         float globalIconScale = parseFloatSafe(runtimeCfg.get("globalIconScale"), 100.0f);
         float globalIconOffX = parseFloatSafe(runtimeCfg.get("globalIconOffX"), 0.0f);
         float globalIconOffY = parseFloatSafe(runtimeCfg.get("globalIconOffY"), 0.0f);
+        float mediaOffX = parseFloatSafe(runtimeCfg.get("mediaOffX"), 0.0f);
+        float mediaOffY = parseFloatSafe(runtimeCfg.get("mediaOffY"), 0.0f);
+        float mediaFontScale = parseFloatSafe(runtimeCfg.get("mediaFontScale"), 100.0f);
+        boolean transformAvMain = (mediaOffX != 0.0f || mediaOffY != 0.0f || mediaFontScale != 100.0f);
 
         int replaced = 0;
         ZipFile origZip = new ZipFile(sourceApk);
@@ -891,6 +1019,20 @@ public class MainActivity extends Activity {
                     zos.write(rawXml);
                     zos.closeEntry();
                     replaced++;
+                } else if (transformAvMain && name.startsWith("res/layout/widget_av_main_") && name.endsWith(".xml")) {
+                    byte[] rawXml = readStreamBytes(origZip.getInputStream(origEntry));
+                    rawXml = transformAvMainLayoutXml(
+                            rawXml,
+                            Math.round(mediaOffX / 1.5f),
+                            Math.round(mediaOffY / 1.5f),
+                            mediaFontScale);
+                    ZipEntry outEntry = new ZipEntry(name);
+                    outEntry.setMethod(ZipEntry.DEFLATED);
+                    outEntry.setExtra(null);
+                    zos.putNextEntry(outEntry);
+                    zos.write(rawXml);
+                    zos.closeEntry();
+                    replaced++;
                 } else if (origEntry.getMethod() == ZipEntry.STORED || name.equals("resources.arsc")) {
                     ZipEntry outEntry = new ZipEntry(name);
                     outEntry.setMethod(ZipEntry.STORED);
@@ -941,6 +1083,219 @@ public class MainActivity extends Activity {
         return replaced;
     }
 
+    private void stageOptionalSubApk(String label, String targetSystemPath, String stockBackupPath, String themedOutPath, String assetSubPrefix) {
+        AssetManager am = getAssets();
+        Map<String, String> entryMap = new HashMap<String, String>();
+        InputStream manifestIn = null;
+        try {
+            manifestIn = am.open(assetSubPrefix + "/manifest.txt");
+            BufferedReader br = new BufferedReader(new InputStreamReader(manifestIn, "UTF-8"));
+            String line;
+            while ((line = br.readLine()) != null) {
+                String t = line.trim();
+                if (!t.isEmpty() && !t.equals("manifest.txt") && !t.equals("runtime-composite.txt")) {
+                    int bar = t.indexOf('|');
+                    if (bar > 0) {
+                        entryMap.put(t.substring(0, bar).trim(), t.substring(bar + 1).trim());
+                    } else {
+                        entryMap.put(t, t);
+                    }
+                }
+            }
+            br.close();
+        } catch (Exception ignored) {
+        } finally {
+            if (manifestIn != null) {
+                try { manifestIn.close(); } catch (Exception ignored) {}
+            }
+        }
+
+        Map<String, String> runtimeCfg = new HashMap<String, String>();
+        InputStream rcIn = null;
+        try {
+            rcIn = am.open(assetSubPrefix + "/runtime-composite.txt");
+            BufferedReader rcBr = new BufferedReader(new InputStreamReader(rcIn, "UTF-8"));
+            String rcLine;
+            while ((rcLine = rcBr.readLine()) != null) {
+                String t = rcLine.trim();
+                int eq = t.indexOf('=');
+                if (eq > 0) {
+                    runtimeCfg.put(t.substring(0, eq).trim(), t.substring(eq + 1).trim());
+                }
+            }
+            rcBr.close();
+        } catch (Exception ignored) {
+        } finally {
+            if (rcIn != null) {
+                try { rcIn.close(); } catch (Exception ignored) {}
+            }
+        }
+
+        boolean hasOemScaleTransform = "true".equalsIgnoreCase(runtimeCfg.get("scaleOemEvCar"))
+                || "true".equalsIgnoreCase(runtimeCfg.get("scaleOemClimateSeat"));
+        File outApk = new File(themedOutPath);
+
+        if (entryMap.isEmpty() && !hasOemScaleTransform) {
+            if (outApk.exists()) {
+                outApk.delete();
+            }
+            appendLog(" - " + label + ": Factory Stock (OEM unmodified)");
+            return;
+        }
+
+        File stockApk = new File(targetSystemPath);
+        if (!stockApk.exists()) {
+            if (outApk.exists()) outApk.delete();
+            appendLog(" - " + label + ": Not present on vehicle (" + targetSystemPath + "), skipping.");
+            return;
+        }
+
+        try {
+            long t0 = System.currentTimeMillis();
+            File cleanStockBackup = new File(stockBackupPath);
+            if (!cleanStockBackup.exists() && !isTargetBindMounted(targetSystemPath)) {
+                copyFile(stockApk, cleanStockBackup);
+                cleanStockBackup.setReadable(true, false);
+            }
+            File sourceApk = cleanStockBackup.exists() ? cleanStockBackup : stockApk;
+            File outTmp = new File(themedOutPath + ".tmp");
+            int count = buildThemedSubApk(sourceApk, outTmp, assetSubPrefix, entryMap, runtimeCfg);
+            if (outApk.exists()) outApk.delete();
+            if (!outTmp.renameTo(outApk)) {
+                copyFile(outTmp, outApk);
+                outTmp.delete();
+            }
+            outApk.setReadable(true, false);
+            long dt = System.currentTimeMillis() - t0;
+            appendLog(" - " + label + ": Patched " + count + " resources into " + outApk.getName() + " (" + (outApk.length() / 1024) + " KB) in " + dt + " ms.");
+        } catch (Exception e) {
+            if (outApk.exists()) outApk.delete();
+            appendLog(" - WARNING (" + label + "): Failed to stage sub-APK: " + e.toString());
+        }
+    }
+
+    private int buildThemedSubApk(File sourceApk, File destApk, String assetSubPrefix, Map<String, String> entryMap, Map<String, String> runtimeCfg) throws Exception {
+        AssetManager am = getAssets();
+        Map<String, byte[]> assetCache = new HashMap<String, byte[]>();
+        boolean scaleOemEvCar = "true".equalsIgnoreCase(runtimeCfg.get("scaleOemEvCar"));
+        float evCarScale = parseFloatSafe(runtimeCfg.get("evCarScale"), 100.0f);
+        float evCarOffX = parseFloatSafe(runtimeCfg.get("evCarOffX"), 0.0f);
+        float evCarOffY = parseFloatSafe(runtimeCfg.get("evCarOffY"), 0.0f);
+
+        boolean scaleOemClimateSeat = "true".equalsIgnoreCase(runtimeCfg.get("scaleOemClimateSeat"));
+        float seatScale = parseFloatSafe(runtimeCfg.get("seatScale"), 100.0f);
+        float seatOffX = parseFloatSafe(runtimeCfg.get("seatOffX"), 0.0f);
+        float seatOffY = parseFloatSafe(runtimeCfg.get("seatOffY"), 0.0f);
+
+        int replaced = 0;
+        ZipFile origZip = new ZipFile(sourceApk);
+        FileOutputStream fos = new FileOutputStream(destApk);
+        BufferedOutputStream bos = new BufferedOutputStream(fos, 65536);
+        CountingOutputStream cos = new CountingOutputStream(bos);
+        ZipOutputStream zos = new ZipOutputStream(cos);
+
+        byte[] buf = new byte[65536];
+        try {
+            Enumeration<? extends ZipEntry> entries = origZip.entries();
+            while (entries.hasMoreElements()) {
+                ZipEntry origEntry = entries.nextElement();
+                String name = origEntry.getName();
+
+                if (entryMap.containsKey(name)) {
+                    String relAsset = entryMap.get(name);
+                    byte[] replacementBytes = assetCache.get(relAsset);
+                    if (replacementBytes == null) {
+                        replacementBytes = readAssetBytes(am, assetSubPrefix + "/" + relAsset);
+                        assetCache.put(relAsset, replacementBytes);
+                    }
+                    writeAlignedStoredEntry(zos, cos, name, replacementBytes);
+                    replaced++;
+                } else if (scaleOemEvCar && (name.contains("ev_ic_battery_bg") || name.contains("ev_ic_battery_cover")) && name.endsWith(".webp")) {
+                    byte[] stockBytes = readStreamBytes(origZip.getInputStream(origEntry));
+                    byte[] transformed = scaleOffsetOemImage(stockBytes, 450, 255, evCarScale, evCarOffX, evCarOffY, false);
+                    writeAlignedStoredEntry(zos, cos, name, transformed != null ? transformed : stockBytes);
+                    replaced++;
+                } else if (scaleOemClimateSeat && name.endsWith("clm_bg_seat.png")) {
+                    byte[] stockBytes = readStreamBytes(origZip.getInputStream(origEntry));
+                    byte[] transformed = scaleOffsetOemImage(stockBytes, 309, 351, seatScale, seatOffX, seatOffY, true);
+                    writeAlignedStoredEntry(zos, cos, name, transformed != null ? transformed : stockBytes);
+                    replaced++;
+                } else if (origEntry.getMethod() == ZipEntry.STORED || name.equals("resources.arsc")) {
+                    ZipEntry outEntry = new ZipEntry(name);
+                    outEntry.setMethod(ZipEntry.STORED);
+                    long size = origEntry.getSize();
+                    long crc = origEntry.getCrc();
+                    if (size < 0 || crc < 0) {
+                        byte[] raw = readStreamBytes(origZip.getInputStream(origEntry));
+                        writeAlignedStoredEntry(zos, cos, name, raw);
+                    } else {
+                        outEntry.setSize(size);
+                        outEntry.setCompressedSize(size);
+                        outEntry.setCrc(crc);
+                        int nameLen = name.getBytes("UTF-8").length;
+                        long headerEnd = cos.getCount() + 30L + nameLen;
+                        int pad = (int) ((4L - (headerEnd % 4L)) % 4L);
+                        if (pad > 0) {
+                            outEntry.setExtra(new byte[pad]);
+                        } else {
+                            outEntry.setExtra(null);
+                        }
+                        zos.putNextEntry(outEntry);
+                        InputStream in = origZip.getInputStream(origEntry);
+                        int r;
+                        while ((r = in.read(buf)) != -1) {
+                            zos.write(buf, 0, r);
+                        }
+                        in.close();
+                        zos.closeEntry();
+                    }
+                } else {
+                    ZipEntry outEntry = new ZipEntry(name);
+                    outEntry.setMethod(ZipEntry.DEFLATED);
+                    outEntry.setExtra(null);
+                    zos.putNextEntry(outEntry);
+                    InputStream in = origZip.getInputStream(origEntry);
+                    int r;
+                    while ((r = in.read(buf)) != -1) {
+                        zos.write(buf, 0, r);
+                    }
+                    in.close();
+                    zos.closeEntry();
+                }
+            }
+        } finally {
+            zos.close();
+            origZip.close();
+        }
+        return replaced;
+    }
+
+    private byte[] scaleOffsetOemImage(byte[] stockBytes, int targetW, int targetH, float scalePct, float offX, float offY, boolean asPng) {
+        Bitmap stockBmp = BitmapFactory.decodeByteArray(stockBytes, 0, stockBytes.length);
+        if (stockBmp == null) return null;
+        try {
+            Bitmap outBmp = Bitmap.createBitmap(targetW, targetH, Bitmap.Config.ARGB_8888);
+            Canvas outCanvas = new Canvas(outBmp);
+            Paint p = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+            float s = (scalePct > 0f ? scalePct : 100f) / 100.0f;
+            float dw = targetW * s;
+            float dh = targetH * s;
+            float dx = (targetW / 2.0f - dw / 2.0f) + offX;
+            float dy = (targetH / 2.0f - dh / 2.0f) + offY;
+            RectF dstRect = new RectF(dx, dy, dx + dw, dy + dh);
+            outCanvas.drawBitmap(stockBmp, null, dstRect, p);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream(16384);
+            if (asPng || !outBmp.compress(Bitmap.CompressFormat.WEBP, 100, baos)) {
+                baos.reset();
+                outBmp.compress(Bitmap.CompressFormat.PNG, 100, baos);
+            }
+            outBmp.recycle();
+            return baos.toByteArray();
+        } finally {
+            stockBmp.recycle();
+        }
+    }
+
     private void writeAlignedStoredEntry(ZipOutputStream zos, CountingOutputStream cos, String name, byte[] data) throws IOException {
         ZipEntry outEntry = new ZipEntry(name);
         outEntry.setMethod(ZipEntry.STORED);
@@ -970,6 +1325,163 @@ public class MainActivity extends Activity {
             return Float.parseFloat(val.trim());
         } catch (Exception e) {
             return def;
+        }
+    }
+
+    private static int readUInt16LE(byte[] b, int off) {
+        return (b[off] & 0xFF) | ((b[off + 1] & 0xFF) << 8);
+    }
+
+    private static void writeUInt16LE(byte[] b, int off, int val) {
+        b[off] = (byte) (val & 0xFF);
+        b[off + 1] = (byte) ((val >> 8) & 0xFF);
+    }
+
+    private static int readInt32LE(byte[] b, int off) {
+        return (b[off] & 0xFF)
+                | ((b[off + 1] & 0xFF) << 8)
+                | ((b[off + 2] & 0xFF) << 16)
+                | ((b[off + 3] & 0xFF) << 24);
+    }
+
+    private static void writeInt32LE(byte[] b, int off, int val) {
+        b[off] = (byte) (val & 0xFF);
+        b[off + 1] = (byte) ((val >> 8) & 0xFF);
+        b[off + 2] = (byte) ((val >> 16) & 0xFF);
+        b[off + 3] = (byte) ((val >> 24) & 0xFF);
+    }
+
+    private byte[] transformAvMainLayoutXml(byte[] rawXml, int offXDp, int offYDp, float scalePct) {
+        if (rawXml == null || rawXml.length < 64) return rawXml;
+        try {
+            if (readUInt16LE(rawXml, 0) != 0x0003) return rawXml;
+            int strPoolOff = 8;
+            if (readUInt16LE(rawXml, strPoolOff) != 0x0001) return rawXml;
+            int strPoolSize = readInt32LE(rawXml, strPoolOff + 4);
+            int strCount = readInt32LE(rawXml, strPoolOff + 8);
+
+            int resMapOff = strPoolOff + strPoolSize;
+            if (resMapOff + 8 > rawXml.length || readUInt16LE(rawXml, resMapOff) != 0x0180) return rawXml;
+            int resMapSize = readInt32LE(rawXml, resMapOff + 4);
+            int resMapCount = (resMapSize - 8) / 4;
+
+            // 1. Scale textSize (0x01010095) and fixed text row layout_height (0x010100F5) across all elements
+            int firstStartElemOff = -1;
+            int pos = resMapOff + resMapSize;
+            float sFactor = (scalePct > 0f ? scalePct : 100f) / 100.0f;
+            while (pos + 8 <= rawXml.length) {
+                int cType = readUInt16LE(rawXml, pos);
+                int cSize = readInt32LE(rawXml, pos + 4);
+                if (cSize <= 0 || pos + cSize > rawXml.length) break;
+                if (cType == 0x0102) {
+                    if (firstStartElemOff < 0) firstStartElemOff = pos;
+                    if (Math.abs(scalePct - 100.0f) > 0.5f) {
+                        int attrCount = readUInt16LE(rawXml, pos + 28);
+                        int aBase = pos + 36;
+                        for (int ai = 0; ai < attrCount; ai++) {
+                            int aOff = aBase + ai * 20;
+                            if (aOff + 20 > pos + cSize) break;
+                            int nameIdx = readInt32LE(rawXml, aOff + 4);
+                            int resId = (nameIdx >= 0 && nameIdx < resMapCount)
+                                    ? readInt32LE(rawXml, resMapOff + 8 + nameIdx * 4) : 0;
+                            int dType = rawXml[aOff + 15] & 0xFF;
+                            int data = readInt32LE(rawXml, aOff + 16);
+                            if (resId == 0x01010095) { // android:textSize
+                                if (dType == 5) {
+                                    int unit = data & 0x0F;
+                                    int baseVal = data >> 8;
+                                    int newVal = Math.max(8, Math.round(baseVal * sFactor));
+                                    writeInt32LE(rawXml, aOff + 16, ((newVal & 0xFFFFFF) << 8) | unit);
+                                } else if (dType == 1) {
+                                    // Convert @dimen reference (stock 22sp) to direct sp dimension
+                                    int newSp = Math.max(8, Math.round(22.0f * sFactor));
+                                    rawXml[aOff + 15] = 5;
+                                    writeInt32LE(rawXml, aOff + 16, ((newSp & 0xFFFFFF) << 8) | 2);
+                                }
+                            } else if (resId == 0x010100F5 && sFactor > 1.0f && dType == 5) { // android:layout_height
+                                int unit = data & 0x0F;
+                                int baseVal = data >> 8;
+                                if (baseVal >= 18 && baseVal <= 120) {
+                                    int newVal = Math.round(baseVal * sFactor);
+                                    writeInt32LE(rawXml, aOff + 16, ((newVal & 0xFFFFFF) << 8) | unit);
+                                }
+                            }
+                        }
+                    }
+                }
+                pos += cSize;
+            }
+
+            // 2. Inject android:translationX (0x01010320) & android:translationY (0x01010321) into root StartElement
+            if ((offXDp != 0 || offYDp != 0) && firstStartElemOff > 0 && strCount >= resMapCount + 2) {
+                int rootAttrCount = readUInt16LE(rawXml, firstStartElemOff + 28);
+                if (rootAttrCount > 0) {
+                    int nsIdx = readInt32LE(rawXml, firstStartElemOff + 36);
+                    int insIdx = rootAttrCount;
+                    for (int ai = 0; ai < rootAttrCount; ai++) {
+                        int aOff = firstStartElemOff + 36 + ai * 20;
+                        int nameIdx = readInt32LE(rawXml, aOff + 4);
+                        int resId = (nameIdx >= 0 && nameIdx < resMapCount)
+                                ? readInt32LE(rawXml, resMapOff + 8 + nameIdx * 4) : 0x7FFFFFFF;
+                        if (resId > 0x01010320) {
+                            insIdx = ai;
+                            break;
+                        }
+                    }
+
+                    int resMapInsertPos = resMapOff + resMapSize;
+                    int attrInsertPos = firstStartElemOff + 36 + insIdx * 20;
+                    byte[] out = new byte[rawXml.length + 48];
+
+                    // Copy up to end of existing ResourceMap
+                    System.arraycopy(rawXml, 0, out, 0, resMapInsertPos);
+                    // Append 0x01010320 (translationX) and 0x01010321 (translationY) to ResourceMap (+8 bytes)
+                    writeInt32LE(out, resMapInsertPos, 0x01010320);
+                    writeInt32LE(out, resMapInsertPos + 4, 0x01010321);
+
+                    // Copy from end of ResourceMap up to attribute insertion point in root StartElement
+                    System.arraycopy(rawXml, resMapInsertPos, out, resMapInsertPos + 8, attrInsertPos - resMapInsertPos);
+
+                    // Write two 20-byte ResXMLTree_attribute structs (+40 bytes)
+                    int newAttrPos = attrInsertPos + 8;
+                    // Attribute 1: android:translationX (nameIdx = resMapCount)
+                    writeInt32LE(out, newAttrPos, nsIdx);
+                    writeInt32LE(out, newAttrPos + 4, resMapCount);
+                    writeInt32LE(out, newAttrPos + 8, -1);
+                    writeUInt16LE(out, newAttrPos + 12, 8);
+                    out[newAttrPos + 14] = 0;
+                    out[newAttrPos + 15] = 5; // TYPE_DIMENSION
+                    writeInt32LE(out, newAttrPos + 16, ((offXDp & 0xFFFFFF) << 8) | 1);
+
+                    // Attribute 2: android:translationY (nameIdx = resMapCount + 1)
+                    writeInt32LE(out, newAttrPos + 20, nsIdx);
+                    writeInt32LE(out, newAttrPos + 24, resMapCount + 1);
+                    writeInt32LE(out, newAttrPos + 28, -1);
+                    writeUInt16LE(out, newAttrPos + 32, 8);
+                    out[newAttrPos + 34] = 0;
+                    out[newAttrPos + 35] = 5; // TYPE_DIMENSION
+                    writeInt32LE(out, newAttrPos + 36, ((offYDp & 0xFFFFFF) << 8) | 1);
+
+                    // Copy remainder of XML
+                    System.arraycopy(rawXml, attrInsertPos, out, newAttrPos + 40, rawXml.length - attrInsertPos);
+
+                    // Update chunk headers: total file size (+48), ResourceMap size (+8), root StartElement size (+40) & attrCount (+2)
+                    writeInt32LE(out, 4, rawXml.length + 48);
+                    writeInt32LE(out, resMapOff + 4, resMapSize + 8);
+                    int newRootOff = firstStartElemOff + 8;
+                    int oldRootSize = readInt32LE(out, newRootOff + 4);
+                    writeInt32LE(out, newRootOff + 4, oldRootSize + 40);
+                    writeUInt16LE(out, newRootOff + 28, rootAttrCount + 2);
+                    int idIdx1Based = readUInt16LE(out, newRootOff + 30);
+                    if (idIdx1Based > insIdx) {
+                        writeUInt16LE(out, newRootOff + 30, idIdx1Based + 2);
+                    }
+                    return out;
+                }
+            }
+            return rawXml;
+        } catch (Exception e) {
+            return rawXml;
         }
     }
 
@@ -1112,7 +1624,11 @@ public class MainActivity extends Activity {
                     sb.append("Bundled Theme Name        : ").append(bundledThemeName).append("\n");
                     sb.append("Launcher Currently Themed : ").append(isLauncherCurrentlyThemed() ? "YES (Custom Theme Active)" : "NO (Factory Stock)").append("\n");
                     sb.append("Launcher in /proc/mounts  : ").append(isLauncherBindMounted() ? "YES" : "NO").append("\n");
+                    sb.append("SystemUI in /proc/mounts  : ").append(isTargetBindMounted(TARGET_SYSUI) ? "YES" : "NO").append("\n");
+                    sb.append("Climate in /proc/mounts   : ").append(isTargetBindMounted(TARGET_CLIMATE) ? "YES" : "NO").append("\n");
+                    sb.append("EV App in /proc/mounts    : ").append(isTargetBindMounted(TARGET_EV) ? "YES" : "NO").append("\n");
                     sb.append("Active State File         : ").append(readFirstLine(new File(ACTIVE_FILE))).append("\n");
+                    sb.append("Auto-Boot State           : ").append(readFirstLine(new File(AUTOSTART_STATE_FILE))).append(" (enabled=").append(readFirstLine(new File(AUTOSTART_ENABLED_FILE))).append(", strikes=").append(readFirstLine(new File(AUTOSTART_STRIKES_FILE))).append(")\n");
                     sb.append("Helper Status File        : ").append(readFirstLine(new File(STATUS_FILE))).append("\n");
                     sb.append("Countdown File            : ").append(readFirstLine(new File(COUNTDOWN_FILE))).append("\n");
 

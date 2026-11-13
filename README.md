@@ -36,20 +36,28 @@ This tool **requires** your headunit to already have **[NEMESIS (`xwtk/hmg_nemes
    - A visual `1920×720` live preview canvas for designing custom **Home Split-Screen** and **All-Apps Menu** themes.
    - **Home Split-Screen Customization**:
      - Custom `1920×720` wallpaper with automatic right-side transparent cutout and selectable **Map Viewport Edge Blend** (`Soft Alpha Feather`, `Left-Edge Only Alpha Fade`, `OEM Stock Gradient Mask`, or `Hard Box Cutout`) so the live Navigation Map shows through cleanly.
-     - Drag-and-drop positioning for the **Date & Clock**, **Media / Radio Readout**, and **3D EV Car Status Widget**.
-     - Fine-tune sliders to independently move the OEM **`Range / mi`** box & text and **`Battery / %`** readout anywhere on the Home screen.
+     - Drag-and-drop and fine-tune sliders for the **Date & Clock** (X/Y offset + font scale), **Media / Radio Readout** (X/Y offset + font scale), and **3D EV Car Status Widget** (including Shuttlecraft Galileo `NCC-1701/7` and Wireframe EV Car).
+     - Custom **Home Screen Font Family** selector (`Orbitron`, `Rajdhani`, `Chakra Petch`, `Share Tech Mono`, `Audiowide`, `Michroma`, `Exo 2`, `Oxanium`, or custom `.ttf`/`.otf` upload).
    - **All-Apps Menu Customization**:
      - Replace any of the 17 app icon graphics (PNG/JPG/WebP), customize or hide icon text labels (with custom font sizes and colors), and style individual tile card backgrounds.
+   - **Sub-Menu Theming (`SystemUI`, `HKMC_Climate`, `HKMC_TAppEV3`)**:
+     - **4. Top Bar**: Global status bar background & Back/Home/Menu navigation buttons.
+     - **5. EV Screen**: Full-screen EV Energy Information background, bottom cards, range radar toggle, and vehicle graphic (Stock OEM, Shuttlecraft Galileo, Wireframe EV Car, 3D Battery Slab, or Custom).
+     - **6. Climate & Floating Seat Warmer**: Full-screen Climate background, Floating Warmer/Ventilation popup (`640×462`), warmer/ventilation icons & 3-stage LED bars, and 3D seat graphics (including the **Star Trek Captain's Chair**).
    - **Multi-Theme APK Bundling**: Bundle multiple saved themes into a single car installer `.zip` and switch between them directly on your car's screen.
    - **Community Theme Sharing (`.gen5wtheme`)**: One-click **`📤 Export`** and **`📥 Import`** buttons package all theme settings, version metadata, and custom image assets into a single shareable `.gen5wtheme` file.
 
-2. **On-Car Gen5W Themer App & Fail-Safe RAM Overlay**:
+2. **On-Car Gen5W Themer App, Optional Auto-Boot & 5-Layer Failsafe Architecture**:
    - Installed via USB through the NEMESIS package manager (appears in the NEMESIS Launcher with a palette & paintbrush icon).
-   - **RAM-Only (`/mnt/asec`) Overlay Architecture**: Your car's `/system` partition is **never modified on disk**. When you apply a theme, the helper script copies the stock `WideHome.apk` into volatile RAM (`/mnt/asec`), injects your theme's assets into the RAM copy, and bind-mounts it over `/system/priv-app/WideHome/WideHome.apk`.
+   - **RAM-Only (`/mnt/asec`) Overlay Architecture**: Your car's `/system` partition is **never modified on disk**. When you apply a theme, the helper script copies the stock system APKs (`Launcher_WP3.apk`, `SystemUI.apk`, `HKMC_Climate.apk`, `HKMC_TAppEV3.apk`) into volatile RAM (`/mnt/asec`), injects your theme's assets into the RAM copies, and bind-mounts them over `/system/...`.
    - **Two Ways to Apply on the Car Display**:
-     - **Option 1 — 45s Safe Test Mode**: Applies the theme with a 45-second deadman rollback timer. If anything goes wrong and you cannot tap confirm, the background daemon automatically unmounts the RAM overlay after 45 seconds and restores your stock launcher.
-     - **Option 2 — Direct Apply & Keep (Skip Timer)**: If you already trust a theme, you can tap **`2. APPLY & KEEP`** directly from Stock state to apply and lock in the theme immediately without waiting for the 45-second test countdown.
-   - **Reboot / Pinhole Reset Always Restores Stock**: Because `/mnt/asec` lives entirely in volatile RAM, rebooting the headunit (or pressing the pinhole reset button) **always** wipes the overlay and boots 100% Factory Stock.
+     - **Option 1 — 45s Safe Test Mode (`[1. TEST]`)**: Applies the theme with a 45-second deadman rollback timer. If anything goes wrong and you cannot tap confirm, the background daemon automatically unmounts the RAM overlay after 45 seconds and restores your stock launcher.
+     - **Option 2 — Direct Apply & Keep (`[2. APPLY & KEEP]`)**: If you already trust a theme, you can tap **`2. APPLY & KEEP`** directly from Stock state to apply and lock in the theme immediately without waiting for the 45-second test countdown.
+   - **Optional Auto-Launch on Boot (`[4. AUTO-BOOT: OFF -> ON ✓]`) & Hardware Failsafes**:
+     - By default, rebooting the headunit wipes volatile RAM and boots 100% Factory Stock.
+     - Once a theme is confirmed, you can optionally tap **`[4. AUTO-BOOT]`** to automatically re-mount your confirmed theme 15 seconds after every headunit boot, protected by two independent hardware failsafes:
+       1. **📌 Pinhole Reset Escape Hatch (15s Boot Grace Window + 2-Strike Watchdog)**: Pressing the physical dashboard pinhole reset button during startup or within 60 seconds after the theme loads (or if the Launcher crashes twice) trips the `boot_strikes >= 2` breaker on the next boot, automatically disabling Auto-Boot and booting **100% Factory Stock**.
+       2. **🔌 USB Kill-Switch (`REVERT_THEME.txt`)**: Plugging in any FAT32/exFAT USB stick containing an empty file named **`REVERT_THEME.txt`** (or `SAFE_MODE.txt` / `DISABLE_THEME.txt`) at its root immediately unmounts all theme overlays, disables Auto-Boot, and restores **100% Factory Stock** within 1–2 seconds without touching the screen.
 
 ---
 

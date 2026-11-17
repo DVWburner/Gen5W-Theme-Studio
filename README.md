@@ -32,7 +32,7 @@ This tool **requires** your headunit to already have **[NEMESIS (`xwtk/hmg_nemes
 
 **Gen5W Theme Studio** is a two-part theming toolkit for NEMESIS-equipped Gen5W `1920×720` widescreen headunits:
 
-1. **PC Theme Studio (Local Browser App for Windows 10/11)**:
+1. **Desktop Theme Studio (Local Browser App for Windows 10/11 and macOS)**:
    - A visual `1920×720` live preview canvas for designing custom **Home Split-Screen** and **All-Apps Menu** themes.
    - **Home Split-Screen Customization**:
      - Custom `1920×720` wallpaper with automatic right-side transparent cutout and selectable **Map Viewport Edge Blend** (`Soft Alpha Feather`, `Left-Edge Only Alpha Fade`, `OEM Stock Gradient Mask`, or `Hard Box Cutout`) so the live Navigation Map shows through cleanly.
@@ -90,6 +90,19 @@ If you just want to try the pre-made **LCARS** theme on your NEMESIS-equipped ca
 2. Extract the `.zip` to any folder on your PC and double-click **`Start-ThemeStudio.bat`**.
 3. Your browser will automatically open **`http://localhost:8470/`**.
 
+#### macOS (Intel and Apple Silicon)
+
+1. Install and start [Docker Desktop for Mac](https://docs.docker.com/desktop/setup/install/mac-install/).
+2. Clone this repository or extract a redistributable built from this branch. Older Windows-only releases do not include the Mac launcher.
+3. Double-click **`Start-ThemeStudio.command`**. If the ZIP did not preserve executable permissions, run `chmod +x Start-ThemeStudio.command` in the extracted folder first. You can also run `bash Start-ThemeStudio.command` from Terminal.
+4. The first launch downloads and builds the compatibility container; later launches reuse it. Once ready, your browser opens **`http://localhost:8470/`**. Keep Terminal open and press **Ctrl+C** to stop the Studio.
+
+The same editor, theme sharing, and **Build & Download USB ZIP** flow work on both platforms. Saved themes and builds stay in the project folder, including after the container stops. To run without the launcher: `docker compose up --build --detach --wait`; open the URL above and stop with `docker compose down`.
+
+The Mac container runs Linux x64 under Docker's emulation on Apple Silicon. It packages the checked-in base APK; rebuilding Android Java source still uses the Windows development toolchain. Windows launches continue to use `Start-ThemeStudio.bat` without Docker.
+
+**Fonts and rendering:** Mac-generated text uses bundled open-source font substitutes, so rasterized labels can differ from Windows. The Bahnschrift, Consolas, Trebuchet, and Impact choices require Windows; on Mac, select Stock OEM or upload a licensed `.ttf`/`.otf` file. The renderer currently requires the legacy System.Drawing.Common 6 Unix compatibility assembly with libgdiplus inside the container; this is an unsupported compatibility path, isolated to a service published on `127.0.0.1`. Current .NET versions [support System.Drawing.Common only on Windows](https://learn.microsoft.com/en-us/dotnet/core/compatibility/core-libraries/7.0/system-drawing).
+
 ### 2. Importing a Shared `.gen5wtheme` File (e.g., `LCARS1.gen5wtheme`)
 1. Download **`LCARS1.gen5wtheme`** (available on the **[Releases](../../releases)** page) or any `.gen5wtheme` file shared by another user.
 2. In the top bar of the Theme Studio browser window, click **`📥 Import`** and select the `.gen5wtheme` file.
@@ -111,6 +124,8 @@ If you just want to try the pre-made **LCARS** theme on your NEMESIS-equipped ca
 ```text
 Gen5W-Theme-Studio/
  ├── Start-ThemeStudio.bat              # Double-click launcher for Windows 10/11
+ ├── Start-ThemeStudio.command          # macOS launcher (requires Docker Desktop)
+ ├── Dockerfile / compose.yaml          # Mac rendering and packaging environment
  ├── THIRD_PARTY_LICENSES.txt           # Open-source license notices (libwebp BSD-3, zipalign Apache-2.0)
  ├── studio/
  │    └── index.html                    # Browser-based 1920x720 WYSIWYG Theme Studio UI
@@ -132,6 +147,17 @@ Gen5W-Theme-Studio/
       ├── layout-base-patches.txt       # Binary XML byte-offset patch table (zero OEM XML files distributed)
       └── all-app-icons.txt             # Canonical Gen5W app icon resource name table
 ```
+
+---
+
+## Development checks
+
+From a repository checkout, the smoke test runs against a temporary project copy, leaving saved themes untouched. It exercises startup, PNG/JPEG/WebP and font uploads, save/import/export, multi-theme USB generation, APK signatures, and alignment.
+
+- Windows: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/smoke-test.ps1`
+- Mac: `docker compose run --build --rm --no-deps --entrypoint pwsh studio -NoProfile -File tests/smoke-test.ps1`
+
+Create feature branches from `main` and open PRs back to `main`. The included CI runs the smoke test on Windows and in the Mac compatibility container.
 
 ---
 

@@ -8,7 +8,9 @@ $ErrorActionPreference = "Stop"
 
 $rootDir = Split-Path -Parent $PSScriptRoot
 $cwebp = Join-Path $rootDir "tools\cwebp.exe"
-if (-not (Test-Path $cwebp)) {
+if ($PSVersionTable.Platform -eq "Unix") {
+    $cwebp = (Get-Command cwebp -ErrorAction Stop).Source
+} elseif (-not (Test-Path $cwebp)) {
     $cwebp = Join-Path $rootDir ".build-tools\webp\cwebp.exe"
 }
 $nightIconsFile = Join-Path $rootDir "tools\night-icons.txt"
@@ -38,7 +40,13 @@ Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 
 if (-not ("AlphaFadeHelper" -as [type])) {
-    Add-Type -ReferencedAssemblies "System.Drawing" -TypeDefinition @"
+    $drawingOptions = @{ ReferencedAssemblies = @("System.Drawing") }
+    if ($PSVersionTable.PSEdition -eq "Core") {
+        $drawingOptions.ReferencedAssemblies = @("System.Drawing", "System.Drawing.Common", "System.Drawing.Primitives", "System.Runtime", "System.Runtime.InteropServices")
+        # Drawing 6 intentionally runs on the container's newer .NET runtime.
+        $drawingOptions.CompilerOptions = @("/nowarn:1701")
+    }
+    Add-Type @drawingOptions -TypeDefinition @"
 using System;
 using System.Drawing;
 using System.Drawing.Imaging;
@@ -157,6 +165,7 @@ function Save-WebpOrPng {
         $tmpPng = Join-Path $tempPngDir ([Guid]::NewGuid().ToString("N") + ".png")
         $Bitmap.Save($tmpPng, [System.Drawing.Imaging.ImageFormat]::Png)
         & $cwebp -quiet -lossless -z 6 $tmpPng -o $fullOut | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "WebP encoding failed: $RelPath" }
         Remove-Item -Force $tmpPng -ErrorAction SilentlyContinue
     }
 }
@@ -495,7 +504,7 @@ $utf8NoBomInit = New-Object System.Text.UTF8Encoding($false)
 $fontFamilyChoice = if ($null -ne $hsCfg -and $hsCfg.fontFamily) { [string]$hsCfg.fontFamily } else { "oem" }
 $script:ResolvedThemeFontFile = ""
 $script:GdiTileFontName = "Segoe UI"
-$winFontsDir = Join-Path $env:WINDIR "Fonts"
+$winFontsDir = if ($env:WINDIR) { Join-Path $env:WINDIR "Fonts" } else { "/usr/share/fonts/truetype" }
 switch ($fontFamilyChoice) {
     "bahnschrift" {
         $script:GdiTileFontName = "Bahnschrift"
@@ -525,6 +534,10 @@ switch ($fontFamilyChoice) {
             if (Test-Path $cand) { $script:ResolvedThemeFontFile = $cand }
         }
     }
+}
+
+if ($PSVersionTable.Platform -eq "Unix" -and $fontFamilyChoice -in @("bahnschrift", "consolas", "trebuchet", "impact")) {
+    throw "The '$fontFamilyChoice' font requires Windows. Choose Stock OEM or upload a licensed .TTF/.OTF font in Theme Studio on Mac."
 }
 
 if ($script:ResolvedThemeFontFile -and (Test-Path $script:ResolvedThemeFontFile)) {

@@ -1,0 +1,14 @@
+services:
+  studio:
+    build: .
+    platform: linux/amd64
+    ports:
+      - "127.0.0.1:8470:8470"
+    volumes:
+      - .:/workspace
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8470/api/themes"]
+      interval: 5s
+      timeout: 5s
+      start_period: 20s
+      retries: 12

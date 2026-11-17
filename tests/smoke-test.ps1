@@ -9,7 +9,7 @@ function Assert($condition, [string]$message) {
     if (-not $condition) { throw $message }
 }
 function Post([string]$path, $body) {
-    Invoke-RestMethod "http://localhost:18470$path" -Method Post -ContentType "application/json" -Body ($body | ConvertTo-Json -Depth 20) -TimeoutSec 180
+    Invoke-RestMethod "http://127.0.0.1:18470$path" -Method Post -ContentType "application/json" -Body ($body | ConvertTo-Json -Depth 20) -TimeoutSec 180
 }
 try {
     New-Item -ItemType Directory -Path $work | Out-Null
@@ -25,17 +25,17 @@ try {
     $ready = $false
     for ($i = 0; $i -lt 40; $i++) {
         try {
-            $themes = Invoke-RestMethod "http://localhost:18470/api/themes" -TimeoutSec 2
+            $themes = Invoke-RestMethod "http://127.0.0.1:18470/api/themes" -TimeoutSec 2
             $ready = $true
             break
-        } catch { Start-Sleep -Milliseconds 500 }
+        } catch { $startupError = $_; Start-Sleep -Milliseconds 500 }
         if ($server.HasExited) { throw "Studio exited during startup" }
     }
-    Assert $ready "Studio did not start"
+    Assert $ready "Studio did not start: $startupError"
     Assert ($themes.activeTheme -eq "stock-oem") "Wrong default theme"
-    $page = Invoke-WebRequest "http://localhost:18470/" -UseBasicParsing
+    $page = Invoke-WebRequest "http://127.0.0.1:18470/" -UseBasicParsing
     Assert ($page.Content -match "Theme Studio") "Studio HTML did not load"
-    $cfg = Invoke-RestMethod "http://localhost:18470/api/config"
+    $cfg = Invoke-RestMethod "http://127.0.0.1:18470/api/config"
     $created = Post "/api/themes/create" @{ name = "Mac Smoke"; config = $cfg }
     Assert $created.ok "Theme creation failed"
     $id = $created.activeTheme
@@ -75,14 +75,14 @@ try {
     $saved = Post "/api/save-config" $cfg
     Assert $saved.ok "Save failed"
     $pack = Join-Path $work "export.gen5wtheme"
-    Invoke-WebRequest "http://localhost:18470/api/themes/export" -UseBasicParsing -OutFile $pack
+    Invoke-WebRequest "http://127.0.0.1:18470/api/themes/export" -UseBasicParsing -OutFile $pack
     $imported = Post "/api/themes/import" @{ dataUrl = [Convert]::ToBase64String([System.IO.File]::ReadAllBytes($pack)) }
     Assert ($imported.ok -and $imported.activeTheme -ne $id -and $imported.assetsExtracted -eq 4) "Theme round trip failed"
 
     $built = Post "/api/build-and-deploy" @{ config = $imported.config; selectedThemes = @($id, $imported.activeTheme) }
     Assert $built.ok "USB build failed"
     $usb = Join-Path $work "usb.zip"
-    Invoke-WebRequest ("http://localhost:18470" + $built.downloadUrl) -UseBasicParsing -OutFile $usb
+    Invoke-WebRequest ("http://127.0.0.1:18470" + $built.downloadUrl) -UseBasicParsing -OutFile $usb
     $zip = [System.IO.Compression.ZipFile]::OpenRead($usb)
     try {
         Assert ($null -ne $zip.GetEntry("NEMESIS.data")) "USB descriptor missing"

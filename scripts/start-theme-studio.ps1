@@ -98,10 +98,13 @@ $ActiveIdFile  = Join-Path $ThemesDir "active-theme.txt"
 $CustomDir     = Join-Path $StudioDir "custom-assets"
 $ConfigPath    = Join-Path $StudioDir "theme-config.json"
 $DwebpExe      = Join-Path $ProjectRoot "tools\dwebp.exe"
-if (-not (Test-Path $DwebpExe)) {
+if ($PSVersionTable.Platform -eq "Unix") {
+    $DwebpExe = (Get-Command dwebp -ErrorAction Stop).Source
+} elseif (-not (Test-Path $DwebpExe)) {
     $DwebpExe = Join-Path $ProjectRoot ".build-tools\webp\libwebp-1.4.0-windows-x64\bin\dwebp.exe"
 }
 $Utf8NoBom     = New-Object System.Text.UTF8Encoding($false)
+$PowerShellExe = (Get-Process -Id $PID).Path
 
 New-Item -ItemType Directory -Force -Path $ThemesDir | Out-Null
 New-Item -ItemType Directory -Force -Path $CustomDir | Out-Null
@@ -165,7 +168,7 @@ function Get-ThemesList {
 $initId = Get-ActiveThemeId
 Sync-ActiveThemeToWorking $initId
 
-Add-Type -ReferencedAssemblies "System.dll", "System.Web.dll" -TypeDefinition @"
+Add-Type -TypeDefinition @"
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
@@ -763,6 +766,7 @@ try {
                         $TmpWebp = Join-Path $actAssetsDir "$SlotKey.tmp.webp"
                         [System.IO.File]::WriteAllBytes($TmpWebp, $Bytes)
                         & $DwebpExe -quiet $TmpWebp -o $OutPng
+                        if ($LASTEXITCODE -ne 0) { throw "WebP image conversion failed" }
                         Remove-Item $TmpWebp -Force -ErrorAction SilentlyContinue
                     } elseif ($ImgFmt -eq "png") {
                         [System.IO.File]::WriteAllBytes($OutPng, $Bytes)
@@ -847,7 +851,7 @@ try {
                     $tDispName = if ($tParsed.themeName) { [string]$tParsed.themeName } else { $tid }
 
                     Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Generating theme '$tDispName' ($tid)..." -ForegroundColor Yellow
-                    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $GenScript -ConfigPath $tCfgFile -CustomAssetsDir $tAssDir -OutputSubdir $tid
+                    & $PowerShellExe -NoProfile -ExecutionPolicy Bypass -File $GenScript -ConfigPath $tCfgFile -CustomAssetsDir $tAssDir -OutputSubdir $tid
                     if ($LASTEXITCODE -ne 0) { throw "generate-lcars-theme.ps1 failed for theme '$tid'" }
 
                     $IndexLines += "$tid|$tDispName"
@@ -862,7 +866,7 @@ try {
                 [System.IO.File]::WriteAllLines((Join-Path $AppThemesRoot "themes-index.txt"), $IndexLines, $Utf8NoBom)
 
                 Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Packaging $($IndexLines.Count) theme(s) into Gen5WThemer.apk..." -ForegroundColor Yellow
-                & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $BuildScript
+                & $PowerShellExe -NoProfile -ExecutionPolicy Bypass -File $BuildScript
                 if ($LASTEXITCODE -ne 0) { throw "build-nemesis-package.ps1 failed" }
 
                 $ZipFileName = if ($IndexLines.Count -gt 1) { "Gen5W-MultiTheme-Pack-$($IndexLines.Count)Themes-USB.zip" } else { "Gen5W-Theme-$($BuiltIds[0])-USB.zip" }

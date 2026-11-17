@@ -1,5 +1,12 @@
 # Changelog — Gen5W Theme Studio & Safe RAM Launcher Themer
 
+## Unreleased
+
+- Added a macOS launcher using Docker Desktop for Intel and Apple Silicon, with persistent themes and USB builds.
+- Reused the existing Windows renderer and packaging scripts with Linux image tools and a legacy Drawing compatibility assembly; Windows launches still run directly.
+- Included Mac launch files in redistributables and added an isolated Windows/container smoke test with PR checks.
+- Documented font substitutions, the Windows-only font choices, and the Mac base-APK build limitation.
+
 ## [v1.1.2] — 2026-11-13
 
 ### 🔧 Fixes & In-Car Improvements

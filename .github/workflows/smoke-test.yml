@@ -1,0 +1,16 @@
+name: Theme Studio smoke test
+on: [push, pull_request]
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Test Windows launcher backend and USB build
+        shell: powershell
+        run: ./tests/smoke-test.ps1
+  mac-container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Test Mac compatibility runtime and USB build
+        run: docker compose run --build --rm --no-deps --entrypoint pwsh studio -NoProfile -File tests/smoke-test.ps1

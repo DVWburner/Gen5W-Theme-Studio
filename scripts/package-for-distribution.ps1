@@ -24,7 +24,7 @@ New-Item -ItemType Directory -Force -Path $StageDir | Out-Null
 Write-Host "==> Staging clean redistributable package in $StageDir..." -ForegroundColor Cyan
 
 # 1. Root files
-foreach ($rootFile in @("Start-ThemeStudio.bat", "README-INSTRUCTIONS.txt", "README.md", "CHANGELOG.md", "THIRD_PARTY_LICENSES.txt")) {
+foreach ($rootFile in @("Start-ThemeStudio.bat", "Start-ThemeStudio.command", "Dockerfile", ".dockerignore", "compose.yaml", "README-INSTRUCTIONS.txt", "README.md", "CHANGELOG.md", "THIRD_PARTY_LICENSES.txt")) {
     $rPath = Join-Path $ProjectRoot $rootFile
     if (Test-Path $rPath) {
         Copy-Item $rPath (Join-Path $StageDir $rootFile) -Force
@@ -66,7 +66,19 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 New-Item -ItemType Directory -Force -Path (Join-Path $StageDir "dist") | Out-Null
 
 Write-Host "==> Compressing to $OutZip..." -ForegroundColor Cyan
-[System.IO.Compression.ZipFile]::CreateFromDirectory((Join-Path $ProjectRoot "build\redist_stage"), $OutZip, [System.IO.Compression.CompressionLevel]::Optimal, $false)
+$StageRoot = Split-Path -Parent $StageDir
+$Archive = [System.IO.Compression.ZipFile]::Open($OutZip, [System.IO.Compression.ZipArchiveMode]::Create)
+try {
+    # Windows PowerShell's ZIP helper can emit backslashes, which break extraction on Mac.
+    foreach ($item in (Get-ChildItem $StageRoot -Recurse -Force)) {
+        $relative = $item.FullName.Substring($StageRoot.Length + 1).Replace('\', '/')
+        if ($item.PSIsContainer) {
+            $Archive.CreateEntry("$relative/") | Out-Null
+        } else {
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($Archive, $item.FullName, $relative, [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+        }
+    }
+} finally { $Archive.Dispose() }
 
 Remove-Item (Join-Path $ProjectRoot "build\redist_stage") -Recurse -Force
 $zipSizeMB = [math]::Round(((Get-Item $OutZip).Length / 1MB), 2)

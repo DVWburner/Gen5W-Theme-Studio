@@ -25,7 +25,9 @@ New-Item -ItemType Directory -Force -Path $DistDir | Out-Null
 New-Item -ItemType Directory -Force -Path $AssetsDir | Out-Null
 
 $ZipalignExe = Join-Path $ToolsDir "zipalign.exe"
-if (-not (Test-Path $ZipalignExe)) {
+if ($PSVersionTable.Platform -eq "Unix") {
+    $ZipalignExe = (Get-Command zipalign -ErrorAction Stop).Source
+} elseif (-not (Test-Path $ZipalignExe)) {
     $ZipalignExe = Get-ChildItem -Path (Join-Path $SdkDir "build-tools") -Recurse -Filter "zipalign.exe" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
 }
 
@@ -137,7 +139,7 @@ $UnsignedApk = Join-Path $BuildOut "Gen5WThemer-unsigned.apk"
 if (Test-Path $UnsignedApk) { Remove-Item $UnsignedApk -Force }
 
 # Check if full JDK + Android SDK are available (dev machine) or if we should use the prebuilt base APK shell
-$JavacExe = if (Test-Path $JdkDir) { Get-ChildItem -Path $JdkDir -Recurse -Filter "javac.exe" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName } else { $null }
+$JavacExe = if ($PSVersionTable.Platform -ne "Unix" -and (Test-Path $JdkDir)) { Get-ChildItem -Path $JdkDir -Recurse -Filter "javac.exe" -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName } else { $null }
 $AndroidJar = Join-Path $SdkDir "platforms\android-28\android.jar"
 
 if ($JavacExe -and (Test-Path $AndroidJar)) {

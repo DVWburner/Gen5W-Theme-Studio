@@ -44,13 +44,24 @@ SAFETY ARCHITECTURE (RAM-ONLY OVERLAY)
 
 
 ================================================================================
-PART 1: DESIGNING OR IMPORTING A THEME ON YOUR WINDOWS PC
+PART 1: DESIGNING OR IMPORTING A THEME ON WINDOWS OR MAC
 ================================================================================
 
 1. No extra software (no Java or Android SDK) is required on Windows 10 or 11.
 2. Double-click `Start-ThemeStudio.bat` in this folder.
    - A local web server will start and automatically open `http://localhost:8470/`
      in your browser. (Keep the PowerShell window open while using the Studio.)
+
+On macOS (Intel or Apple Silicon), install and start Docker Desktop for Mac,
+then double-click `Start-ThemeStudio.command` instead. If necessary, run
+`bash Start-ThemeStudio.command` from Terminal in this folder. The first launch
+downloads the compatibility environment. Keep Terminal open; Ctrl+C stops it.
+Themes and USB ZIP builds are saved in this folder and survive shutdown.
+Older Windows-only releases do not include this launcher. Mac rendering uses
+open-source font substitutes; for home fonts choose Stock OEM or upload a
+licensed TTF/OTF instead of the Windows-only built-in font choices.
+See README.md for the rendering compatibility limits and developer checks.
+
 3. Importing / Exporting Community Themes (`.gen5wtheme`):
    - Click `Import` in the top bar to load a downloaded `.gen5wtheme` pack.
    - Click `Export` in the top bar to package your active theme (including all

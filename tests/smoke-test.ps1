@@ -127,6 +127,7 @@ try {
     Assert ($LASTEXITCODE -eq 0) "Redistributable packaging failed"
     $zip = [System.IO.Compression.ZipFile]::OpenRead((Join-Path $work "Gen5W-Theme-Studio-Redistributable.zip"))
     try {
+        Assert (-not @($zip.Entries | Where-Object { $_.FullName.Contains('\') }).Count) "Redistributable contains Windows separators"
         foreach ($file in @("Start-ThemeStudio.command", "Dockerfile", ".dockerignore", "compose.yaml")) {
             Assert ($null -ne $zip.GetEntry("Gen5WThemeStudio/$file")) "Redistributable missing $file"
         }

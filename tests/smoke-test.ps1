@@ -131,6 +131,8 @@ try {
         foreach ($file in @("Start-ThemeStudio.command", "Dockerfile", ".dockerignore", "compose.yaml")) {
             Assert ($null -ne $zip.GetEntry("Gen5WThemeStudio/$file")) "Redistributable missing $file"
         }
+        $reader = New-Object System.IO.StreamReader($zip.GetEntry("Gen5WThemeStudio/Start-ThemeStudio.command").Open())
+        try { Assert (-not $reader.ReadToEnd().Contains("`r")) "Mac launcher must use Unix line endings" } finally { $reader.Dispose() }
     } finally { $zip.Dispose() }
     Write-Host "PASS: startup, theme save/import/export, PNG/JPEG/WebP/font upload, multi-theme USB build, APK signature/alignment, redistributable."
 } catch {
